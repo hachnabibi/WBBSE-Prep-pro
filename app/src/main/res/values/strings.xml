@@ -1,0 +1,181 @@
+<resources>
+    <!-- App Platform & Identity -->
+    <string name="app_name" translatable="false">WBBSE Prep</string>
+    <string name="app_tagline">স্মার্ট মাধ্যমিক পরীক্ষা প্রস্তুতি ও মূল্যায়ন</string>
+
+    <!-- Navigation & Bottom Bar -->
+    <string name="nav_home">হোম</string>
+    <string name="nav_roadmap">রোডম্যাপ</string>
+    <string name="nav_mock">মক টেস্ট</string>
+    <string name="nav_rank">র‌্যাঙ্ক</string>
+    <string name="nav_coach">এআই কোচ</string>
+    <string name="nav_profile">প্রোফাইল</string>
+    <string name="nav_wallet">ওয়ালেট ও কয়েন</string>
+    <string name="nav_settings">অ্যাপ সেটিংস</string>
+    <string name="nav_admin_panel">ফায়ারবেস অ্যাডমিন</string>
+    <string name="nav_pdf_notes">সাজেশন ও নোটস</string>
+    <string name="nav_live_quiz">লাইভ কুইজ</string>
+
+    <!-- General Common Labels -->
+    <string name="action_save">সংরক্ষণ করুন</string>
+    <string name="action_cancel">বাতিল করুন</string>
+    <string name="action_delete">মুছে ফেলুন</string>
+    <string name="action_confirm">নিশ্চিত করুন</string>
+    <string name="action_edit">সম্পাদনা</string>
+    <string name="action_submit">জমা দিন</string>
+    <string name="action_retry">পুনরায় চেষ্টা করুন</string>
+    <string name="action_close">বন্ধ করুন</string>
+    <string name="action_back">ফিরে যান</string>
+    <string name="action_next">পরবর্তী</string>
+    <string name="action_previous">পূর্ববর্তী</string>
+    <string name="action_search">অনুসন্ধান করুন</string>
+    <string name="action_sync">ডেটা সিঙ্ক করুন</string>
+    <string name="action_download">ডাউনলোড</string>
+    <string name="action_share">শেয়ার করুন</string>
+    <string name="action_view_all">সবগুলো দেখুন</string>
+    <string name="action_start_test">পরীক্ষা শুরু করুন</string>
+    <string name="action_resume">পুনরায় শুরু করুন</string>
+    <string name="action_finish">সমাপ্ত করুন</string>
+
+    <!-- Multiple Choice Options -->
+    <string name="option_a">অপশন ক</string>
+    <string name="option_b">অপশন খ</string>
+    <string name="option_c">অপশন গ</string>
+    <string name="option_d">অপশন ঘ</string>
+    <string name="correct_answer">সঠিক উত্তর</string>
+    <string name="wrong_answer">ভুল উত্তর</string>
+    <string name="explanation_title">ব্যাখ্যা ও সমাধান</string>
+
+    <!-- Difficulty Levels -->
+    <string name="difficulty_easy">সহজ</string>
+    <string name="difficulty_medium">মাঝারি</string>
+    <string name="difficulty_hard">কঠিন</string>
+
+    <!-- Home & Dashboard Screen -->
+    <string name="home_greeting">নমস্কার, পরীক্ষার্থী!</string>
+    <string name="home_daily_streak">ধারাবাহিকতা (Streak)</string>
+    <string name="home_total_xp">মোট অর্জিত পয়েন্ট (XP)</string>
+    <string name="home_current_level">বর্তমান লেভেল</string>
+    <string name="home_daily_challenge">আজকের চ্যালেঞ্জ</string>
+    <string name="home_quick_practice">দ্রুত অনুশীলন</string>
+    <string name="home_subject_title">মাধ্যমিক বিষয়সমূহ</string>
+    <string name="home_progress_overview">সামগ্রিক অগ্রগতি</string>
+    <string name="home_recent_tests">সাম্প্রতিক টেস্টের ফলাফল</string>
+
+    <!-- Subject Names -->
+    <string name="subject_bengali">প্রথম ভাষা বাংলা</string>
+    <string name="subject_english">ইংরেজি</string>
+    <string name="subject_mathematics">গণিত</string>
+    <string name="subject_physical_science">ভৌতবিজ্ঞান</string>
+    <string name="subject_life_science">জীবনবিজ্ঞান</string>
+    <string name="subject_history">ইতিহাস</string>
+    <string name="subject_geography">ভূগোল</string>
+
+    <!-- Assessment & Quiz Engine -->
+    <string name="quiz_question_number">প্রশ্ন নং</string>
+    <string name="quiz_time_left">বাকি সময়</string>
+    <string name="quiz_submit_confirm_title">পরীক্ষা জমা দিতে চান?</string>
+    <string name="quiz_submit_confirm_msg">আপনি কি নিশ্চিত যে আপনার সমস্ত উত্তর জমা দিতে চান?</string>
+    <string name="quiz_result_title">পরীক্ষার ফলাফল</string>
+    <string name="quiz_score_card">প্রাপ্ত নম্বর</string>
+    <string name="quiz_accuracy">সঠিকতার হার</string>
+    <string name="quiz_total_questions">মোট প্রশ্ন</string>
+    <string name="quiz_correct_count">সঠিক উত্তর</string>
+    <string name="quiz_wrong_count">ভুল উত্তর</string>
+    <string name="quiz_unanswered_count">উত্তর না দেওয়া</string>
+    <string name="quiz_review_answers">উত্তর পর্যালোচনা করুন</string>
+    <string name="quiz_retake">আবার পরীক্ষা দিন</string>
+
+    <!-- Boss Battles & Gamification -->
+    <string name="boss_battle_title">অধ্যায় বস ব্যাটল</string>
+    <string name="boss_battle_subtitle">চ্যালেঞ্জ জয় করে পরবর্তী অধ্যায় আনলক করুন</string>
+    <string name="boss_health">বসের শক্তি</string>
+    <string name="player_health">আপনার লাইফ</string>
+    <string name="battle_victory">অভিনন্দন! আপনি বিজয়ী হয়েছেন 🎉</string>
+    <string name="battle_defeat">পরাজয়! আবার অনুশীলন করে চেষ্টা করুন ⚔️</string>
+    <string name="level_up_congrats">লেভেল আপ! আপনি নতুন ব্যাজ অর্জন করেছেন</string>
+
+    <!-- Mock Tests & PYQ -->
+    <string name="mock_tests_title">পূর্ণাঙ্গ মক টেস্ট</string>
+    <string name="mock_duration">সময়সীমা</string>
+    <string name="mock_full_marks">মোট নম্বর</string>
+    <string name="mock_pass_marks">উত্তীর্ণ নম্বর</string>
+    <string name="mock_pyq_title">বিগত বছরের প্রশ্নপত্র (PYQ)</string>
+    <string name="mock_year_2025">মাধ্যমিক ২০২৫</string>
+    <string name="mock_year_2024">মাধ্যমিক ২০২৪</string>
+    <string name="mock_year_2023">মাধ্যমিক ২০২৩</string>
+    <string name="mock_year_2022">মাধ্যমিক ২০২২</string>
+
+    <!-- Leaderboard & Ranking -->
+    <string name="leaderboard_title">পশ্চিমবঙ্গ মেধা তালিকা</string>
+    <string name="leaderboard_tab_state">সমগ্র রাজ্য</string>
+    <string name="leaderboard_tab_district">নিজ জেলা</string>
+    <string name="leaderboard_tab_school">নিজ বিদ্যালয়</string>
+    <string name="leaderboard_rank_col">র‌্যাঙ্ক</string>
+    <string name="leaderboard_student_col">শিক্ষার্থী</string>
+    <string name="leaderboard_xp_col">পয়েন্ট</string>
+    <string name="leaderboard_empty">এখনো কোনো মেধা তালিকা তৈরি হয়নি। পরীক্ষা দিয়ে তালিকায় যুক্ত হন!</string>
+
+    <!-- AI Study Coach -->
+    <string name="coach_title">এআই পড়াশোনা সহায়িকা</string>
+    <string name="coach_subtitle">মাধ্যমিকের যেকোনো প্রশ্নের সহজ বাংলা সমাধান জানুন</string>
+    <string name="coach_input_placeholder">যেকোনো প্রশ্ন বা বিষয় লিখুন...</string>
+    <string name="coach_send">জিজ্ঞাসা করুন</string>
+    <string name="coach_thinking">সমাধান তৈরি হচ্ছে...</string>
+
+    <!-- Admin Panel Labels -->
+    <string name="admin_header_title">ফায়ারবেস ব্যাকএন্ড অ্যাডমিন প্যানেল</string>
+    <string name="admin_tab_sync">সিঙ্ক</string>
+    <string name="admin_tab_add_question">প্রশ্ন যোগ</string>
+    <string name="admin_tab_question_cms">প্রশ্ন ব্যবস্থাপনা</string>
+    <string name="admin_tab_custom_test">কাস্টম টেস্ট</string>
+    <string name="admin_tab_structured_test">স্ট্রাকচার্ড টেস্ট</string>
+    <string name="admin_tab_test_cms">টেস্ট ব্যবস্থাপনা</string>
+    <string name="admin_tab_bulk_import">একসাথে আপলোড</string>
+
+    <string name="admin_select_class">১. শ্রেণি নির্বাচন করুন:</string>
+    <string name="admin_select_subject">২. বিষয় নির্বাচন করুন:</string>
+    <string name="admin_select_chapter">৩. অধ্যায় নির্বাচন করুন:</string>
+    <string name="admin_select_topic">৪. টপিক নির্বাচন করুন:</string>
+    <string name="admin_select_board_year">৫. বোর্ড পরীক্ষার সাল নির্বাচন করুন:</string>
+    <string name="admin_question_id">৬. প্রশ্নের ইউনিক আইডি:</string>
+    <string name="admin_question_text">৭. প্রশ্নের বিবরণ লিখুন:</string>
+    <string name="admin_option_inputs">৮. ৪টি বিকল্প অপশন লিখুন:</string>
+    <string name="admin_select_correct_opt">৯. সঠিক উত্তর নির্বাচন করুন:</string>
+    <string name="admin_difficulty_level">১০. প্রশ্নের কঠিনতার মাত্রা:</string>
+    <string name="admin_explanation">১১. ব্যাখ্যা ও সমাধান (ঐচ্ছিক):</string>
+    <string name="admin_save_question_btn">🚀 ফায়ারবেস ক্লাউডে প্রশ্ন সেভ করুন</string>
+    <string name="admin_sync_all_btn">⚡ সম্পূর্ণ ডেটাবেস এক ক্লিকে সিঙ্ক করুন</string>
+    <string name="admin_delete_confirm_title">প্রশ্ন মুছে ফেলতে চান?</string>
+    <string name="admin_delete_confirm_msg">আপনি কি নিশ্চিত যে এই প্রশ্নটি ফায়ারবেস থেকে স্থায়ীভাবে মুছে ফেলতে চান?</string>
+
+    <!-- Settings & Profile -->
+    <string name="settings_title">অ্যাপ সেটিংস ও সুবিধা</string>
+    <string name="settings_display_section">ডিসপ্লে ও টেক্সট ভিজিবিলিটি</string>
+    <string name="settings_font_size">ফন্ট সাইজ ও লেখার স্পষ্টতা</string>
+    <string name="settings_dark_theme">ডার্ক মোড (অন্ধকার থিম)</string>
+    <string name="settings_sound_fx">শব্দ প্রভাব (Sound FX)</string>
+    <string name="settings_notifications">দৈনিক পরীক্ষার নোটিফিকেশন</string>
+    <string name="settings_language">ভাষা নির্বাচন (Language)</string>
+    <string name="settings_bengali">বাংলা (Bengali)</string>
+    <string name="settings_english">ইংরেজি (English)</string>
+    <string name="settings_district_school">জেলা ও বিদ্যালয় নির্বাচন</string>
+    <string name="settings_about_app">অ্যাপ সম্পর্কে</string>
+    <string name="settings_app_version">ভার্সন: ২.৫.০ (WBBSE Madhyamik)</string>
+
+    <!-- Pro Membership -->
+    <string name="pro_title">WBBSE Prep প্রো মেম্বারশিপ</string>
+    <string name="pro_feature_1">✓ আনলিমিটেড মক টেস্ট ও চ্যাপ্টার ব্যাটল</string>
+    <string name="pro_feature_2">✓ সম্পূর্ণ অফলাইন মোড ও পিডিএফ ডাউনলোড</string>
+    <string name="pro_feature_3">✓ বিশেষজ্ঞ শিক্ষক দ্বারা তৈরি বিশেষ লাস্ট মিনিট সাজেশন</string>
+    <string name="pro_activate_btn">🚀 প্রো মেম্বারশিপ সক্রিয় করুন</string>
+
+    <!-- Status Messages & Toasts -->
+    <string name="msg_sync_success">ডেটাবেস সফলভাবে সিঙ্ক সম্পন্ন হয়েছে!</string>
+    <string name="msg_sync_error">সিঙ্ক করতে ত্রুটি দেখা দিয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।</string>
+    <string name="msg_question_added">প্রশ্নটি ফায়ারবেসে সফলভাবে সংরক্ষিত হয়েছে!</string>
+    <string name="msg_question_updated">প্রশ্নটি সফলভাবে আপডেট করা হয়েছে!</string>
+    <string name="msg_question_deleted">প্রশ্নটি ফায়ারবেস থেকে মুছে ফেলা হয়েছে।</string>
+    <string name="msg_test_created">নতুন টেস্ট সফলভাবে তৈরি হয়েছে!</string>
+    <string name="msg_test_deleted">টেস্টটি ফায়ারবেস থেকে মুছে ফেলা হয়েছে।</string>
+</resources>

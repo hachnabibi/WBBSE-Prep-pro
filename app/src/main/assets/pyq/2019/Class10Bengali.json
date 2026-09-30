@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2019_ben_1_1",
+    "year": 2019,
+    "subject": "BENGALI",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "তপনের লেখা গল্পের নাম কী ছিল?",
+    "marks": 1,
+    "options": [
+      "প্রথম দিন",
+      "শেষ দিন",
+      "ছুটির দিন",
+      "নতুন দিন"
+    ],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "প্রথম দিন",
+    "keyTips": "Demo tip for PYQ 2019",
+    "chapterName": "জ্ঞানচক্ষু"
+  }
+]

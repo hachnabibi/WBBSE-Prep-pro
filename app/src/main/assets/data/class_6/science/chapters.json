@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c6_sci_ch1",
+    "subjectId": "class_6_wbbse_science",
+    "chapterNumber": 1,
+    "title": "পরিবেশের সজীব উপাদানের গঠন ও কাজ",
+    "description": "উদ্ভিদ ও প্রাণীর বিভিন্ন অঙ্গের গঠন, ফুল-ফল ও পরাগমিলন।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_6_wbbse"
+  },
+  {
+    "id": "c6_sci_ch2",
+    "subjectId": "class_6_wbbse_science",
+    "chapterNumber": 2,
+    "title": "মৌলিক, যৌগিক ও মিশ্র পদার্থ",
+    "description": "পদার্থের অবস্থা, পৃথকীকরণ পদ্ধতি এবং মৌল ও যৌগের পার্থক্য।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_6_wbbse"
+  }
+]

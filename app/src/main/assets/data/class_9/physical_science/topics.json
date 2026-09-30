@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c9_phy_t1",
+    "chapterId": "c9_phy_ch2",
+    "subjectId": "class_9_wbbse_physical_science",
+    "orderIndex": 1,
+    "title": "নিউটনের দ্বিতীয় গতিসূত্র ও F = ma",
+    "summary": "ভরবেগের পরিবর্তনের হার প্রযুক্ত বলের সমানুপাতিক।",
+    "keyPointsJson": "[\"বল = ভর × ত্বরণ (F = ma)\", \"এসআই একক নিউটন (N)\", \"১ N = ১০⁵ ডাইন\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 2,
+    "classId": "class_9_wbbse"
+  }
+]

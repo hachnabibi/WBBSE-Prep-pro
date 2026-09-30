@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2018_lifesci_1_1",
+    "year": 2018,
+    "subject": "LIFE_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "উদ্ভিদের ট্রপিক চলন নিয়ন্ত্রণকারী হরমোনটি হলো-",
+    "marks": 1,
+    "options": [
+      "অক্সিন",
+      "জিব্বেরেলিন",
+      "সাইটোকাইনিন",
+      "থাইরক্সিন"
+    ],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "অক্সিন",
+    "keyTips": "Demo tip for PYQ 2018",
+    "chapterName": "জীবজগতে নিয়ন্ত্রণ ও সমন্বয়"
+  }
+]

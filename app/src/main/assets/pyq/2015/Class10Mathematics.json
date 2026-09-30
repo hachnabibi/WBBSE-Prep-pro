@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2015_math_1_1",
+    "year": 2015,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "কোনো আসলের বার্ষিক সুদের হার r% এবং t বছরের সুদ I হলে, আসল (P) কত?",
+    "marks": 1,
+    "options": [
+      "I*r*t/100",
+      "100*I / (r*t)",
+      "100*r / (I*t)",
+      "100*t / (I*r)"
+    ],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "100*I / (r*t)",
+    "keyTips": "Demo tip for PYQ 2015",
+    "chapterName": "সরল সুদকষা"
+  }
+]

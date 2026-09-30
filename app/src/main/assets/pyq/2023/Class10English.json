@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2023_eng_1_1",
+    "year": 2023,
+    "subject": "ENGLISH",
+    "className": "Class 10",
+    "group": "Section A - Reading Comprehension (Seen)",
+    "question": "Swami realized with a shudder that it was -",
+    "marks": 1,
+    "options": [
+      "Friday morning",
+      "Monday morning",
+      "Wednesday morning",
+      "Thursday morning"
+    ],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "Monday morning",
+    "keyTips": "Demo tip for PYQ 2023",
+    "chapterName": "Father's Help"
+  }
+]

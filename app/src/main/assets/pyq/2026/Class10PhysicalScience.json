@@ -1,0 +1,58 @@
+[
+  {
+    "id": "pyq_2026_physci_1_1",
+    "year": 2026,
+    "subject": "PHYSICAL_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "বয়েলের সূত্রের ধ্রুবকগুলি হলো -",
+    "marks": 1,
+    "options": ["চাপ ও তাপমাত্রা", "ভর ও তাপমাত্রা", "ভর ও চাপ", "আয়তন ও তাপমাত্রা"],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "ভর ও তাপমাত্রা",
+    "keyTips": "বয়েলের সূত্রানুসারে স্থির উষ্ণতায় নির্দিষ্ট ভরের গ্যাসের আয়তন চাপের ব্যস্তানুপাতিক।",
+    "chapterName": "গ্যাসের আচরণ"
+  },
+  {
+    "id": "pyq_2026_physci_1_2",
+    "year": 2026,
+    "subject": "PHYSICAL_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "কোন মাধ্যমের পরম প্রতিসরাঙ্ক সর্বদা -",
+    "marks": 1,
+    "options": ["< 1", "= 1", "> 1", "0"],
+    "correctOptionIndex": 2,
+    "officialAnswerBengali": "> 1 (একের বেশি)",
+    "keyTips": "শূন্য মাধ্যমে আলোর বেগ যেকোনো মাধ্যমে আলোর বেগের চেয়ে বেশি, তাই পরম প্রতিসরাঙ্ক μ = c/v সর্বদা > 1 হয়।",
+    "chapterName": "আলো"
+  },
+  {
+    "id": "pyq_2026_physci_1_3",
+    "year": 2026,
+    "subject": "PHYSICAL_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "তড়িৎ আধানের এস.আই. (SI) এককটি কী?",
+    "marks": 1,
+    "options": ["কুলম্ব", "ভোল্ট", "অ্যাম্পিয়ার", "ওহম"],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "কুলম্ব (Coulomb)",
+    "keyTips": "তড়িৎপ্রবাহমাত্রা I = Q/t, সুতরাং আধান Q = I × t = অ্যাম্পিয়ার × সেকেন্ড = কুলম্ব।",
+    "chapterName": "চলতড়িৎ"
+  },
+  {
+    "id": "pyq_2026_physci_1_4",
+    "year": 2026,
+    "subject": "PHYSICAL_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "আধুনিক পর্যায় সূত্রের ভিত্তি হলো মৌলগুলির -",
+    "marks": 1,
+    "options": ["পারমাণবিক ভর", "পারমাণবিক সংখ্যা বা পরমাণু ক্রমাঙ্ক", "যোজ্যতা", "ঘনত্ব"],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "পারমাণবিক সংখ্যা বা পরমাণু ক্রমাঙ্ক (Atomic Number)",
+    "keyTips": "বিজ্ঞানী মোজলে প্রমাণ করেন মৌলের ভৌত ও রাসায়নিক ধর্ম তার পরমাণু ক্রমাঙ্ক অনুযায়ী পর্যায়ক্রমে আবর্তিত হয়।",
+    "chapterName": "পর্যায় সারণি ও মৌলদের ধর্মের পর্যায়বৃত্ততা"
+  }
+]

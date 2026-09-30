@@ -1,0 +1,62 @@
+[
+  {
+    "id": "c10_life_ch1",
+    "subjectId": "class_10_wbbse_life_science",
+    "chapterNumber": 1,
+    "title": "জীবজগতে নিয়ন্ত্রণ ও সমন্বয় (Control and Coordination in Living Organisms)",
+    "description": "উদ্ভিদ ও প্রাণীর সংবেদনশীলতা, চলন, উদ্ভিদ হরমোন, প্রাণী হরমোন, স্নায়ুতন্ত্র ও জ্ঞানেন্দ্রিয়।",
+    "estimatedMinutes": 50,
+    "weightagePercentage": 22,
+    "pyqCount": 28,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_life_ch2",
+    "subjectId": "class_10_wbbse_life_science",
+    "chapterNumber": 2,
+    "title": "জীবনের প্রবাহমানতা (Continuity of Life)",
+    "description": "কোষ বিভাজন, মাইটোসিস ও মিয়োসিস, অযৌন ও যৌন জনন, সপুষ্পক উদ্ভিদের যৌন জনন ও বৃদ্ধি-বিকাশ।",
+    "estimatedMinutes": 55,
+    "weightagePercentage": 22,
+    "pyqCount": 32,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_life_ch3",
+    "subjectId": "class_10_wbbse_life_science",
+    "chapterNumber": 3,
+    "title": "বংশগতি এবং কয়েকটি সাধারণ জিনগত রোগ (Heredity and Common Genetic Diseases)",
+    "description": "মেন্ডেলের একসংকর ও দ্বিসংকর জনন সূত্র, লিঙ্গ নির্ধারণ, থ্যালাসেমিয়া, হিমোফিলিয়া ও বর্ণান্ধতা।",
+    "estimatedMinutes": 45,
+    "weightagePercentage": 20,
+    "pyqCount": 25,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_life_ch4",
+    "subjectId": "class_10_wbbse_life_science",
+    "chapterNumber": 4,
+    "title": "অভিব্যক্তি ও অভিযোজন (Evolution and Adaptation)",
+    "description": "জীবের উৎপত্তি, ল্যামার্কবাদ, ডারউইনবাদ, অভিব্যক্তির প্রমাণ এবং ক্যাকটাস, রুইমাছ, সুন্দরী ও উটের অভিযোজন।",
+    "estimatedMinutes": 40,
+    "weightagePercentage": 18,
+    "pyqCount": 20,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_life_ch5",
+    "subjectId": "class_10_wbbse_life_science",
+    "chapterNumber": 5,
+    "title": "পরিবেশ, তার সম্পদ এবং তাদের সংরক্ষণ (Environment, its Resources and Conservation)",
+    "description": "নাইট্রোজেন চক্র, দূষণ, জীববৈচিত্র্য ও তার সংকট, সুন্দরবন ও জেএফএম (JFM) এবং জীববৈচিত্র্য সংরক্ষণ।",
+    "estimatedMinutes": 45,
+    "weightagePercentage": 18,
+    "pyqCount": 24,
+    "isCompleted": false,
+    "masteryLevel": 0
+  }
+]

@@ -1,0 +1,874 @@
+package com.example.ui.screens
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.data.local.ChapterEntity
+import com.example.data.local.QuestionEntity
+import com.example.data.local.SubjectEntity
+import com.example.data.local.TopicEntity
+import com.example.data.model.*
+import com.example.ui.components.ScreenHeaderBar
+import com.example.ui.theme.*
+
+private fun Int.toBengaliDigits(): String {
+    val bengaliDigits = charArrayOf('০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯')
+    return this.toString().map { if (it in '0'..'9') bengaliDigits[it - '0'] else it }.joinToString("")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubjectDetailScreen(
+    subject: SubjectEntity,
+    chapters: List<ChapterEntity>,
+    topics: List<TopicEntity>,
+    questions: List<QuestionEntity>,
+    isBengali: Boolean,
+    onBack: () -> Unit,
+    onOpenChapterDetail: (ChapterEntity) -> Unit,
+    onStartAssessment: (AssessmentMode, String, String) -> Unit,
+    onLearnTopic: (String, String) -> Unit,
+    getTestScore: ((String) -> Int)? = null,
+    modifier: Modifier = Modifier
+) {
+    BackHandler { onBack() }
+
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Chapters, 1: Tests, 2: PYQs, 3: Key Notes
+    val isDark = MaterialTheme.colorScheme.background.red < 0.3f
+    val subjectColor = Color(subject.colorHex)
+
+    val subjectCodeEnum = remember(subject.code) {
+        SubjectCode.values().find { it.id == subject.code } ?: SubjectCode.PHYSICAL_SCIENCE
+    }
+
+    val subjectTests = remember(subjectCodeEnum, subject, isBengali) {
+        AcademicTestSeriesProvider.getTestsForClassAndSubject(subject.classId, subjectCodeEnum)
+    }
+
+    val subjectPyqs = remember(questions, subject) {
+        questions.filter { it.subjectId == subject.id && it.pyqYear.isNotBlank() }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        ScreenHeaderBar(
+            title = if (isBengali) subject.name else subject.name,
+            subtitle = if (isBengali) {
+                if (subject.classId.contains("wbchse")) "WBCHSE বোর্ড সিলেবাস ও টেস্ট সিরিজ"
+                else "WBBSE বোর্ড সিলেবাস ও টেস্ট সিরিজ"
+            } else {
+                if (subject.classId.contains("wbchse")) "WBCHSE Board Syllabus & Tests"
+                else "WBBSE Board Syllabus & Tests"
+            },
+            isBengali = isBengali,
+            showBackButton = true,
+            onBack = onBack,
+            containerColor = subjectColor,
+            contentColor = Color.White
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 1. Hero Header Banner - Full Width with Zero Corner Radius (TopBar style)
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    subjectColor,
+                                    subjectColor.copy(alpha = 0.90f)
+                                )
+                            ),
+                            shape = RectangleShape
+                        )
+                        .padding(horizontal = 20.dp, vertical = 20.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color.White.copy(alpha = 0.25f)
+                            ) {
+                                Text(
+                                    text = if (isBengali) {
+                                        if (subject.classId.contains("wbchse")) "WBCHSE বোর্ড সিলেবাস"
+                                        else "WBBSE বোর্ড সিলেবাস"
+                                    } else {
+                                        if (subject.classId.contains("wbchse")) "WBCHSE Board Syllabus"
+                                        else "WBBSE Board Syllabus"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Stars,
+                                    contentDescription = "Mastery",
+                                    tint = ExamGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${subject.masteryPercentage}% প্রস্তুতি",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = subject.name,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            color = Color.White
+                        )
+
+                        if (!subject.textbookName.isNullOrBlank()) {
+                            Text(
+                                text = "পাঠ্যবই: ${subject.textbookName}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+
+                        // Mastery Progress Bar
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "সামগ্রিক মাস্টারী",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.92f)
+                                )
+                                Text(
+                                    text = "${subject.completedChapters}/${subject.totalChapters} অধ্যায় সম্পন্ন",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { subject.masteryPercentage / 100f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(CircleShape),
+                                color = ExamGold,
+                                trackColor = Color.White.copy(alpha = 0.35f)
+                            )
+                        }
+
+                        // Quick Stat Badges
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            StatMiniBadge(
+                                icon = Icons.AutoMirrored.Filled.MenuBook,
+                                label = "${subject.totalChapters}টি অধ্যায়"
+                            )
+                            StatMiniBadge(
+                                icon = Icons.AutoMirrored.Filled.Assignment,
+                                label = "${subjectTests.size}টি টেস্ট"
+                            )
+                            StatMiniBadge(
+                                icon = Icons.Default.HistoryEdu,
+                                label = "PYQs ১০ বছর"
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. Navigation Tab Chips
+            item {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val tabs = listOf(
+                        "📖 অধ্যায়সমূহ (${chapters.size})",
+                        "📝 ইউনিট ও মক টেস্ট (${subjectTests.size})",
+                        "📜 বিগত বছরের প্রশ্ন (${subjectPyqs.size})",
+                        "📄 সংক্ষেপ নোটস ও সুত্র"
+                    )
+
+                    items(tabs.size) { index ->
+                        val isSelected = selectedTab == index
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedTab = index },
+                            label = {
+                                Text(
+                                    text = tabs[index],
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                )
+                            },
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = if (isSelected) subjectColor else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = subjectColor,
+                                selectedLabelColor = Color.White,
+                                containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                                labelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                }
+            }
+
+            // 3. Tab Content
+            when (selectedTab) {
+                0 -> {
+                    // CHAPTERS LIST
+                    item {
+                        Text(
+                            text = "অধ্যায়ভিত্তিক রোডম্যাপ ও টপিকসমূহ",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    if (chapters.isEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "এই বিষয়ের অধ্যায় শীঘ্রই যুক্ত হচ্ছে।",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        items(chapters) { chapter ->
+                            val chTopics = topics.filter { it.chapterId == chapter.id }
+                            ChapterDetailCard(
+                                chapter = chapter,
+                                topicCount = chTopics.size,
+                                subjectColor = subjectColor,
+                                isBengali = isBengali,
+                                isDark = isDark,
+                                onOpenChapterDetails = {
+                                    onOpenChapterDetail(chapter)
+                                },
+                                onStartChapterPractice = {
+                                    onStartAssessment(
+                                        AssessmentMode.PRACTICE,
+                                        chapter.id,
+                                        chapter.title
+                                    )
+                                },
+                                onStartBossBattle = {
+                                    onStartAssessment(
+                                        AssessmentMode.BOSS_BATTLE,
+                                        chapter.id,
+                                        "🔥 অধ্যায় বস: ${chapter.title}"
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                1 -> {
+                    // SUBJECT TESTS
+                    item {
+                        Text(
+                            text = "${subject.name} - স্পেশাল টেস্ট সিরিজ",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    itemsIndexed(subjectTests) { testIdx, test ->
+                        val isMock = test.type == TestType.MOCK_TEST
+                        val prevTest = if (testIdx > 0) subjectTests[testIdx - 1] else null
+                        val prevScore = if (prevTest != null && getTestScore != null) getTestScore(prevTest.id) else 100
+                        val isUnlocked = testIdx == 0 || prevScore >= 60
+                        val myScore = if (getTestScore != null) getTestScore(test.id) else -1
+                        val isPassed = myScore >= 60
+
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = when {
+                                    !isUnlocked -> if (isDark) Color(0xFF131B2A) else Color(0xFFF1F5F9)
+                                    isPassed -> if (isDark) Color(0xFF0F2D1F) else Color(0xFFECFDF5)
+                                    isMock -> if (isDark) Color(0xFF2C2210) else Color(0xFFFFFBEB)
+                                    else -> if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                                }
+                            ),
+                            border = BorderStroke(
+                                width = if (isMock || isPassed) 1.5.dp else 1.dp,
+                                color = when {
+                                    !isUnlocked -> if (isDark) Color(0xFF243247) else Color(0xFFCBD5E1)
+                                    isPassed -> CorrectGreen
+                                    isMock -> ExamGold
+                                    else -> if (isDark) Color(0xFF334155) else subjectColor.copy(alpha = 0.3f)
+                                }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        colors = if (!isUnlocked) {
+                                                            listOf(Color.Gray, Color.DarkGray)
+                                                        } else if (isPassed) {
+                                                            listOf(Color(0xFF059669), Color(0xFF10B981))
+                                                        } else if (isMock) {
+                                                            listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                        } else {
+                                                            listOf(subjectColor, subjectColor.copy(alpha = 0.8f))
+                                                        }
+                                                    )
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = test.badgeLabel,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color.White
+                                            )
+                                        }
+
+                                        if (!isUnlocked) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "🔒 পূর্ববর্তী টেস্টে ৬০% প্রয়োজন",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, color = if (isDark) ExamGold else Color(0xFFD97706))
+                                            )
+                                        } else if (myScore >= 0) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "✓ স্কোর: $myScore%",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = if (isPassed) CorrectGreen else ExamGold)
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = test.title,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isUnlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+
+                                    Text(
+                                        text = test.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                if (isUnlocked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = if (isPassed) {
+                                                        listOf(Color(0xFF059669), Color(0xFF10B981))
+                                                    } else if (isMock) {
+                                                        listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                    } else {
+                                                        listOf(subjectColor, subjectColor.copy(alpha = 0.8f))
+                                                    }
+                                                )
+                                            )
+                                            .clickable {
+                                                onStartAssessment(
+                                                    if (isMock) AssessmentMode.MOCK_TEST else AssessmentMode.BOSS_BATTLE,
+                                                    subject.id,
+                                                    test.title
+                                                )
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (myScore >= 0) ("পুনরায়") else ("শুরু করো"),
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                                        border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.3f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = "Locked",
+                                                tint = Color.Gray,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "লকড",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color.Gray
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                2 -> {
+                    // PYQ BOARD QUESTIONS
+                    item {
+                        Text(
+                            text = if (isBengali) {
+                                if (subject.classId.contains("wbchse")) "বিগত বছরের উচ্চমাধ্যমিক বোর্ড প্রশ্নাবলী"
+                                else "বিগত বছরের বোর্ড প্রশ্নাবলী"
+                            } else "Previous Year Board Exam Questions",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    if (subjectPyqs.isEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                                ),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.HistoryEdu,
+                                        contentDescription = "PYQ",
+                                        modifier = Modifier.size(40.dp),
+                                        tint = subjectColor
+                                    )
+                                    Text(
+                                        text = "এই বিষয়ের সকল বোর্ডের PYQs এক্সপ্লোরার সেকশনে উপলব্ধ।",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Medium
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(subjectColor, subjectColor.copy(alpha = 0.8f))
+                                                )
+                                            )
+                                            .clickable {
+                                                onStartAssessment(
+                                                    AssessmentMode.MOCK_TEST,
+                                                    subject.id,
+                                                    if (subject.classId.contains("wbchse")) "HS PYQ Board Paper"
+                                                    else "Board PYQ Paper"
+                                                )
+                                            }
+                                            .padding(horizontal = 18.dp, vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "বোর্ড PYQ টেস্ট শুরু করো",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        items(subjectPyqs) { pyq ->
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                                ),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        colors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                    )
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = if (subject.classId.contains("wbchse")) "WBCHSE ${pyq.pyqYear}" else "WBBSE ${pyq.pyqYear}",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color.White
+                                            )
+                                        }
+                                        Text(
+                                            text = "১ নম্বর",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = pyq.question,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (pyq.explanation.isNotBlank()) {
+                                        Text(
+                                            text = "💡 সমাধান: ${pyq.correctAnswerText}",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                            color = if (isDark) Color(0xFF60A5FA) else MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                3 -> {
+                    // QUICK REVISION NOTES & FORMULAS
+                    item {
+                        Text(
+                            text = "গুরুত্বপূর্ণ সূত্র, সংজ্ঞা ও কুইক রিভিশন কার্ড",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC)
+                            ),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else subjectColor.copy(alpha = 0.25f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lightbulb,
+                                        contentDescription = "Tips",
+                                        tint = if (isDark) ExamGold else subjectColor
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "পরীক্ষায় সর্বাধিক আসা বিষয়সমূহ",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isDark) ExamGold else subjectColor
+                                    )
+                                }
+                                Text(
+                                    text = "• গাণিতিক সূত্রাবলী ও গাণিতিক উদাহরণসমূহ নিখুঁতভাবে অভ্যাস করো।\n• চিত্রসহ প্রশ্নের ক্ষেত্রে পরিষ্কার চিহ্নিত চিত্র আঁকার অভ্যাস জরুরি।\n• সংজ্ঞা ও একক লেখার সময় সঠিক SI একক উল্লেখ করা আবশ্যক।",
+                                    style = MaterialTheme.typography.bodySmall.copy(lineHeight = 22.sp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChapterDetailCard(
+    chapter: ChapterEntity,
+    topicCount: Int,
+    subjectColor: Color,
+    isBengali: Boolean,
+    isDark: Boolean,
+    onOpenChapterDetails: () -> Unit,
+    onStartChapterPractice: () -> Unit,
+    onStartBossBattle: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable { onOpenChapterDetails() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(subjectColor, subjectColor.copy(alpha = 0.75f))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isBengali) chapter.chapterNumber.toBengaliDigits() else "${chapter.chapterNumber}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = chapter.title,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (topicCount > 0) {
+                                "${if (isBengali) topicCount.toBengaliDigits() else topicCount}টি টপিক অন্তর্ভুক্ত"
+                            } else {
+                                chapter.description
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                IconButton(onClick = onOpenChapterDetails) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open Chapter",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Progress bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = { chapter.masteryPercentage / 100f },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(CircleShape),
+                    color = if (chapter.masteryPercentage >= 80) CorrectGreen else subjectColor,
+                    trackColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                )
+                Text(
+                    text = "${chapter.masteryPercentage}%",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Quick action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onStartChapterPractice,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, subjectColor)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = subjectColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "অনুশীলন",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = subjectColor
+                    )
+                }
+
+                Button(
+                    onClick = onStartBossBattle,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ExamGold,
+                        contentColor = Color(0xFF78350F)
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "বস চ্যালেঞ্জ",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatMiniBadge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White.copy(alpha = 0.2f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White
+            )
+        }
+    }
+}

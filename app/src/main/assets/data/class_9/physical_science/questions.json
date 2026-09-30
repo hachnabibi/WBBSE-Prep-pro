@@ -1,0 +1,18 @@
+[
+  {
+    "id": "c9_phy_q1",
+    "topicId": "c9_phy_t1",
+    "chapterId": "c9_phy_ch2",
+    "subjectId": "class_9_wbbse_physical_science",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "১ নিউটন বল সমান কত ডাইন?",
+    "optionsJson": "[\"১০⁵ ডাইন\", \"১০⁷ ডাইন\", \"১০⁶ ডাইন\", \"১০⁴ ডাইন\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "১০⁵ ডাইন",
+    "explanation": "১ নিউটন = ১ কেজি × ১ মি/সে² = ১০০০ গ্রাম × ১০০ সেমি/সে² = ১০⁵ ডাইন।",
+    "marks": 1,
+    "tagsJson": "[\"বল ও গতি\", \"নিউটন\", \"ডাইন\", \"শ্রেণি ৯\"]",
+    "classId": "class_9_wbbse"
+  }
+]

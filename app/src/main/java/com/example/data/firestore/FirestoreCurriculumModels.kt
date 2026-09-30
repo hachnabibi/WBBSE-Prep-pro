@@ -1,0 +1,291 @@
+package com.example.data.firestore
+
+import com.example.data.model.Difficulty
+import com.example.data.model.QuestionType
+
+/**
+ * Types of tests supported in the Madhyamik preparation curriculum.
+ */
+enum class FirestoreTestType {
+    TOPIC_PRACTICE,          // ৫-১০টি প্রশ্নের ছোট টপিক ভিত্তিক প্র্যাকটিস কুইজ
+    CHAPTER_ASSESSMENT,      // অধ্যায় মূল্যায়ন (Chapter Assessment) - linked to specific chapters & grades
+    SUBJECT_MASTERY_QUIZ,    // বিষয় দখল কুইজ (Subject Mastery Quiz) - linked to specific subjects & grades
+    FULL_SYLLABUS_MOCK,      // সম্পূর্ণ সিলেবাস মক টেস্ট (Full Syllabus Mock) - linked to specific grades
+    CHAPTER_BOSS_BATTLE,     // অধ্যায়ের সমাপনী চ্যালেঞ্জ (Boss Battle)
+    SUBJECT_UNIT_TEST,       // সম্পূর্ণ বিষয়ের ইউনিট টেস্ট
+    FULL_MOCK_TEST,          // সম্পূর্ণ ৯০ নম্বরের মাধ্যমিক টেস্ট পেপার মক টেস্ট
+    PREVIOUS_YEAR_PAPER,     // বিগত বছরের মাধ্যমিক প্রশ্নপত্র (PYQ)
+    SPEED_BLITZ,             // সময়ভিত্তিক দ্রুত উত্তর দেওয়ার কুইজ
+    DAILY_10                 // প্রতিদিনের র্যান্ডম ১০টি প্রশ্ন
+}
+
+/**
+ * Structured Document Model for Chapter Assessment linked to specific chapters and grades.
+ */
+data class FirestoreChapterAssessment(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val chapterId: String = "",
+    val title: String = "",
+    val description: String = "",
+    val durationMinutes: Int = 20,
+    val totalMarks: Int = 25,
+    val questions: List<FirestoreQuestion> = emptyList(),
+    val isPublished: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+) {
+}
+
+/**
+ * Structured Document Model for Subject Mastery Quiz linked to specific subjects and grades.
+ */
+data class FirestoreSubjectMasteryQuiz(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val title: String = "",
+    val description: String = "",
+    val durationMinutes: Int = 30,
+    val totalMarks: Int = 50,
+    val questions: List<FirestoreQuestion> = emptyList(),
+    val isPublished: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+) {
+}
+
+/**
+ * Structured Document Model for Full Syllabus Mock linked to specific grades and board curricula.
+ */
+data class FirestoreFullSyllabusMock(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val title: String = "",
+    val description: String = "",
+    val durationMinutes: Int = 180, // 3 hours Madhyamik exam
+    val totalMarks: Int = 90,
+    val questions: List<FirestoreQuestion> = emptyList(),
+    val isPublished: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+) {
+}
+
+/**
+ * Class representation in Firestore (e.g. WBBSE Class 10 / Madhyamik).
+ */
+data class FirestoreClass(
+    val id: String = "class_10_wbbse",
+    val name: String = "দশম শ্রেণী (মাধ্যমিক)",
+    val board: String = "WBBSE",
+    val targetYear: String = "2026",
+    val description: String = "পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ দশম শ্রেণীর সম্পূর্ণ সিলেবাস ও প্রশ্নব্যাংক",
+    val totalSubjects: Int = 7,
+    val isActive: Boolean = true
+) {
+    val nameBengali: String get() = name
+    val nameEnglish: String get() = name
+    val descriptionBengali: String get() = description
+    val descriptionEnglish: String get() = description
+}
+
+/**
+ * Subject representation in Firestore.
+ */
+data class FirestoreSubject(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val code: String = "",
+    val name: String = "",
+    val textbookName: String = "",
+    val stream: String = "common",
+    val totalChapters: Int = 0,
+    val colorHex: Any = 0xFF3B82F6L,
+    val iconName: String = "Book",
+    val orderIndex: Int = 0
+) {
+    val nameBengali: String get() = name
+    val nameEnglish: String get() = name
+
+    val parsedColorHex: Long
+        get() {
+            return when (val raw = colorHex) {
+                is Number -> raw.toLong()
+                is String -> {
+                    try {
+                        val cleaned = raw.trim()
+                        when {
+                            cleaned.startsWith("0x") || cleaned.startsWith("0X") -> {
+                                cleaned.removePrefix("0x").removePrefix("0X").toLong(16)
+                            }
+                            cleaned.startsWith("#") -> {
+                                cleaned.removePrefix("#").toLong(16) or 0xFF000000L
+                            }
+                            else -> cleaned.toLong()
+                        }
+                    } catch (e: Exception) {
+                        0xFF3B82F6L
+                    }
+                }
+                else -> 0xFF3B82F6L
+            }
+        }
+}
+
+/**
+ * Chapter representation in Firestore.
+ */
+data class FirestoreChapter(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val chapterNumber: Int = 1,
+    val title: String = "",
+    val description: String = "",
+    val totalTopics: Int = 0,
+    val weightageMarks: Int = 15,
+    val orderIndex: Int = 0
+) {
+    val titleBengali: String get() = title
+    val titleEnglish: String get() = title
+    val descriptionBengali: String get() = description
+    val descriptionEnglish: String get() = description
+}
+
+/**
+ * Topic representation in Firestore.
+ */
+data class FirestoreTopic(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val chapterId: String = "",
+    val orderIndex: Int = 1,
+    val title: String = "",
+    val summary: String = "",
+    val keyPoints: List<String> = emptyList(),
+    val formulae: List<String> = emptyList(),
+    val questionCount: Int = 0
+) {
+    val titleBengali: String get() = title
+    val titleEnglish: String get() = title
+    val summaryBengali: String get() = summary
+    val summaryEnglish: String get() = summary
+}
+
+/**
+ * Firestore Question Model.
+ */
+data class FirestoreQuestion(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val chapterId: String = "",
+    val topicId: String = "",
+    val type: String = QuestionType.MCQ.name,
+    val difficulty: String = Difficulty.MEDIUM.name,
+    val question: String = "",
+    val options: List<String> = emptyList(),
+    val correctOptionIndex: Int = 0,
+    val correctAnswerText: String = "",
+    val explanation: String = "",
+    val marks: Int = 1,
+    val tags: List<String> = emptyList()
+)
+
+/**
+ * Test Template / Definition in Firestore.
+ * Supports Topic-wise, Chapter-wise, Subject-wise and Full-syllabus Mock Tests.
+ */
+data class FirestoreTestTemplate(
+    val id: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String? = null,
+    val chapterId: String? = null,
+    val topicId: String? = null,
+    val testType: String = FirestoreTestType.TOPIC_PRACTICE.name,
+    val title: String = "",
+    val description: String = "",
+    val durationMinutes: Int = 15,
+    val totalMarks: Int = 10,
+    val passMarks: Int = 4,
+    val questionCount: Int = 10,
+    val negativeMarkingPerQuestion: Double = 0.0,
+    val xpReward: Int = 100,
+    val questions: List<FirestoreQuestion> = emptyList(),
+    val isPublished: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+) {
+    val titleBengali: String get() = title
+    val titleEnglish: String get() = title
+    val descriptionBengali: String get() = description
+    val descriptionEnglish: String get() = description
+}
+
+/**
+ * Student's Submitted Answer for a specific question in a test.
+ */
+data class FirestoreUserAnswer(
+    val questionId: String = "",
+    val selectedOptionIndex: Int = -1,
+    val textAnswer: String = "",
+    val isCorrect: Boolean = false,
+    val marksAwarded: Int = 0,
+    val timeSpentSeconds: Int = 0
+)
+
+/**
+ * Student's Test Attempt Record in Firestore.
+ */
+data class FirestoreTestAttempt(
+    val id: String = "",
+    val userId: String = "",
+    val testId: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String? = null,
+    val chapterId: String? = null,
+    val topicId: String? = null,
+    val testType: String = FirestoreTestType.TOPIC_PRACTICE.name,
+    val testTitle: String = "",
+    val totalQuestions: Int = 0,
+    val correctCount: Int = 0,
+    val incorrectCount: Int = 0,
+    val unattemptedCount: Int = 0,
+    val scoreScored: Int = 0,
+    val maxScore: Int = 0,
+    val accuracyPercentage: Int = 0,
+    val xpEarned: Int = 0,
+    val timeTakenSeconds: Int = 0,
+    val isPassed: Boolean = true,
+    val isBossBeaten: Boolean = false,
+    val submittedAt: Long = System.currentTimeMillis(),
+    val answers: List<FirestoreUserAnswer> = emptyList()
+) {
+    val testTitleBengali: String get() = testTitle
+    val testTitleEnglish: String get() = testTitle
+}
+
+/**
+ * Student's Topic Mastery Record in Firestore.
+ */
+data class FirestoreTopicMastery(
+    val topicId: String = "",
+    val userId: String = "",
+    val classId: String = "class_10_wbbse",
+    val subjectId: String = "",
+    val chapterId: String = "",
+    val masteryPercentage: Int = 0,
+    val totalQuestionsAttempted: Int = 0,
+    val correctQuestionsCount: Int = 0,
+    val isCompleted: Boolean = false,
+    val lastPracticedTimestamp: Long = System.currentTimeMillis()
+)
+
+/**
+ * District and its schools representation in Firestore.
+ */
+data class FirestoreDistrict(
+    val id: String = "",
+    val name: String = "",
+    val schools: List<String> = emptyList()
+)
+

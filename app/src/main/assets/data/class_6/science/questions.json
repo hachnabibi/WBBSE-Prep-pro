@@ -1,0 +1,18 @@
+[
+  {
+    "id": "c6_sci_q1",
+    "topicId": "c6_sci_t1",
+    "chapterId": "c6_sci_ch1",
+    "subjectId": "class_6_wbbse_science",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "একটি সম্পূর্ণ ফুলের কয়টি প্রধান স্তবক থাকে?",
+    "optionsJson": "[\"৪টি\", \"২টি\", \"৩টি\", \"৫টি\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "৪টি",
+    "explanation": "একটি আদর্শ ফুলের চারটি প্রধান স্তবক হলো: বৃত্তি, দলমণ্ডল, পুংস্তবক এবং স্ত্রীস্তবক।",
+    "marks": 1,
+    "tagsJson": "[\"ফুল\", \"বিজ্ঞান\", \"শ্রেণি ৬\"]",
+    "classId": "class_6_wbbse"
+  }
+]

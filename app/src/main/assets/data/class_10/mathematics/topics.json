@@ -1,0 +1,26 @@
+[
+  {
+    "id": "c10_math_t1",
+    "chapterId": "c10_math_ch1",
+    "subjectId": "class_10_wbbse_mathematics",
+    "orderIndex": 1,
+    "title": "শ্রীধর আচার্যের সূত্র ও নিরূপক (b² - 4ac)",
+    "summary": "ax² + bx + c = 0 সমীকরণের বীজদ্বয় x = (-b ± √(b² - 4ac)) / (2a)। নিরূপক D = b² - 4ac > 0 হলে বীজদ্বয় বাস্তব ও অসমান; D = 0 হলে বাস্তব ও সমান; D < 0 হলে কোনো বাস্তব বীজ থাকবে না।",
+    "keyFormulas": "x = (-b ± √(b² - 4ac)) / (2a); নিরূপক D = b² - 4ac",
+    "examTips": "D = 0 শর্ত থেকে অজ্ঞাত রাশি k এর মান নির্ণয় সংক্রান্ত অঙ্ক প্রায় প্রতি বছর আসে।",
+    "pyqReference": "Madhyamik 2024, 2022",
+    "questionCount": 10
+  },
+  {
+    "id": "c10_math_t2",
+    "chapterId": "c10_math_ch4",
+    "subjectId": "class_10_wbbse_mathematics",
+    "orderIndex": 1,
+    "title": "ত্রিকোণমিতিক কোণানুপাতের নির্দিষ্ট মানসমূহ",
+    "summary": "sin 0° = 0, sin 30° = 1/2, sin 45° = 1/√2, sin 60° = √3/2, sin 90° = 1। tan 30° = 1/√3, tan 45° = 1, tan 60° = √3।",
+    "keyFormulas": "sin²θ + cos²θ = 1; sec²θ - tan²θ = 1; cosec²θ - cot²θ = 1",
+    "examTips": "মান নির্ণয় ও প্রমাণ করার প্রশ্নে অভেদাবলি সরাসরি প্রয়োগ করতে হয়।",
+    "pyqReference": "Madhyamik 2023, 2020",
+    "questionCount": 10
+  }
+]

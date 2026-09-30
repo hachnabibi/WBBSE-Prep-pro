@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c10_phy_t1",
+    "chapterId": "c10_phy_ch1",
+    "subjectId": "class_10_wbbse_physical_science",
+    "orderIndex": 1,
+    "title": "বায়ুমণ্ডলের স্তর ও ওজোনস্তর",
+    "summary": "ট্রপোস্ফিয়ার, স্ট্র্যাটোস্ফিয়ার এবং সিএফসি দ্বারা ওজোন স্তর ধ্বংসের প্রক্রিয়া।",
+    "keyPointsJson": "[\"ক্ষুব্ধমণ্ডল = ট্রপোস্ফিয়ার\", \"শান্তমণ্ডল = স্ট্র্যাটোস্ফিয়ার\", \"ওজোন স্তরের ঘনত্ব ডবসন (DU) এককে মাপা হয়\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 3,
+    "classId": "class_10_wbbse"
+  },
+  {
+    "id": "c10_phy_t2",
+    "chapterId": "c10_phy_ch2",
+    "subjectId": "class_10_wbbse_physical_science",
+    "orderIndex": 1,
+    "title": "বয়েল ও চার্লসের সমন্বয় সূত্র",
+    "summary": "PV/T = k ও আদর্শ গ্যাস সমীকরণ PV = nRT এর ব্যাখ্যা ও গাণিতিক প্রয়োগ।",
+    "keyPointsJson": "[\"বয়েলের সূত্র: P₁V₁ = P₂V₂ (T স্থির)\", \"চার্লসের সূত্র: V₁/T₁ = V₂/T₂ (P স্থির)\", \"পরম শূন্য উষ্ণতা = -২৭৩.১৫°C\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 3,
+    "classId": "class_10_wbbse"
+  }
+]

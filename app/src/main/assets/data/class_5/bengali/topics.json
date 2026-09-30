@@ -1,0 +1,41 @@
+[
+  {
+    "id": "c5_ben_t1",
+    "chapterId": "c5_ben_ch1",
+    "subjectId": "class_5_wbbse_bengali",
+    "orderIndex": 1,
+    "title": "গল্পবুড়োর রূপকথার থলি",
+    "summary": "গল্পবুড়োর কাঁধের ঝোলায় থাকা যক্ষীরাজ, দত্যি-দানব ও রাজপুত্তুরের রূপকথা।",
+    "keyPointsJson": "[\"শীতের ভোরে গল্পবুড়ো আসে\", \"কাঁধের ঝোলায় রূপকথার গল্প\", \"যক্ষীরাজ ও সোনার কাঠি\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 3,
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_ben_t2",
+    "chapterId": "c5_ben_ch1",
+    "subjectId": "class_5_wbbse_bengali",
+    "orderIndex": 2,
+    "title": "শব্দার্থ ও ব্যাকরণ",
+    "summary": "কবিতার গুরুত্বপূর্ণ শব্দার্থ ও বিপরীত শব্দ।",
+    "keyPointsJson": "[\"উত্তরে হাওয়া = শীতের বাতাস\", \"ঝোলা = থলি\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 2,
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_ben_t3",
+    "chapterId": "c5_ben_ch2",
+    "subjectId": "class_5_wbbse_bengali",
+    "orderIndex": 1,
+    "title": "জোয়ানদের ঘাঁটিতে বুনো হাঁস",
+    "summary": "জখম হাঁসটির সেবা ও শীতকাল কেটে যাওয়ার পর ডানা মেলে উড়ে যাওয়া।",
+    "keyPointsJson": "[\"লাডাকের বরফের ঘাঁটি\", \"জোয়ানদের তাঁবুতে আশ্রয়\", \"টিনের মাছ ও তরকারি খাওয়া\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 3,
+    "classId": "class_5_wbbse"
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "c10_phy_ch1",
+    "subjectId": "class_10_wbbse_physical_science",
+    "chapterNumber": 1,
+    "title": "পরিবেশের জন্য ভাবনা (Concern about Our Environment)",
+    "description": "বায়ুমণ্ডলের স্তরবিন্যাস, ওজোন স্তর ধ্বংস, গ্রিনহাউস প্রভাব এবং পুনর্নবীকরণযোগ্য শক্তি।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_10_wbbse"
+  },
+  {
+    "id": "c10_phy_ch2",
+    "subjectId": "class_10_wbbse_physical_science",
+    "chapterNumber": 2,
+    "title": "গ্যাসের আচরণ (Behavior of Gases)",
+    "description": "বয়েলের সূত্র, চার্লসের সূত্র, পরম শূন্য উষ্ণতা, আদর্শ গ্যাস সমীকরণ (PV = nRT)।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_10_wbbse"
+  },
+  {
+    "id": "c10_phy_ch3",
+    "subjectId": "class_10_wbbse_physical_science",
+    "chapterNumber": 3,
+    "title": "চলতড়িৎ (Current Electricity)",
+    "description": "ওহমের সূত্র, রোধাঙ্ক, তড়িৎপ্রবাহের তাপীয় ফল, জুলের সূত্র ও ফ্লেমিং-এর বামহস্ত নিয়ম।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_10_wbbse"
+  }
+]

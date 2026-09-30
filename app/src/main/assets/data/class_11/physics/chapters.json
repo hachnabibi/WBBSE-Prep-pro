@@ -1,0 +1,41 @@
+[
+  {
+    "id": "c11_phy_ch1",
+    "subjectId": "class_11_wbchse_physics",
+    "chapterNumber": 1,
+    "title": "ভৌত বিশ্ব ও পরিমাপ (Physical World & Measurement)",
+    "description": "ভৌত রাশির মাত্রা, মাত্রীয় সমীকরণ ও ত্রুটির পরিমাপ।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  },
+  {
+    "id": "c11_phy_ch2",
+    "subjectId": "class_11_wbchse_physics",
+    "chapterNumber": 2,
+    "title": "স্মৃতিকথা ও একমাত্রিক গতি (Kinematics)",
+    "description": "সরণ, বেগ, ত্বরণ, প্রক্ষেপ্য গতি (Projectile Motion) ও আপেক্ষিক বেগ।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  },
+  {
+    "id": "c11_phy_ch3",
+    "subjectId": "class_11_wbchse_physics",
+    "chapterNumber": 3,
+    "title": "গতির সূত্রাবলী ও ঘর্ষণ (Laws of Motion)",
+    "description": "নিউটনের সূত্রাবলী, ভরবেগ সংরক্ষণ, ব্যাংকিং কোণ ও ঘর্ষণ গুণাঙ্ক।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  }
+]

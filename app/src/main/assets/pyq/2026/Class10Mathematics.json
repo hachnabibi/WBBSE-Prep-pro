@@ -1,0 +1,72 @@
+[
+  {
+    "id": "pyq_2026_math_1_1",
+    "year": 2026,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "যদি কোনো মূলধনের 2 বছরের সরল সুদ ও চক্রবৃদ্ধি সুদ সমান হয়, তবে বার্ষিক সুদের হার হবে-",
+    "marks": 1,
+    "options": ["0%", "5%", "10%", "20%"],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "0% (যদি সুদের হার 0% হয় তবে সরল সুদ ও চক্রবৃদ্ধি সুদ উভয়েই শূন্য অর্থাৎ সমান হবে)",
+    "keyTips": "1 বছরের জন্য যে কোনো সুদের হারে সরল ও চক্রবৃদ্ধি সুদ সমান হয়, কিন্তু 2 বছরের জন্য শুধুমাত্র 0% হারেই তা সম্ভব।",
+    "chapterName": "সরল সুদকষা"
+  },
+  {
+    "id": "pyq_2026_math_1_2",
+    "year": 2026,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "ax² + bx + c = 0 (a ≠ 0) দ্বিঘাত সমীকরণের বীজদ্বয় বাস্তব ও সমান হলে-",
+    "marks": 1,
+    "options": ["b² = 4ac", "b² > 4ac", "b² < 4ac", "b² = ac"],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "b² = 4ac",
+    "keyTips": "দ্বিঘাত সমীকরণের নিরূপক (Discriminant) D = b² - 4ac = 0 হলে বীজদ্বয় বাস্তব ও সমান হয়।",
+    "chapterName": "একচল বিশিষ্ট দ্বিঘাত সমীকরণ"
+  },
+  {
+    "id": "pyq_2026_math_1_3",
+    "year": 2026,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "দুটি বৃত্ত পরস্পরকে বহিঃস্পর্শ করলে বৃত্ত দুটির সাধারণ স্পর্শকের সর্বাধিক সংখ্যা-",
+    "marks": 1,
+    "options": ["1 টি", "2 টি", "3 টি", "4 টি"],
+    "correctOptionIndex": 2,
+    "officialAnswerBengali": "3 টি (2টি সরল সাধারণ স্পর্শক ও 1টি তির্যক সাধারণ স্পর্শক)",
+    "keyTips": "দুটি বৃত্ত পরস্পরকে বহিঃস্পর্শ করলে স্পর্শবিন্দু দিয়ে ১টি এবং ওপর-নিচে ২টি সাধারণ স্পর্শক টানা যায়।",
+    "chapterName": "বৃত্ত সম্পর্কিত উপপাদ্য"
+  },
+  {
+    "id": "pyq_2026_math_1_4",
+    "year": 2026,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "একটি লম্ব বৃত্তাকার চোঙের ব্যাসার্ধের দৈর্ঘ্য অর্ধেক এবং উচ্চতা দ্বিগুণ করলে চোঙটির আয়তন হবে-",
+    "marks": 1,
+    "options": ["সমান", "দ্বিগুণ", "অর্ধেক", "চারগুণ"],
+    "correctOptionIndex": 2,
+    "officialAnswerBengali": "অর্ধেক (নতুন আয়তন = π(r/2)²(2h) = π(r²/4)(2h) = 1/2 πr²h)",
+    "keyTips": "লম্ব বৃত্তাকার চোঙের আয়তন V = πr²h। মান বসিয়ে হিসাব করুন।",
+    "chapterName": "লম্ব বৃত্তাকার চোঙ"
+  },
+  {
+    "id": "pyq_2026_math_1_5",
+    "year": 2026,
+    "subject": "MATHEMATICS",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "sin θ + cos θ -এর সর্বোচ্চ মান কত?",
+    "marks": 1,
+    "options": ["1", "√2", "2", "1/√2"],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "√2 (θ = 45° হলে sin 45° + cos 45° = 1/√2 + 1/√2 = 2/√2 = √2)",
+    "keyTips": "asin θ + bcos θ এর সর্বোচ্চ মান হলো √(a² + b²) = √(1² + 1²) = √2।",
+    "chapterName": "ত্রিকোণমিতিক অনুপাত"
+  }
+]

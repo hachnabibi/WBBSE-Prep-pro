@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c9_phy_ch1",
+    "subjectId": "class_9_wbbse_physical_science",
+    "chapterNumber": 1,
+    "title": "পরিমাপ (Measurement)",
+    "description": "ভৌত রাশি, একক, মাত্রা এবং সাধারণ তুলাযন্ত্র ও ভার্নিয়ার ক্যালিপার্স।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_9_wbbse"
+  },
+  {
+    "id": "c9_phy_ch2",
+    "subjectId": "class_9_wbbse_physical_science",
+    "chapterNumber": 2,
+    "title": "বল ও গতি (Force and Motion)",
+    "description": "নিউটনের তিনটি গতিসূত্র, রৈখিক ভরবেগ ও সংরক্ষণ সূত্র।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_9_wbbse"
+  }
+]

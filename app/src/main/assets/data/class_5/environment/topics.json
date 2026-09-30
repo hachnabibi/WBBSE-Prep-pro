@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c5_env_t1",
+    "chapterId": "c5_env_ch1",
+    "subjectId": "class_5_wbbse_environment",
+    "orderIndex": 1,
+    "title": "চামড়া ও মেলানিন",
+    "summary": "চামড়ার কাজ, বাইরের আঘাত থেকে রক্ষা এবং মেলানিন রঞ্জক।",
+    "keyPointsJson": "[\"চামড়ার নিচে শিরা ও ধমনি থাকে\", \"রোদ থেকে রক্ষা করে মেলানিন\", \"ভিটামিন ডি তৈরি করে রোদ\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 2,
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_env_t2",
+    "chapterId": "c5_env_ch1",
+    "subjectId": "class_5_wbbse_environment",
+    "orderIndex": 2,
+    "title": "হাড় ও অস্থিসন্ধি",
+    "summary": "হিউমেরাস, ফিমার, কবজির হাড় ও লিগামেন্ট।",
+    "keyPointsJson": "[\"দেহের সবচেয়ে বড় হাড় ফিমার (উরুর হাড়)\", \"অস্থিসন্ধিতে হাড়গুলি লিগামেন্ট দিয়ে জোড়া থাকে\"]",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 2,
+    "classId": "class_5_wbbse"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "c8_sci_q1",
+    "topicId": "c8_sci_t1",
+    "chapterId": "c8_sci_ch1",
+    "subjectId": "class_8_wbbse_science",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "আন্তর্জাতিক (SI) পদ্ধতিতে চাপের একক কী?",
+    "optionsJson": "[\"পাস্কাল (N/m²)\", \"নিউটন\", \"জুল\", \"ডাইন\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "পাস্কাল (N/m²)",
+    "explanation": "প্রতি বর্গমিটার ক্ষেত্রফলে ১ নিউটন বল প্রযুক্ত হলে তাকে ১ পাস্কাল (Pa) বলে।",
+    "marks": 1,
+    "tagsJson": "[\"বল ও চাপ\", \"পাস্কাল\", \"শ্রেণি ৮\"]",
+    "classId": "class_8_wbbse"
+  }
+]

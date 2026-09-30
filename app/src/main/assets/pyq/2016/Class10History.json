@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2016_hist_1_1",
+    "year": 2016,
+    "subject": "HISTORY",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "‘নীলদর্পণ’ নাটকটি কার রচনা?",
+    "marks": 1,
+    "options": [
+      "দীনবন্ধু মিত্র",
+      "মাইকেল মধুসূদন দত্ত",
+      "রবীন্দ্রনাথ ঠাকুর",
+      "বঙ্কিমচন্দ্র চট্টোপাধ্যায়"
+    ],
+    "correctOptionIndex": 0,
+    "officialAnswerBengali": "দীনবন্ধু মিত্র",
+    "keyTips": "Demo tip for PYQ 2016",
+    "chapterName": "সংস্কার: বৈশিষ্ট্য ও পর্যালোচনা"
+  }
+]

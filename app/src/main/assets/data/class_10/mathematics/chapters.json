@@ -1,0 +1,74 @@
+[
+  {
+    "id": "c10_math_ch1",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 1,
+    "title": "একচল বিশিষ্ট দ্বিঘাত সমীকরণ (Quadratic Equations in One Variable)",
+    "description": "দ্বিঘাত সমীকরণের সাধারণ রূপ ax² + bx + c = 0, শ্রীধর আচার্যের সূত্র, নিরূপক (Discriminant) ও বীজের প্রকৃতি।",
+    "estimatedMinutes": 45,
+    "weightagePercentage": 15,
+    "pyqCount": 20,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_math_ch2",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 2,
+    "title": "সরল সুদকষা ও চক্রবৃদ্ধি সুদ (Simple & Compound Interest)",
+    "description": "I = Prt/100, সমাহার বৃদ্ধি বা হ্রাস এবং সমূল চক্রবৃদ্ধি A = P(1 + r/100)ⁿ এর ব্যবহারিক প্রয়োগ।",
+    "estimatedMinutes": 40,
+    "weightagePercentage": 12,
+    "pyqCount": 18,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_math_ch3",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 3,
+    "title": "বৃত্ত সংক্রান্ত উপপাদ্য (Theorems Related to Circles)",
+    "description": "একই বৃত্তচাপের উপর কেন্দ্রস্থ কোণ বৃত্তস্থ কোণের দ্বিগুণ, অর্ধবৃত্তস্থ কোণ সমকোণ ও স্পর্শক সংক্রান্ত উপপাদ্য।",
+    "estimatedMinutes": 50,
+    "weightagePercentage": 18,
+    "pyqCount": 25,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_math_ch4",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 4,
+    "title": "ত্রিকোণমিতি: কোণানুপাত ও অভেদাবলি (Trigonometric Ratios & Identities)",
+    "description": "sin, cos, tan এর মান, পূরক কোণের ত্রিকোণমিতিক অনুপাত ও sin²θ + cos²θ = 1 অভেদাবলী।",
+    "estimatedMinutes": 50,
+    "weightagePercentage": 18,
+    "pyqCount": 22,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_math_ch5",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 5,
+    "title": "উচ্চতা ও দূরত্ব (Height and Distance)",
+    "description": "উন্নতি কোণ (Angle of Elevation) ও অবনতি কোণ (Angle of Depression) প্রয়োগে উচ্চতা পরিমাপ।",
+    "estimatedMinutes": 45,
+    "weightagePercentage": 12,
+    "pyqCount": 15,
+    "isCompleted": false,
+    "masteryLevel": 0
+  },
+  {
+    "id": "c10_math_ch6",
+    "subjectId": "class_10_wbbse_mathematics",
+    "chapterNumber": 6,
+    "title": "রাশিবিজ্ঞান: গড়, মধ্যমা, ওজাইভ ও সংখ্যাগুরুমান (Statistics)",
+    "description": "প্রত্যক্ষ পদ্ধতি ও কল্পিত গড় পদ্ধতি, মধ্যমা নির্ণয় এবং সংখ্যাগুরু মান (Mode)।",
+    "estimatedMinutes": 45,
+    "weightagePercentage": 15,
+    "pyqCount": 20,
+    "isCompleted": false,
+    "masteryLevel": 0
+  }
+]

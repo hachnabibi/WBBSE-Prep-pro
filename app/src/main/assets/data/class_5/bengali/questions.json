@@ -1,0 +1,50 @@
+[
+  {
+    "id": "c5_ben_q1",
+    "topicId": "c5_ben_t1",
+    "chapterId": "c5_ben_ch1",
+    "subjectId": "class_5_wbbse_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "গল্পবুড়ো কোন ঋতুতে ডাক ছেড়ে আসে?",
+    "optionsJson": "[\"শীতকালে\", \"গ্রীষ্মকালে\", \"বর্ষাকালে\", \"শরৎকালে\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "শীতকালে",
+    "explanation": "কবিতার শুরুতেই বলা আছে 'উত্তরে হাওয়া বইছে যখন, ডাক ছেড়ে সে ডাকছে কেমন' অর্থাৎ শীতের ভোরবেলায়।",
+    "marks": 1,
+    "tagsJson": "[\"গল্পবুড়ো\", \"বাংলা\", \"শ্রেণি ৫\"]",
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_ben_q2",
+    "topicId": "c5_ben_t1",
+    "chapterId": "c5_ben_ch1",
+    "subjectId": "class_5_wbbse_bengali",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "গল্পবুড়োর কাঁধের ঝোলায় কীসের মেলা বসেছে?",
+    "optionsJson": "[\"রূপকথার\", \"মিষ্টির\", \"খেলনার\", \"ফলের\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "রূপকথার",
+    "explanation": "গল্পবুড়োর কাঁধের ঝুলিতে রয়েছে রূপকথার সমস্ত কাল্পনিক চরিত্র ও গল্প।",
+    "marks": 1,
+    "tagsJson": "[\"গল্পবুড়ো\", \"রূপকথা\"]",
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_ben_q3",
+    "topicId": "c5_ben_t3",
+    "chapterId": "c5_ben_ch2",
+    "subjectId": "class_5_wbbse_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "বুনো হাঁস দুটি কোথায় আশ্রয় নিয়েছিল?",
+    "optionsJson": "[\"জোয়ানদের তাঁবুতে\", \"গাছের ডালে\", \"নদীর জলে\", \"গুহার ভেতরে\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "জোয়ানদের তাঁবুতে",
+    "explanation": "জখম হাঁসটি ডানা ভেঙে নিচে নামলে জোয়ানরা তাকে এনে তাঁবুতে রাখে।",
+    "marks": 1,
+    "tagsJson": "[\"বুনো হাঁস\", \"লীলা মজুমদার\"]",
+    "classId": "class_5_wbbse"
+  }
+]

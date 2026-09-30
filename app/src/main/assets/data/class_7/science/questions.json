@@ -1,0 +1,18 @@
+[
+  {
+    "id": "c7_sci_q1",
+    "topicId": "c7_sci_t1",
+    "chapterId": "c7_sci_ch1",
+    "subjectId": "class_7_wbbse_science",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "কোন উষ্ণতায় সেলসিয়াস ও ফারেনহাইট স্কেলের পাঠ একই হয়?",
+    "optionsJson": "[\"-৪০°\", \"০°\", \"৪০°\", \"১০০°\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "-৪০°",
+    "explanation": "C/5 = (F-32)/9 সূত্রে C = F বসালে -40° তাপমাত্রা পাওয়া যায়।",
+    "marks": 1,
+    "tagsJson": "[\"তাপ\", \"সেলসিয়াস\", \"ফারেনহাইট\", \"শ্রেণি ৭\"]",
+    "classId": "class_7_wbbse"
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2017_geo_1_1",
+    "year": 2017,
+    "subject": "GEOGRAPHY",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "যে প্রক্রিয়ায় ক্ষয়প্রাপ্ত পদার্থের সঞ্চয় ঘটে, তাকে বলে -",
+    "marks": 1,
+    "options": [
+      "অবরোহণ",
+      "আরোহণ",
+      "আবহবিকার",
+      "নগ্নীভবন"
+    ],
+    "correctOptionIndex": 1,
+    "officialAnswerBengali": "আরোহণ",
+    "keyTips": "Demo tip for PYQ 2017",
+    "chapterName": "বহির্জাত প্রক্রিয়া ও তাদের দ্বারা সৃষ্ট ভূমিরূপ"
+  }
+]

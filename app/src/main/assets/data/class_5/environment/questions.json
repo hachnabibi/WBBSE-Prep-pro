@@ -1,0 +1,34 @@
+[
+  {
+    "id": "c5_env_q1",
+    "topicId": "c5_env_t1",
+    "chapterId": "c5_env_ch1",
+    "subjectId": "class_5_wbbse_environment",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "ত্বকে কোন রঞ্জক পদার্থের উপস্থিতির কারণে গায়ের রং কালো বা ফর্সা হয়?",
+    "optionsJson": "[\"মেলানিন\", \"হিমোগ্লোবিন\", \"কেরাটিন\", \"ক্লোরোফিল\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "মেলানিন",
+    "explanation": "চামড়ায় মেলানিন থাকলে তা সূর্যের ক্ষতিকর অতিবেগুনি রশ্মি শোষণ করে এবং ক্যানসার থেকে বাঁচায়।",
+    "marks": 1,
+    "tagsJson": "[\"চামড়া\", \"মেলানিন\", \"শ্রেণি ৫\"]",
+    "classId": "class_5_wbbse"
+  },
+  {
+    "id": "c5_env_q2",
+    "topicId": "c5_env_t2",
+    "chapterId": "c5_env_ch1",
+    "subjectId": "class_5_wbbse_environment",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "মানবদেহের সবচেয়ে বড় ও শক্ত হাড় কোনটি?",
+    "optionsJson": "[\"ফিমার (উরুর হাড়)\", \"হিউমেরাস\", \"টিবিয়া\", \"রেডিয়াস\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "ফিমার (উরুর হাড়)",
+    "explanation": "কোমর থেকে হাঁটু পর্যন্ত থাকা উরুর হাড় বা ফিমার হলো মানবদেহের দীর্ঘতম ও দৃঢ় হাড়।",
+    "marks": 1,
+    "tagsJson": "[\"মানবদেহ\", \"হাড়\", \"ফিমার\"]",
+    "classId": "class_5_wbbse"
+  }
+]

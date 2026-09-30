@@ -1,0 +1,32 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Golden Shield Badge -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,24 L76,32 C76,50 67,67 54,76 C41,67 32,50 32,32 Z" />
+    <!-- Inner Accent Shield -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M54,28 L72,35 C72,50 64,64 54,72 C44,64 36,50 36,35 Z" />
+    <!-- Core Dark Shield Field -->
+    <path
+        android:fillColor="#1E1B4B"
+        android:pathData="M54,32 L68,38 C68,49 61,61 54,68 C47,61 40,49 40,38 Z" />
+    <!-- Graduation / Book Emblem in Pure White and Gold -->
+    <!-- Open Book Pages -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,49 C50,47 45,46 42,47 L42,60 C45,59 50,60 54,62 C58,60 63,59 66,60 L66,47 C63,46 58,47 54,49 Z" />
+    <path
+        android:fillColor="#E0E7FF"
+        android:pathData="M54,49 L54,62"
+        android:strokeColor="#C7D2FE"
+        android:strokeWidth="0.8" />
+    <!-- Victory Star on top -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M54,38 L55.5,42.5 L60,42.5 L56.5,45.2 L57.8,49.5 L54,46.8 L50.2,49.5 L51.5,45.2 L48,42.5 L52.5,42.5 Z" />
+</vector>

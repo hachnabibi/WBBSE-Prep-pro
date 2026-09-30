@@ -1,0 +1,36 @@
+[
+  {
+    "id": "c10_phy_q1",
+    "topicId": "c10_phy_t1",
+    "chapterId": "c10_phy_ch1",
+    "subjectId": "class_10_wbbse_physical_science",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "বায়ুমণ্ডলের কোন স্তরে ঝড়-বৃষ্টি ও বজ্রপাত দেখা যায়?",
+    "optionsJson": "[\"ট্রপোস্ফিয়ার\", \"স্ট্র্যাটোস্ফিয়ার\", \"মেসোস্ফিয়ার\", \"থার্মোস্ফিয়ার\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "ট্রপোস্ফিয়ার",
+    "explanation": "ট্রপোস্ফিয়ারে সমস্ত প্রাকৃতিক দুর্যোগ যেমন ঝড়, বৃষ্টি, মেঘ ইত্যাদি ঘটে বলে একে ক্ষুব্ধমণ্ডল বলা হয়।",
+    "marks": 1,
+    "tagsJson": "[\"বায়ুমণ্ডল\", \"ট্রপোস্ফিয়ার\", \"মাধ্যমিক ২০২৬\"]",
+    "pyqYear": "2024",
+    "classId": "class_10_wbbse"
+  },
+  {
+    "id": "c10_phy_q2",
+    "topicId": "c10_phy_t2",
+    "chapterId": "c10_phy_ch2",
+    "subjectId": "class_10_wbbse_physical_science",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "স্থির চাপে নির্দিষ্ট ভরের গ্যাসের আয়তন ও পরম উষ্ণতার সম্পর্কটি কোন সূত্রের নির্দেশক?",
+    "optionsJson": "[\"চার্লসের সূত্র\", \"বয়েলের সূত্র\", \"অ্যাভোগাড্রো সূত্র\", \"গ্রাহামের সূত্র\"]",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "চার্লসের সূত্র",
+    "explanation": "চার্লসের সূত্রানুযায়ী স্থির চাপে নির্দিষ্ট ভরের গ্যাসের আয়তন তার পরম উষ্ণতার সমানুপাতিক (V ∝ T)।",
+    "marks": 1,
+    "tagsJson": "[\"গ্যাসের আচরণ\", \"চার্লসের সূত্র\", \"মাধ্যমিক\"]",
+    "pyqYear": "2023",
+    "classId": "class_10_wbbse"
+  }
+]

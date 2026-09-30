@@ -1,0 +1,21 @@
+[
+  {
+    "id": "pyq_2020_physci_1_1",
+    "year": 2020,
+    "subject": "PHYSICAL_SCIENCE",
+    "className": "Class 10",
+    "group": "বিভাগ 'ক' (MCQ)",
+    "question": "গ্রিনহাউস গ্যাস নয় কোনটি?",
+    "marks": 1,
+    "options": [
+      "মিথেন",
+      "কার্বন ডাইঅক্সাইড",
+      "অক্সিজেন",
+      "ক্লোরোফ্লুরোকার্বন"
+    ],
+    "correctOptionIndex": 2,
+    "officialAnswerBengali": "অক্সিজেন",
+    "keyTips": "Demo tip for PYQ 2020",
+    "chapterName": "পরিবেশের জন্য ভাবনা"
+  }
+]
