@@ -693,7 +693,7 @@ fun DeshExamApp(
                                 viewModel.startAssessment(mode, targetId, title)
                             },
                             onViewContent = { title, content, solution ->
-                                viewModel.openContentSolution(title, content, solution)
+                                viewModel.openContentSolution(title, content, solution, initialTab = 0, chapterId = ch.id)
                             },
                             modifier = Modifier.fillMaxSize()
                         )
@@ -719,6 +719,7 @@ fun DeshExamApp(
                         title = viewModel.contentSolutionTitle,
                         contentData = viewModel.contentSolutionContent,
                         solutionData = viewModel.contentSolutionSolution,
+                        initialTab = viewModel.contentSolutionInitialTab,
                         isBengali = isBengali,
                         onBack = { viewModel.goBack() }
                     )

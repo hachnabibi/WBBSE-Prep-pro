@@ -1,5 +1,7 @@
 package com.example.ui.viewmodel
 
+import kotlinx.coroutines.withContext
+
 import android.app.Application
 import android.content.Context
 import android.util.Log
@@ -134,12 +136,42 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     var contentSolutionTitle: String = ""
     var contentSolutionContent: String? = null
     var contentSolutionSolution: String? = null
+    var contentSolutionInitialTab: Int = 0
 
-    fun openContentSolution(title: String, content: String?, solution: String?) {
+    fun openContentSolution(title: String, content: String?, solution: String?, initialTab: Int = 0, chapterId: String? = null) {
         contentSolutionTitle = title
-        contentSolutionContent = content
-        contentSolutionSolution = solution
-        navigateTo(AppScreen.CONTENT_SOLUTION)
+        contentSolutionInitialTab = initialTab
+        
+        if (!content.isNullOrBlank() || !solution.isNullOrBlank()) {
+            contentSolutionContent = content
+            contentSolutionSolution = solution
+            navigateTo(AppScreen.CONTENT_SOLUTION)
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                var finalContent = content
+                var finalSolution = solution
+                if (chapterId != null) {
+                    val topics = repository.getTopicsForChapterOnce(chapterId)
+                    if (finalContent.isNullOrBlank()) {
+                        finalContent = topics.mapNotNull { it.contentData }.joinToString("\n\n---\n\n")
+                    }
+                    if (finalSolution.isNullOrBlank()) {
+                        finalSolution = topics.mapNotNull { it.solutionData }.joinToString("\n\n---\n\n")
+                    }
+                }
+                if (finalContent.isNullOrBlank()) {
+                    finalContent = "# $title\n\nএই অধ্যায় বা টপিকের বিস্তারিত কন্টেন্ট এবং নোটস শীট খুব শীঘ্রই যুক্ত করা হবে।"
+                }
+                if (finalSolution.isNullOrBlank()) {
+                    finalSolution = "# $title - সমাধান\n\nএই অধ্যায় বা টপিকের অনুশীলনী ও প্রশ্নোত্তর সমাধান খুব শীঘ্রই যুক্ত করা হবে।"
+                }
+                withContext(Dispatchers.Main) {
+                    contentSolutionContent = finalContent
+                    contentSolutionSolution = finalSolution
+                    navigateTo(AppScreen.CONTENT_SOLUTION)
+                }
+            }
+        }
     }
 
     private val _districtSchoolsMap = MutableStateFlow<Map<String, List<String>>>(com.example.util.WestBengalData.districtSchoolsMap)

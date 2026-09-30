@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,203 @@ import com.example.ui.theme.ExamGold
 import com.example.ui.theme.WrongRed
 import com.example.ui.viewmodel.DeshExamViewModel
 import kotlinx.coroutines.launch
+
+@Composable
+fun LearnTopicHeroBanner(
+    topic: TopicItem,
+    totalQuestions: Int,
+    totalSets: Int,
+    isBengali: Boolean,
+    onViewContent: () -> Unit,
+    onViewSolution: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val mastery = topic.masteryPercentage.coerceIn(0, 100)
+    Card(
+        shape = RoundedCornerShape(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF1E1B2E),
+                            Color(0xFF312E81),
+                            Color(0xFF0F766E)
+                        )
+                    )
+                )
+                .padding(horizontal = 16.dp, vertical = 20.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Top Badge
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color.White.copy(alpha = 0.18f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = Color(0xFFFBBF24),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isBengali) "টপিক স্টাডি ও কুইজ মাস্টার্স" else "Topic Study & Quiz Master",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color.White
+                        )
+                    }
+                }
+
+                // Title
+                Text(
+                    text = topic.getTitle(isBengali),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = Color.White
+                    )
+                )
+
+                // Subtitle / Info
+                Text(
+                    text = if (isBengali) "প্রশ্ন সংখ্যা: $totalQuestions টি • টেস্ট সেট: $totalSets টি" else "Questions: $totalQuestions • Test Sets: $totalSets",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                )
+
+                // Mastery / Progress Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (mastery >= 80) Color(0xFF059669) else Color(0xFFD97706)
+                        ) {
+                            Text(
+                                text = if (isBengali) "মাস্টারি: $mastery%" else "Mastery: $mastery%",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$mastery%",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 11.sp
+                            ),
+                            color = Color.White
+                        )
+                    }
+                }
+
+                // Separate Very Small Action Buttons (Content & Solution)
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Content Button (Very Small)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White.copy(alpha = 0.22f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onViewContent)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isBengali) "📖 কন্টেন্ট" else "📖 Content",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    // Solution Button (Very Small)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White.copy(alpha = 0.22f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onViewSolution)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isBengali) "💡 সমাধান" else "💡 Solution",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun LearnTopicScreen(
@@ -67,6 +265,37 @@ fun LearnTopicScreen(
         viewModel?.getTopicExtraSets(topic.id) ?: 0
     }
     val totalSets = baseSets + extraSets
+
+    val finalContent = remember(topic, isBengali) {
+        topic.contentData?.takeIf { it.isNotBlank() } ?: buildString {
+            append("# ${if (isBengali) topic.titleBengali else topic.titleEnglish}\n\n")
+            val sumText = if (isBengali) topic.summaryBengali else topic.summary
+            if (sumText.isNotBlank()) {
+                append("## সারসংক্ষেপ (Summary)\n$sumText\n\n")
+            }
+            if (topic.keyPoints.isNotEmpty()) {
+                append("## মূল বিষয় ও পয়েন্টসমূহ (Key Points)\n")
+                topic.keyPoints.forEach { point ->
+                    append("* $point\n")
+                }
+            }
+        }
+    }
+
+    val finalSolution = remember(topic, isBengali) {
+        topic.solutionData?.takeIf { it.isNotBlank() } ?: buildString {
+            append("# ${if (isBengali) topic.titleBengali else topic.titleEnglish} - সমাধান ও প্রশ্নোত্তর\n\n")
+            append("## অনুশীলনী ও গুরুত্বপূর্ণ প্রশ্নাবলী\n")
+            if (topic.keyPoints.isNotEmpty()) {
+                topic.keyPoints.forEachIndexed { idx, point ->
+                    append("### প্রশ্ন ${idx + 1}: $point\n")
+                    append("**উত্তর:** উক্ত বিষয়টি সম্পর্কে বিস্তারিত ধারণা এবং সঠিক সমাধান এখানে দেওয়া হলো।\n\n")
+                }
+            } else {
+                append("এই অধ্যায়ের অনুশীলনী ও প্রশ্নোত্তর শীট খুব শীঘ্রই যুক্ত করা হবে।\n")
+            }
+        }
+    }
 
     // Check unlocks & scores
     val setScores = remember(topic.id, totalSets, testScoresVersion) {
@@ -206,13 +435,43 @@ fun LearnTopicScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Summary Card
+            // Edge-to-Edge Hero Banner (0dp corner radius)
+            LearnTopicHeroBanner(
+                topic = topic,
+                totalQuestions = totalQuestions,
+                totalSets = totalSets,
+                isBengali = isBengali,
+                onViewContent = {
+                    viewModel?.openContentSolution(
+                        title = if (isBengali) topic.titleBengali else topic.titleEnglish,
+                        content = finalContent,
+                        solution = finalSolution,
+                        initialTab = 0
+                    )
+                },
+                onViewSolution = {
+                    viewModel?.openContentSolution(
+                        title = if (isBengali) topic.titleBengali else topic.titleEnglish,
+                        content = finalContent,
+                        solution = finalSolution,
+                        initialTab = 1
+                    )
+                }
+            )
+
+            // Content Container with horizontal padding
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Summary Card
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFBEB)
                 ),
@@ -299,8 +558,9 @@ fun LearnTopicScreen(
                 onClick = {
                     viewModel?.openContentSolution(
                         title = if (isBengali) topic.titleBengali else topic.titleEnglish,
-                        content = topic.contentData,
-                        solution = topic.solutionData
+                        content = finalContent,
+                        solution = finalSolution,
+                        initialTab = 0
                     )
                 },
                 modifier = Modifier
@@ -860,3 +1120,5 @@ fun LearnTopicScreen(
         }
     }
 }
+}
+

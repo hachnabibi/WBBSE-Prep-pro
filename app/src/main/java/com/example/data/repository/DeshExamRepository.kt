@@ -648,6 +648,10 @@ class DeshExamRepository(
         }
     }
 
+    suspend fun getTopicsForChapterOnce(chapterId: String): List<TopicEntity> = withContext(Dispatchers.IO) {
+        dao.getTopicsForChapterOnce(chapterId)
+    }
+
     fun getTopics(chapterId: String): Flow<List<TopicItem>> =
         dao.getTopicsForChapter(chapterId).map { entities ->
             entities.map { entity ->
