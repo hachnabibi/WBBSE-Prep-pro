@@ -33,6 +33,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
+import android.widget.TextView
+import androidx.compose.ui.viewinterop.AndroidView
+import io.noties.markwon.Markwon
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -206,7 +209,7 @@ fun ContentSolutionScreen(
                     } else {
                         val text = solutionData?.takeIf { it.isNotBlank() }
                             ?: if (isBengali) "কোনো সমাধান পাওয়া যায়নি।" else "No solution available."
-                        text to solutionScrollState
+                        formatSolutionMarkdown(text) to solutionScrollState
                     }
 
                     Surface(
@@ -234,115 +237,75 @@ fun MarkdownText(
     markdown: String,
     modifier: Modifier = Modifier
 ) {
-    val lines = remember(markdown) { markdown.lines() }
-    
-    Column(
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val markwon = remember(context) { Markwon.create(context) }
+    val textColor = MaterialTheme.colorScheme.onSurface
+
+    AndroidView(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        for (line in lines) {
-            val trimmed = line.trim()
-            when {
-                trimmed.startsWith("# ") -> {
-                    Text(
-                        text = trimmed.removePrefix("# ").trim(),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
-                            lineHeight = 28.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                    )
-                }
-                trimmed.startsWith("## ") -> {
-                    Text(
-                        text = trimmed.removePrefix("## ").trim(),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            lineHeight = 24.sp
-                        ),
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
-                    )
-                }
-                trimmed.startsWith("### ") -> {
-                    Text(
-                        text = trimmed.removePrefix("### ").trim(),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            lineHeight = 22.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-                trimmed.startsWith("* ") || trimmed.startsWith("- ") -> {
-                    val bulletText = trimmed.removePrefix("* ").removePrefix("- ").trim()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .size(6.dp)
-                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(3.dp))
-                        )
-                        Text(
-                            text = parseInlineMarkdown(bulletText),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                lineHeight = 22.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                trimmed.isBlank() -> {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                else -> {
-                    Text(
-                        text = parseInlineMarkdown(trimmed),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            lineHeight = 24.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+        factory = { ctx ->
+            TextView(ctx).apply {
+                textSize = 16f
+                setLineSpacing(8f, 1.25f)
+                movementMethod = android.text.method.LinkMovementMethod.getInstance()
             }
+        },
+        update = { tv ->
+            tv.setTextColor(android.graphics.Color.argb(
+                (textColor.alpha * 255).toInt(),
+                (textColor.red * 255).toInt(),
+                (textColor.green * 255).toInt(),
+                (textColor.blue * 255).toInt()
+            ))
+            markwon.setMarkdown(tv, markdown)
         }
-    }
+    )
 }
 
-@Composable
-fun parseInlineMarkdown(text: String): AnnotatedString {
-    return remember(text) {
-        buildAnnotatedString {
-            val parts = text.split("**")
-            parts.forEachIndexed { index, part ->
-                if (index % 2 == 1) {
-                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color.Unspecified))
-                    append(part)
-                    pop()
+fun formatSolutionMarkdown(markdown: String): String {
+    val lines = markdown.lines()
+    val processedLines = mutableListOf<String>()
+
+    for (line in lines) {
+        val trimmed = line.trim()
+        if (trimmed.isEmpty()) {
+            processedLines.add("")
+            continue
+        }
+
+        // Check if line contains question number and "উত্তর:"
+        if ((trimmed.contains("উত্তর:") || trimmed.contains("**উত্তর:**")) && 
+            (trimmed.matches(Regex("^.*\\d+([\\.\\)].*)+.*")) || trimmed.contains("___") || trimmed.contains("("))) {
+            
+            val splitKeyword = if (trimmed.contains("**উত্তর:**")) "**উত্তর:**" else "উত্তর:"
+            val parts = trimmed.split(splitKeyword, limit = 2)
+            if (parts.size == 2) {
+                val questionPart = parts[0].trim().removeSuffix("।").removeSuffix(".").trim()
+                val answerPart = parts[1].trim()
+                
+                val boldQuestion = if (questionPart.startsWith("**") && questionPart.endsWith("**")) {
+                    questionPart
                 } else {
-                    val italicParts = part.split("*")
-                    italicParts.forEachIndexed { italicIdx, italicPart ->
-                        if (italicIdx % 2 == 1) {
-                            pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                            append(italicPart)
-                            pop()
-                        } else {
-                            append(italicPart)
-                        }
-                    }
+                    "**$questionPart**"
                 }
+                
+                processedLines.add("")
+                processedLines.add(boldQuestion)
+                processedLines.add("")
+                processedLines.add("**উত্তর:** $answerPart")
+                processedLines.add("")
+                continue
             }
         }
+        
+        // Check if line starts with question numbering like "১.", "১.১", "২.", "৩." etc.
+        if (trimmed.matches(Regex("^\\d+(\\.\\d+)?\\..*")) && !trimmed.startsWith("**")) {
+            processedLines.add("")
+            processedLines.add("**$trimmed**")
+        } else {
+            processedLines.add(line)
+        }
     }
+    
+    return processedLines.joinToString("\n")
 }

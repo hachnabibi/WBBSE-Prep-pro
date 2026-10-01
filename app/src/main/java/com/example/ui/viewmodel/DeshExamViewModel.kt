@@ -138,38 +138,76 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     var contentSolutionSolution: String? = null
     var contentSolutionInitialTab: Int = 0
 
-    fun openContentSolution(title: String, content: String?, solution: String?, initialTab: Int = 0, chapterId: String? = null) {
+    fun openContentSolution(
+        title: String,
+        content: String?,
+        solution: String?,
+        initialTab: Int = 0,
+        chapterId: String? = null,
+        topicId: String? = null
+    ) {
         contentSolutionTitle = title
         contentSolutionInitialTab = initialTab
         
-        if (!content.isNullOrBlank() || !solution.isNullOrBlank()) {
-            contentSolutionContent = content
-            contentSolutionSolution = solution
-            navigateTo(AppScreen.CONTENT_SOLUTION)
-        } else {
-            viewModelScope.launch(Dispatchers.IO) {
-                var finalContent = content
-                var finalSolution = solution
-                if (chapterId != null) {
-                    val topics = repository.getTopicsForChapterOnce(chapterId)
-                    if (finalContent.isNullOrBlank()) {
-                        finalContent = topics.mapNotNull { it.contentData }.joinToString("\n\n---\n\n")
-                    }
-                    if (finalSolution.isNullOrBlank()) {
-                        finalSolution = topics.mapNotNull { it.solutionData }.joinToString("\n\n---\n\n")
+        viewModelScope.launch(Dispatchers.IO) {
+            var finalContent = content
+            var finalSolution = solution
+
+            // If chapterId is provided, fetch chapter-level solutions directly
+            if (chapterId != null) {
+                val chapterSolutions = repository.getSolutionsFromAssetForChapter(chapterId)
+                if (!chapterSolutions.isNullOrBlank()) {
+                    finalSolution = chapterSolutions
+                }
+            }
+
+            // Always fetch latest real-time data from Room if topicId is available
+            if (topicId != null && finalSolution.isNullOrBlank()) {
+                val topicEntity = repository.getTopicByIdOnce(topicId)
+                if (topicEntity != null) {
+                    if (!topicEntity.contentData.isNullOrBlank()) {
+                        finalContent = topicEntity.contentData
                     }
                 }
+                val assetSolutions = repository.getSolutionsFromAssetForTopic(topicId)
+                if (!assetSolutions.isNullOrBlank()) {
+                    finalSolution = assetSolutions
+                } else if (topicEntity != null && !topicEntity.solutionData.isNullOrBlank()) {
+                    finalSolution = topicEntity.solutionData
+                }
+            }
+
+            // If chapterId is provided and content/solution still blank, aggregate from chapter topics
+            if ((finalContent.isNullOrBlank() || finalSolution.isNullOrBlank()) && chapterId != null) {
+                val topics = repository.getTopicsForChapterOnce(chapterId)
                 if (finalContent.isNullOrBlank()) {
-                    finalContent = "# $title\n\nএই অধ্যায় বা টপিকের বিস্তারিত কন্টেন্ট এবং নোটস শীট খুব শীঘ্রই যুক্ত করা হবে।"
+                    finalContent = topics.mapNotNull { it.contentData?.takeIf { c -> c.isNotBlank() } }.joinToString("\n\n")
                 }
                 if (finalSolution.isNullOrBlank()) {
-                    finalSolution = "# $title - সমাধান\n\nএই অধ্যায় বা টপিকের অনুশীলনী ও প্রশ্নোত্তর সমাধান খুব শীঘ্রই যুক্ত করা হবে।"
+                    val solList = mutableListOf<String>()
+                    for (t in topics) {
+                        val sol = repository.getSolutionsFromAssetForTopic(t.id) ?: t.solutionData
+                        if (!sol.isNullOrBlank()) {
+                            solList.add(sol)
+                        }
+                    }
+                    finalSolution = solList.takeIf { it.isNotEmpty() }?.joinToString("\n\n")
+                        ?: topics.mapNotNull { it.solutionData?.takeIf { s -> s.isNotBlank() } }.joinToString("\n\n")
                 }
-                withContext(Dispatchers.Main) {
-                    contentSolutionContent = finalContent
-                    contentSolutionSolution = finalSolution
-                    navigateTo(AppScreen.CONTENT_SOLUTION)
-                }
+            }
+
+            // Fallback generation if still blank
+            if (finalContent.isNullOrBlank()) {
+                finalContent = "# $title\n\nএই অধ্যায় বা টপিকের বিস্তারিত কন্টেন্ট এবং নোটস শীট খুব শীঘ্রই যুক্ত করা হবে।"
+            }
+            if (finalSolution.isNullOrBlank()) {
+                finalSolution = "# $title - সমাধান\n\nএই অধ্যায় বা টপিকের অনুশীলনী ও প্রশ্নোত্তর সমাধান খুব শীঘ্রই যুক্ত করা হবে।"
+            }
+
+            withContext(Dispatchers.Main) {
+                contentSolutionContent = finalContent
+                contentSolutionSolution = finalSolution
+                navigateTo(AppScreen.CONTENT_SOLUTION)
             }
         }
     }
@@ -422,10 +460,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             AppScreen.PROGRESS_DASHBOARD, AppScreen.PDF_NOTES, AppScreen.PYQ_PDF_DOWNLOAD, AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD,
             AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET,
             AppScreen.SUBJECT_DETAIL -> {
-                if (_currentScreen.value != AppScreen.HOME) {
-                    _currentScreen.value = AppScreen.HOME
-                    true
-                } else false
+                _currentScreen.value = if (_previousScreen.value != AppScreen.SUBJECT_DETAIL && _previousScreen.value != AppScreen.HOME) _previousScreen.value else AppScreen.HOME
+                true
             }
             AppScreen.AUTH, AppScreen.ONBOARDING, AppScreen.HOME -> false
         }

@@ -71,80 +71,89 @@ fun ChapterDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(24.dp))
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
                                     subjectColor,
-                                    subjectColor.copy(alpha = 0.85f)
+                                    subjectColor.copy(alpha = 0.85f),
+                                    Color(0xFF0F172A).copy(alpha = 0.4f)
                                 )
                             )
                         )
-                        .padding(20.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Chapter Badge
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.25f)),
-                                contentAlignment = Alignment.Center
+                            // Left side: Circular Star Icon + Title & Chapter Title
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    text = if (isBengali) chapter.chapterNumber.toBengaliDigits() else "${chapter.chapterNumber}",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "Star",
+                                            tint = ExamGold,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "অধ্যায় প্রস্তুতি ও অগ্রগতি",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = if (isBengali) chapter.titleBengali else chapter.titleEnglish,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        maxLines = 1
+                                    )
+                                }
                             }
 
-                            // Mastery Badge
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Stars,
-                                    contentDescription = "Mastery",
-                                    tint = ExamGold,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${chapter.masteryPercentage.toBengaliDigits()}% মাস্টারী",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
+                            // Right side circular percentage badge
+                            Surface(
+                                shape = CircleShape,
+                                color = ExamGold.copy(alpha = 0.25f),
+                                border = BorderStroke(1.5.dp, ExamGold),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${chapter.masteryPercentage}%",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = ExamGold
+                                    )
+                                }
                             }
                         }
 
-                        Text(
-                            text = if (isBengali) chapter.titleBengali else chapter.titleEnglish,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = Color.White
+                        // Centered Yellow Progress Bar (Partially filled)
+                        LinearProgressIndicator(
+                            progress = { chapter.masteryPercentage / 100f },
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .align(Alignment.CenterHorizontally)
+                                .height(8.dp)
+                                .clip(CircleShape),
+                            color = ExamGold,
+                            trackColor = Color.White.copy(alpha = 0.3f)
                         )
-
-                        Text(
-                            text = if (isBengali) chapter.descriptionBengali else chapter.descriptionEnglish,
-                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 20.sp),
-                            color = Color.White.copy(alpha = 0.92f)
-                        )
-
-                        // Progress Indicator
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            LinearProgressIndicator(
-                                progress = { chapter.masteryPercentage / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(CircleShape),
-                                color = ExamGold,
-                                trackColor = Color.White.copy(alpha = 0.35f)
-                            )
-                        }
 
                         // View Content Button
                         Button(

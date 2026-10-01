@@ -61,98 +61,81 @@ fun LearnTopicHeroBanner(
                         )
                     )
                 )
-                .padding(horizontal = 16.dp, vertical = 20.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Top Badge
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.White.copy(alpha = 0.18f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = null,
-                            tint = Color(0xFFFBBF24),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isBengali) "টপিক স্টাডি ও কুইজ মাস্টার্স" else "Topic Study & Quiz Master",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color.White
-                        )
-                    }
-                }
-
-                // Title
-                Text(
-                    text = topic.getTitle(isBengali),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.White
-                    )
-                )
-
-                // Subtitle / Info
-                Text(
-                    text = if (isBengali) "প্রশ্ন সংখ্যা: $totalQuestions টি • টেস্ট সেট: $totalSets টি" else "Questions: $totalQuestions • Test Sets: $totalSets",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                )
-
-                // Mastery / Progress Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Left side: Circular Star Icon + Title & Topic Subtitle
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (mastery >= 80) Color(0xFF059669) else Color(0xFFD97706)
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.2f),
+                            modifier = Modifier.size(38.dp)
                         ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Star",
+                                    tint = ExamGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = if (isBengali) "মাস্টারি: $mastery%" else "Mastery: $mastery%",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                text = "টপিক প্রস্তুতি ও অগ্রগতি",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                            Text(
+                                text = topic.getTitle(isBengali),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.9f),
+                                maxLines = 1
                             )
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
+                    // Right side circular percentage badge
+                    Surface(
+                        shape = CircleShape,
+                        color = ExamGold.copy(alpha = 0.25f),
+                        border = BorderStroke(1.5.dp, ExamGold),
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        Text(
-                            text = "$mastery%",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 11.sp
-                            ),
-                            color = Color.White
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "$mastery%",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = ExamGold
+                            )
+                        }
                     }
                 }
+
+                // Centered Yellow Progress Bar (Partially filled)
+                LinearProgressIndicator(
+                    progress = { mastery / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .align(Alignment.CenterHorizontally)
+                        .height(8.dp)
+                        .clip(CircleShape),
+                    color = ExamGold,
+                    trackColor = Color.White.copy(alpha = 0.3f)
+                )
 
                 // Separate Very Small Action Buttons (Content & Solution)
                 Spacer(modifier = Modifier.height(2.dp))
@@ -449,7 +432,8 @@ fun LearnTopicScreen(
                         title = if (isBengali) topic.titleBengali else topic.titleEnglish,
                         content = finalContent,
                         solution = finalSolution,
-                        initialTab = 0
+                        initialTab = 0,
+                        topicId = topic.id
                     )
                 },
                 onViewSolution = {
@@ -457,7 +441,8 @@ fun LearnTopicScreen(
                         title = if (isBengali) topic.titleBengali else topic.titleEnglish,
                         content = finalContent,
                         solution = finalSolution,
-                        initialTab = 1
+                        initialTab = 1,
+                        topicId = topic.id
                     )
                 }
             )
@@ -560,7 +545,8 @@ fun LearnTopicScreen(
                         title = if (isBengali) topic.titleBengali else topic.titleEnglish,
                         content = finalContent,
                         solution = finalSolution,
-                        initialTab = 0
+                        initialTab = 0,
+                        topicId = topic.id
                     )
                 },
                 modifier = Modifier
