@@ -28,6 +28,7 @@ import com.example.data.local.ChapterEntity
 import com.example.data.local.TopicEntity
 import com.example.data.model.*
 import com.example.ui.components.ScreenHeaderBar
+import com.example.ui.components.HeroBanner
 import com.example.ui.theme.ExamGold
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,96 +67,14 @@ fun ChapterDetailScreen(
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Chapter Hero Banner
+            // 1. Chapter Hero Banner using HeroBanner component
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    subjectColor,
-                                    subjectColor.copy(alpha = 0.85f),
-                                    Color(0xFF0F172A).copy(alpha = 0.4f)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Left side: Circular Star Icon + Title & Chapter Title
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.2f),
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Star,
-                                            contentDescription = "Star",
-                                            tint = ExamGold,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        text = "অধ্যায় প্রস্তুতি ও অগ্রগতি",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = if (isBengali) chapter.titleBengali else chapter.titleEnglish,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.9f),
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-
-                            // Right side circular percentage badge
-                            Surface(
-                                shape = CircleShape,
-                                color = ExamGold.copy(alpha = 0.25f),
-                                border = BorderStroke(1.5.dp, ExamGold),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = "${chapter.masteryPercentage}%",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = ExamGold
-                                    )
-                                }
-                            }
-                        }
-
-                        // Centered Yellow Progress Bar (Partially filled)
-                        LinearProgressIndicator(
-                            progress = { chapter.masteryPercentage / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .align(Alignment.CenterHorizontally)
-                                .height(8.dp)
-                                .clip(CircleShape),
-                            color = ExamGold,
-                            trackColor = Color.White.copy(alpha = 0.3f)
-                        )
-
-                        // View Content Button
+                HeroBanner(
+                    title = "অধ্যায় প্রস্তুতি ও অগ্রগতি",
+                    subtitle = if (isBengali) chapter.titleBengali else chapter.titleEnglish,
+                    masteryPercentage = chapter.masteryPercentage,
+                    primaryColor = subjectColor,
+                    bottomContent = {
                         Button(
                             onClick = {
                                 onViewContent(
@@ -177,7 +96,7 @@ fun ChapterDetailScreen(
                             )
                         }
                     }
-                }
+                )
             }
 
             // 2. CHAPTER CONTENT: TOPICS OR TESTS

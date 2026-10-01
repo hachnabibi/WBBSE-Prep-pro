@@ -31,6 +31,13 @@ enum class PromoType {
     SCHOLARSHIP
 }
 
+data class PromoInfo(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val colors: List<Color>
+)
+
 @Composable
 fun CustomAppPromoCard(
     promoType: PromoType,
@@ -38,26 +45,26 @@ fun CustomAppPromoCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val result = when (promoType) {
-        PromoType.PYQ_DOWNLOAD -> listOf(
+    val promoInfo = when (promoType) {
+        PromoType.PYQ_DOWNLOAD -> PromoInfo(
             "বিগত বছরের প্রশ্নপত্র",
             "বোর্ড পরীক্ষার সব বিষয়ের প্রশ্নপত্র ডাউনলোড করুন",
             Icons.Default.Download,
             listOf(Color(0xFF4F46E5), Color(0xFF818CF8))
         )
-        PromoType.LIVE_MOCK_TEST -> listOf(
+        PromoType.LIVE_MOCK_TEST -> PromoInfo(
             "লাইভ মক টেস্ট দিন",
             "নিজের প্রস্তুতি যাচাই করুন মক টেস্ট দিয়ে",
             Icons.AutoMirrored.Filled.Assignment,
             listOf(Color(0xFF10B981), Color(0xFF34D399))
         )
-        PromoType.LIVE_QUIZ -> listOf(
+        PromoType.LIVE_QUIZ -> PromoInfo(
             "লাইভ কুইজ খেলুন",
             "বন্ধুদের সাথে কুইজ খেলে প্রাইজ জিতুন",
             Icons.Default.Quiz,
             listOf(Color(0xFFF59E0B), Color(0xFFFBBF24))
         )
-        PromoType.SCHOLARSHIP -> listOf(
+        PromoType.SCHOLARSHIP -> PromoInfo(
             "স্কলারশিপ জিতুন",
             "আমাদের লিডারবোর্ডে টপ করে আকর্ষণীয় প্রাইজ জিতুন",
             Icons.Default.EmojiEvents,
@@ -65,14 +72,10 @@ fun CustomAppPromoCard(
         )
     }
 
-    @Suppress("UNCHECKED_CAST")
-    val title = result[0] as String
-    @Suppress("UNCHECKED_CAST")
-    val subtitle = result[1] as String
-    @Suppress("UNCHECKED_CAST")
-    val icon = result[2] as ImageVector
-    @Suppress("UNCHECKED_CAST")
-    val colors = result[3] as List<Color>
+    val title = promoInfo.title
+    val subtitle = promoInfo.subtitle
+    val icon = promoInfo.icon
+    val colors = promoInfo.colors
 
     Card(
         modifier = modifier

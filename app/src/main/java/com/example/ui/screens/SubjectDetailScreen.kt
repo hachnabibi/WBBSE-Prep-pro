@@ -33,6 +33,7 @@ import com.example.data.local.ChapterEntity
 import com.example.data.local.QuestionEntity
 import com.example.data.local.SubjectEntity
 import com.example.data.local.TopicEntity
+import com.example.ui.components.HeroBanner
 import com.example.data.model.*
 import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.theme.*
@@ -112,95 +113,14 @@ fun SubjectDetailScreen(
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. Hero Header Banner - Edge-to-Edge with 0dp Corner Radius
+            // 1. Hero Header Banner - Edge-to-Edge with 0dp Corner Radius using HeroBanner component
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    subjectColor,
-                                    subjectColor.copy(alpha = 0.85f),
-                                    Color(0xFF0F172A).copy(alpha = 0.4f)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Left side: Circular Star Icon + Title & Chapter Status
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.2f),
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Star,
-                                            contentDescription = "Star",
-                                            tint = ExamGold,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        text = "প্রস্তুতি ও সার্বিক অগ্রগতি",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "${subject.completedChapters}/${subject.totalChapters}টি অধ্যায় সমাপ্ত",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.9f)
-                                    )
-                                }
-                            }
-
-                            // Right side circular percentage badge
-                            Surface(
-                                shape = CircleShape,
-                                color = ExamGold.copy(alpha = 0.25f),
-                                border = BorderStroke(1.5.dp, ExamGold),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = "${subject.masteryPercentage}%",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = ExamGold
-                                    )
-                                }
-                            }
-                        }
-
-                        // Centered Yellow Progress Bar (Partially filled)
-                        LinearProgressIndicator(
-                            progress = { subject.masteryPercentage / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .align(Alignment.CenterHorizontally)
-                                .height(8.dp)
-                                .clip(CircleShape),
-                            color = ExamGold,
-                            trackColor = Color.White.copy(alpha = 0.3f)
-                        )
-
-                        // 3 Balanced Status Chips at bottom
+                HeroBanner(
+                    title = "প্রস্তুতি ও সার্বিক অগ্রগতি",
+                    subtitle = "${subject.completedChapters}/${subject.totalChapters}টি অধ্যায় সমাপ্ত",
+                    masteryPercentage = subject.masteryPercentage,
+                    primaryColor = subjectColor,
+                    bottomContent = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -219,7 +139,7 @@ fun SubjectDetailScreen(
                             )
                         }
                     }
-                }
+                )
             }
 
             // 2. Navigation Tab Chips
