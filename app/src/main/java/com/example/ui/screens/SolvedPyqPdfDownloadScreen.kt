@@ -609,7 +609,7 @@ fun SolvedPyqHeroBanner(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MenuBook,
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
                             contentDescription = null,
                             tint = Color(0xFFFBBF24),
                             modifier = Modifier.size(26.dp)

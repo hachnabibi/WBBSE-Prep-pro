@@ -75,142 +75,143 @@ fun SubjectDetailScreen(
         questions.filter { it.subjectId == subject.id && it.pyqYear.isNotBlank() }
     }
 
+    val textbookSubtitle = remember(subject, isBengali) {
+        val tb = subject.textbookName
+        if (!tb.isNullOrBlank()) {
+            if (isBengali) "পাঠ্যবই: $tb" else "Textbook: $tb"
+        } else {
+            val code = subject.code.uppercase()
+            when {
+                code.contains("BEN") || code.contains("BN") -> if (isBengali) "পাঠ্যবই: পাতাবাহার / সাহিত্য সঞ্চয়ন" else "Textbook: Patabahar"
+                code.contains("ENG") || code.contains("EN") -> if (isBengali) "পাঠ্যবই: বাটারফ্লাই (Butterfly)" else "Textbook: Butterfly"
+                code.contains("MATH") || code.contains("MAT") -> if (isBengali) "পাঠ্যবই: আমার গণিত" else "Textbook: Amar Gonit"
+                code.contains("PHY") -> if (isBengali) "পাঠ্যবই: পরিবেশ ও বিজ্ঞান (ভৌত বিজ্ঞান)" else "Textbook: Physical Science"
+                code.contains("LIFE") || code.contains("BIO") -> if (isBengali) "পাঠ্যবই: পরিবেশ ও বিজ্ঞান (জীবন বিজ্ঞান)" else "Textbook: Life Science"
+                code.contains("HIST") -> if (isBengali) "পাঠ্যবই: ইতিহাস ও পরিবেশ" else "Textbook: History & Environment"
+                code.contains("GEO") -> if (isBengali) "পাঠ্যবই: পরিবেশ ও ভূগোল" else "Textbook: Geography & Environment"
+                else -> if (isBengali) "পাঠ্যবই: নির্ধারিত পাঠ্যবই" else "Textbook: Prescribed Textbook"
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
         ScreenHeaderBar(
-            title = if (isBengali) subject.name else subject.name,
-            subtitle = if (isBengali) {
-                if (subject.classId.contains("wbchse")) "WBCHSE বোর্ড সিলেবাস ও টেস্ট সিরিজ"
-                else "WBBSE বোর্ড সিলেবাস ও টেস্ট সিরিজ"
-            } else {
-                if (subject.classId.contains("wbchse")) "WBCHSE Board Syllabus & Tests"
-                else "WBBSE Board Syllabus & Tests"
-            },
+            title = subject.name,
+            subtitle = textbookSubtitle,
             isBengali = isBengali,
             showBackButton = true,
-            onBack = onBack,
-            containerColor = subjectColor,
-            contentColor = Color.White
+            onBack = onBack
         )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. Hero Header Banner - Full Width with Zero Corner Radius (TopBar style)
+            // 1. Hero Header Banner - Edge-to-Edge with 0dp Corner Radius
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Brush.verticalGradient(
+                            Brush.linearGradient(
                                 colors = listOf(
                                     subjectColor,
-                                    subjectColor.copy(alpha = 0.90f)
+                                    subjectColor.copy(alpha = 0.85f),
+                                    Color(0xFF0F172A).copy(alpha = 0.4f)
                                 )
-                            ),
-                            shape = RectangleShape
+                            )
                         )
-                        .padding(horizontal = 20.dp, vertical = 20.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color.White.copy(alpha = 0.25f)
+                            // Left side: Circular Star Icon + Title & Chapter Status
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    text = if (isBengali) {
-                                        if (subject.classId.contains("wbchse")) "WBCHSE বোর্ড সিলেবাস"
-                                        else "WBBSE বোর্ড সিলেবাস"
-                                    } else {
-                                        if (subject.classId.contains("wbchse")) "WBCHSE Board Syllabus"
-                                        else "WBBSE Board Syllabus"
-                                    },
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "Star",
+                                            tint = ExamGold,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "প্রস্তুতি ও সার্বিক অগ্রগতি",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "${subject.completedChapters}/${subject.totalChapters}টি অধ্যায় সমাপ্ত",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.9f)
+                                    )
+                                }
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Stars,
-                                    contentDescription = "Mastery",
-                                    tint = ExamGold,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${subject.masteryPercentage}% প্রস্তুতি",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
+                            // Right side circular percentage badge
+                            Surface(
+                                shape = CircleShape,
+                                color = ExamGold.copy(alpha = 0.25f),
+                                border = BorderStroke(1.5.dp, ExamGold),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${subject.masteryPercentage}%",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = ExamGold
+                                    )
+                                }
                             }
                         }
 
-                        Text(
-                            text = subject.name,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = Color.White
+                        // Centered Yellow Progress Bar (Partially filled)
+                        LinearProgressIndicator(
+                            progress = { subject.masteryPercentage / 100f },
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .align(Alignment.CenterHorizontally)
+                                .height(8.dp)
+                                .clip(CircleShape),
+                            color = ExamGold,
+                            trackColor = Color.White.copy(alpha = 0.3f)
                         )
 
-                        if (!subject.textbookName.isNullOrBlank()) {
-                            Text(
-                                text = "পাঠ্যবই: ${subject.textbookName}",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
-                        }
-
-                        // Mastery Progress Bar
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "সামগ্রিক মাস্টারী",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.92f)
-                                )
-                                Text(
-                                    text = "${subject.completedChapters}/${subject.totalChapters} অধ্যায় সম্পন্ন",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
-                            }
-                            LinearProgressIndicator(
-                                progress = { subject.masteryPercentage / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(CircleShape),
-                                color = ExamGold,
-                                trackColor = Color.White.copy(alpha = 0.35f)
-                            )
-                        }
-
-                        // Quick Stat Badges
+                        // 3 Balanced Status Chips at bottom
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             StatMiniBadge(
                                 icon = Icons.AutoMirrored.Filled.MenuBook,
-                                label = "${subject.totalChapters}টি অধ্যায়"
+                                label = "${subject.totalChapters} অধ্যায়"
                             )
                             StatMiniBadge(
                                 icon = Icons.AutoMirrored.Filled.Assignment,
-                                label = "${subjectTests.size}টি টেস্ট"
+                                label = "${subjectTests.size} টেস্ট সিরিজ"
                             )
                             StatMiniBadge(
                                 icon = Icons.Default.HistoryEdu,

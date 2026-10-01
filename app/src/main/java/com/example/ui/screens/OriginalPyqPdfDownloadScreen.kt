@@ -842,7 +842,7 @@ fun OriginalPyqHeroBanner(
                         text = if (isBengali) "১০০% নির্ভুল" else "100% Verified"
                     )
                     HeroFeaturePillClickable(
-                        icon = Icons.Default.MenuBook,
+                        icon = Icons.AutoMirrored.Filled.MenuBook,
                         text = if (isBengali) "সমাধানসহ দেখুন ➔" else "View Solutions ➔",
                         onClick = onNavigateToSolved
                     )

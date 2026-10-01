@@ -652,6 +652,10 @@ class DeshExamRepository(
         dao.getTopicsForChapterOnce(chapterId)
     }
 
+    suspend fun getTopicByIdOnce(topicId: String): TopicEntity? = withContext(Dispatchers.IO) {
+        dao.getTopicById(topicId)
+    }
+
     fun getTopics(chapterId: String): Flow<List<TopicItem>> =
         dao.getTopicsForChapter(chapterId).map { entities ->
             entities.map { entity ->
@@ -2170,4 +2174,141 @@ class DeshExamRepository(
     fun getRecentlyViewed(): Flow<List<RecentlyViewedEntity>> = dao.getRecentlyViewed()
     
     suspend fun addRecentlyViewed(recentlyViewed: RecentlyViewedEntity) = dao.addRecentlyViewed(recentlyViewed)
+
+    // Load separate solutions.json for topics
+    data class TopicSolutionsWrapper(
+        val topicId: String,
+        val solutions: List<SolutionItem>
+    )
+
+    data class MatchingPair(
+        val columnA: String,
+        val columnB: String
+    )
+
+    data class SolutionItem(
+        val type: String,
+        val question: String,
+        val options: List<String>? = null,
+        val correctOption: Int? = null,
+        val answer: String,
+        val marks: Int,
+        val matchingPairs: List<MatchingPair>? = null
+    )
+
+    suspend fun getSolutionsFromAssetForChapter(chapterId: String): String? = withContext(Dispatchers.IO) {
+        val ctx = context ?: return@withContext null
+        val assetManager = ctx.assets
+        val topics = dao.getTopicsForChapterOnce(chapterId)
+        val topicIds = topics.map { it.id }.toSet()
+        if (topicIds.isEmpty()) return@withContext null
+
+        fun searchSolutionsInFolder(path: String): String? {
+            try {
+                val files = assetManager.list(path) ?: return null
+                if (files.contains("solutions.json")) {
+                    val stream = assetManager.open("$path/solutions.json")
+                    val reader = java.io.InputStreamReader(stream)
+                    val listType = object : com.google.gson.reflect.TypeToken<List<TopicSolutionsWrapper>>() {}.type
+                    val wrappers: List<TopicSolutionsWrapper> = com.google.gson.Gson().fromJson(reader, listType)
+                    val matchedWrappers = wrappers.filter { it.topicId in topicIds }
+                    if (matchedWrappers.isNotEmpty()) {
+                        val sb = StringBuilder()
+                        matchedWrappers.forEach { wrapper ->
+                            wrapper.solutions.forEach { item ->
+                                sb.append("**${item.question}** `[${item.type} • মান: ${item.marks}]`\n\n")
+                                
+                                if (!item.options.isNullOrEmpty()) {
+                                    item.options.forEachIndexed { optIdx, opt ->
+                                        val optNum = optIdx + 1
+                                        val isCorrect = item.correctOption == optNum
+                                        val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
+                                        sb.append("* $optNum. $opt$marker\n")
+                                    }
+                                    sb.append("\n")
+                                }
+
+                                if (!item.matchingPairs.isNullOrEmpty()) {
+                                    item.matchingPairs.forEach { pair ->
+                                        sb.append("- ${pair.columnA}  ──>  ${pair.columnB}\n")
+                                    }
+                                    sb.append("\n")
+                                }
+                                
+                                sb.append("**উত্তর:** ${item.answer}\n\n")
+                            }
+                        }
+                        return sb.toString().trim()
+                    }
+                }
+                for (file in files) {
+                    if (!file.contains(".")) {
+                        val result = searchSolutionsInFolder("$path/$file")
+                        if (result != null) return result
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return null
+        }
+
+        return@withContext searchSolutionsInFolder("data")
+    }
+
+    suspend fun getSolutionsFromAssetForTopic(topicId: String): String? = withContext(Dispatchers.IO) {
+        val ctx = context ?: return@withContext null
+        val assetManager = ctx.assets
+
+        fun searchSolutionsInFolder(path: String): String? {
+            try {
+                val files = assetManager.list(path) ?: return null
+                if (files.contains("solutions.json")) {
+                    val stream = assetManager.open("$path/solutions.json")
+                    val reader = java.io.InputStreamReader(stream)
+                    val listType = object : com.google.gson.reflect.TypeToken<List<TopicSolutionsWrapper>>() {}.type
+                    val wrappers: List<TopicSolutionsWrapper> = com.google.gson.Gson().fromJson(reader, listType)
+                    val wrapper = wrappers.find { it.topicId == topicId }
+                    if (wrapper != null) {
+                        val sb = StringBuilder()
+                        wrapper.solutions.forEach { item ->
+                            sb.append("**${item.question}** `[${item.type} • মান: ${item.marks}]`\n\n")
+                            
+                            if (!item.options.isNullOrEmpty()) {
+                                item.options.forEachIndexed { optIdx, opt ->
+                                    val optNum = optIdx + 1
+                                    val isCorrect = item.correctOption == optNum
+                                    val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
+                                    sb.append("* $optNum. $opt$marker\n")
+                                }
+                                sb.append("\n")
+                            }
+
+                            if (!item.matchingPairs.isNullOrEmpty()) {
+                                item.matchingPairs.forEach { pair ->
+                                    sb.append("- ${pair.columnA}  ──>  ${pair.columnB}\n")
+                                }
+                                sb.append("\n")
+                            }
+                            
+                            sb.append("**উত্তর:** ${item.answer}\n\n")
+                        }
+                        return sb.toString().trim()
+                    }
+                }
+                for (file in files) {
+                    if (!file.contains(".")) {
+                        val result = searchSolutionsInFolder("$path/$file")
+                        if (result != null) return result
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return null
+        }
+
+        return@withContext searchSolutionsInFolder("data")
+    }
 }
+

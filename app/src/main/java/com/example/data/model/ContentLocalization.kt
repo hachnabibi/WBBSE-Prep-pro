@@ -87,10 +87,6 @@ fun SubjectItem.getTitle(isBengali: Boolean): String {
     return ContentLocalization.getSubjectTitle(id, code, name, isBengali)
 }
 
-fun SubjectItem.getTextbook(isBengali: Boolean = true): String {
-    return this.textbookName
-}
-
 fun SubjectItem.getClassLevelName(isBengali: Boolean): String {
     return AcademicClassProvider.getClassName(this.id, isBengali)
 }
