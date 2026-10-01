@@ -65,9 +65,13 @@ fun CustomAppPromoCard(
         )
     }
 
+    @Suppress("UNCHECKED_CAST")
     val title = result[0] as String
+    @Suppress("UNCHECKED_CAST")
     val subtitle = result[1] as String
+    @Suppress("UNCHECKED_CAST")
     val icon = result[2] as ImageVector
+    @Suppress("UNCHECKED_CAST")
     val colors = result[3] as List<Color>
 
     Card(

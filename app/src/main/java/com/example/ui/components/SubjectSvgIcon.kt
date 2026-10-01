@@ -25,6 +25,7 @@ import com.example.data.model.SubjectCode
  */
 object SubjectSvgIconProvider {
 
+    @Suppress("REDUNDANT_ELSE_IN_WHEN")
     fun getIconForSubjectCode(code: SubjectCode): ImageVector {
         return when (code) {
             SubjectCode.PHYSICAL_SCIENCE -> Icons.Default.Science
