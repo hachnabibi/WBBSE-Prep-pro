@@ -1,0 +1,12 @@
+{
+  "id": "class_5_wbbse_english_rapid",
+  "code": "ENGLISH_RAPID",
+  "name": "ইংরেজি (উইংস)",
+  "textbookName": "Wings (Support Material)",
+  "totalChapters": 3,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4279566502,
+  "classId": "class_5_wbbse",
+  "stream": "common"
+}

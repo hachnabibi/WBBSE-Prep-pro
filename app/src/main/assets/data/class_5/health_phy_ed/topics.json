@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_health_ch1_top1",
+    "chapterId": "class_5_wbbse_health_ch1",
+    "subjectId": "class_5_wbbse_health",
+    "orderIndex": 1,
+    "title": "পাঠ 1",
+    "summary": "Summary of প্রথম অধ্যায়: স্বাস্থ্যবিধি",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# প্রথম অধ্যায়: স্বাস্থ্যবিধি\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_health_ch2_top1",
+    "chapterId": "class_5_wbbse_health_ch2",
+    "subjectId": "class_5_wbbse_health",
+    "orderIndex": 1,
+    "title": "পাঠ 2",
+    "summary": "Summary of দ্বিতীয় অধ্যায়: পুষ্টি ও সুষম খাদ্য",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# দ্বিতীয় অধ্যায়: পুষ্টি ও সুষম খাদ্য\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_health_ch3_top1",
+    "chapterId": "class_5_wbbse_health_ch3",
+    "subjectId": "class_5_wbbse_health",
+    "orderIndex": 1,
+    "title": "পাঠ 3",
+    "summary": "Summary of তৃতীয় অধ্যায়: প্রাথমিক চিকিৎসা",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# তৃতীয় অধ্যায়: প্রাথমিক চিকিৎসা\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  }
+]

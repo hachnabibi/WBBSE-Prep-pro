@@ -1,0 +1,12 @@
+{
+  "id": "class_5_wbbse_english",
+  "code": "ENGLISH",
+  "name": "ইংরেজি",
+  "textbookName": "Butterfly",
+  "totalChapters": 5,
+  "completedChapters": 1,
+  "masteryPercentage": 75,
+  "colorHex": 4279548070,
+  "classId": "class_5_wbbse",
+  "stream": "common"
+}

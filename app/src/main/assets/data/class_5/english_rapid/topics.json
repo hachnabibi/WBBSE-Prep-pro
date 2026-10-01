@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_english_rapid_ch1_top1",
+    "chapterId": "class_5_wbbse_english_rapid_ch1",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "orderIndex": 1,
+    "title": "Activity 1",
+    "summary": "Summary of Lesson 1",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 1\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_english_rapid_ch2_top1",
+    "chapterId": "class_5_wbbse_english_rapid_ch2",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "orderIndex": 1,
+    "title": "Activity 2",
+    "summary": "Summary of Lesson 2",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 2\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_english_rapid_ch3_top1",
+    "chapterId": "class_5_wbbse_english_rapid_ch3",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "orderIndex": 1,
+    "title": "Activity 3",
+    "summary": "Summary of Lesson 3",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 3\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  }
+]

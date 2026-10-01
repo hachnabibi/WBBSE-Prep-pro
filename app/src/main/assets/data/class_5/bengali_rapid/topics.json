@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch1_top1",
+    "chapterId": "class_5_wbbse_bengali_rapid_ch1",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "orderIndex": 1,
+    "title": "অধ্যায় 1",
+    "summary": "Summary of প্রথম পাঠ",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# প্রথম পাঠ\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch2_top1",
+    "chapterId": "class_5_wbbse_bengali_rapid_ch2",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "orderIndex": 1,
+    "title": "অধ্যায় 2",
+    "summary": "Summary of দ্বিতীয় পাঠ",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# দ্বিতীয় পাঠ\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  },
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch3_top1",
+    "chapterId": "class_5_wbbse_bengali_rapid_ch3",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "orderIndex": 1,
+    "title": "অধ্যায় 3",
+    "summary": "Summary of তৃতীয় পাঠ",
+    "keyPointsJson": "Points|Key concepts",
+    "isUnlocked": false,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_5_wbbse",
+    "contentData": "# তৃতীয় পাঠ\nTopic detail.",
+    "solutionData": "## Solution\nTopic solutions."
+  }
+]

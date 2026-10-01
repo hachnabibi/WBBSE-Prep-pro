@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_english_rapid_ch1",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "chapterNumber": 1,
+    "title": "Lesson 1",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 1\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_english_rapid_ch2",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "chapterNumber": 2,
+    "title": "Lesson 2",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 2\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_english_rapid_ch3",
+    "subjectId": "class_5_wbbse_english_rapid",
+    "chapterNumber": 3,
+    "title": "Lesson 3",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# Lesson 3\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  }
+]

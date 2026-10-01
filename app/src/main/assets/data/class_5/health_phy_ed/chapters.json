@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_health_ch1",
+    "subjectId": "class_5_wbbse_health",
+    "chapterNumber": 1,
+    "title": "প্রথম অধ্যায়: স্বাস্থ্যবিধি",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# প্রথম অধ্যায়: স্বাস্থ্যবিধি\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_health_ch2",
+    "subjectId": "class_5_wbbse_health",
+    "chapterNumber": 2,
+    "title": "দ্বিতীয় অধ্যায়: পুষ্টি ও সুষম খাদ্য",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# দ্বিতীয় অধ্যায়: পুষ্টি ও সুষম খাদ্য\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_health_ch3",
+    "subjectId": "class_5_wbbse_health",
+    "chapterNumber": 3,
+    "title": "তৃতীয় অধ্যায়: প্রাথমিক চিকিৎসা",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# তৃতীয় অধ্যায়: প্রাথমিক চিকিৎসা\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  }
+]

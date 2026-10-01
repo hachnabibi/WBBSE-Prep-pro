@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c5_eng_001",
+    "topicId": "class_5_eng_ch1_top1",
+    "chapterId": "class_5_eng_ch1",
+    "subjectId": "class_5_wbbse_english",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "Choose the correct collective noun: 'A ______ of birds was flying in the sky.'",
+    "optionsJson": "herd|flock|pack|swarm",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "flock",
+    "explanation": "A group of birds is called a 'flock'.",
+    "marks": 1,
+    "tagsJson": "English|Nouns|Class 5",
+    "pyqYear": "Class 5 Exam",
+    "classId": "classId"
+  },
+  {
+    "id": "q_c5_eng_002",
+    "topicId": "class_5_eng_ch1_top1",
+    "chapterId": "class_5_eng_ch1",
+    "subjectId": "class_5_wbbse_english",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "What is the past tense of the verb 'run'?",
+    "optionsJson": "running|ran|runned|runs",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "ran",
+    "explanation": "The past tense form of 'run' is 'ran'.",
+    "marks": 1,
+    "tagsJson": "Grammar|Tenses|English",
+    "pyqYear": "Class 5 Exam",
+    "classId": "classId"
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch1",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "chapterNumber": 1,
+    "title": "প্রথম পাঠ",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# প্রথম পাঠ\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch2",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "chapterNumber": 2,
+    "title": "দ্বিতীয় পাঠ",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# দ্বিতীয় পাঠ\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  },
+  {
+    "id": "class_5_wbbse_bengali_rapid_ch3",
+    "subjectId": "class_5_wbbse_bengali_rapid",
+    "chapterNumber": 3,
+    "title": "তৃতীয় পাঠ",
+    "description": "",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_5_wbbse",
+    "contentData": "# তৃতীয় পাঠ\nChapter contents here.",
+    "solutionData": "## Solutions\nChapter solutions here."
+  }
+]
