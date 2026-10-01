@@ -1,0 +1,32 @@
+[
+  {
+    "id": "c10_q_ben_gram_1_01",
+    "topicId": "c10_ben_gram_top_1",
+    "chapterId": "c10_ben_gram_ch1",
+    "subjectId": "c10_bengali_grammar",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "ক্রিয়াপদের সাথে নামপদের প্রত্যক্ষ সম্পর্ককে কী বলে?",
+    "optionsJson": "সন্ধি|সমাস|কারক|বিভক্তি",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "কারক",
+    "explanation": "ক্রিয়াপদের সাথে নামপদের যে সম্পর্ক বা অন্বয়, তাকে কারক বলে।",
+    "marks": 1,
+    "tagsJson": "কারক|ব্যাকরণ"
+  },
+  {
+    "id": "c10_q_ben_gram_1_02",
+    "topicId": "c10_ben_gram_top_2",
+    "chapterId": "c10_ben_gram_ch2",
+    "subjectId": "c10_bengali_grammar",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "সমাস শব্দের অর্থ কী?",
+    "optionsJson": "মিলন|সংক্ষেপণ|বিশ্লেষণ|সন্ধি",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "সংক্ষেপণ",
+    "explanation": "সমাস শব্দের অর্থ সংক্ষেপণ, মিলন বা একাধিক পদের একপদীকরণ।",
+    "marks": 1,
+    "tagsJson": "সমাস|ব্যাকরণ"
+  }
+]

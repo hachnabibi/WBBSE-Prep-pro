@@ -1,0 +1,18 @@
+[
+    {
+        "id": "",
+        "subjectId": "c10_bengali",
+        "chapterId": "c10_ben_ch2",
+        "topicId": "c10_ben_top_8",
+        "type": "MCQ",
+        "difficulty": "EASY",
+        "question": "",
+        "optionsJson": "Option 1|Option 2|Option 3|Option 4",
+        "correctOptionIndex": 0,
+        "correctAnswerText": "",
+        "explanation": "",
+        "marks": 1,
+        "tagsJson": "",
+        "pyqYear": ""
+    }
+]

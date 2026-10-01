@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c10_c9_math_ch1",
+    "subjectId": "class_9_wbbse_math",
+    "chapterNumber": 1,
+    "title": "বাস্তব সংখ্যা (Real Numbers)",
+    "description": "মূলদ ও অমূলদ সংখ্যা, সংখ্যারৈখিক উপস্থাপন",
+    "totalTopics": 2,
+    "completedTopics": 1,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 70,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_math_ch2",
+    "subjectId": "class_9_wbbse_math",
+    "chapterNumber": 2,
+    "title": "সূচকের নিয়মাবলী (Laws of Indices)",
+    "description": "সূচক, ঘাত ও সমীকরণ সমাধান",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 50,
+    "classId": "classId"
+  }
+]

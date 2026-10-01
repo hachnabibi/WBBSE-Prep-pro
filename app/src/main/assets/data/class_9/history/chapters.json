@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c10_c9_hist_ch1",
+    "subjectId": "class_9_wbbse_history",
+    "chapterNumber": 1,
+    "title": "ফরাসি বিপ্লবের কয়েকটি দিক (French Revolution)",
+    "description": "১৭৮৯ সালের ফরাসি বিপ্লব, দার্শনিকদের ভূমিকা ও অধিকার ঘোষণা",
+    "totalTopics": 3,
+    "completedTopics": 3,
+    "bossUnlocked": true,
+    "bossCompleted": true,
+    "masteryPercentage": 92,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_hist_ch2",
+    "subjectId": "class_9_wbbse_history",
+    "chapterNumber": 2,
+    "title": "নেপোলিয়নীয় সাম্রাজ্য ও জাতীয়তাবাদ",
+    "description": "নেপোলিয়নের সংস্কার, কোড নেপোলিয়ন ও সাম্রাজ্যের পতন",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 55,
+    "classId": "classId"
+  }
+]

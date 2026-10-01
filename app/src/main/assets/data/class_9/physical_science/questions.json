@@ -1,18 +1,36 @@
 [
   {
-    "id": "c9_phy_q1",
-    "topicId": "c9_phy_t1",
-    "chapterId": "c9_phy_ch2",
-    "subjectId": "class_9_wbbse_physical_science",
+    "id": "c10_c9_q1",
+    "topicId": "c10_c9_phy_t1",
+    "chapterId": "c10_c9_phy_ch1",
+    "subjectId": "class_9_wbbse_phy_sci",
     "type": "MCQ",
     "difficulty": "EASY",
-    "question": "১ নিউটন বল সমান কত ডাইন?",
-    "optionsJson": "[\"১০⁵ ডাইন\", \"১০⁷ ডাইন\", \"১০⁶ ডাইন\", \"১০⁴ ডাইন\"]",
-    "correctOptionIndex": 0,
-    "correctAnswerText": "১০⁵ ডাইন",
-    "explanation": "১ নিউটন = ১ কেজি × ১ মি/সে² = ১০০০ গ্রাম × ১০০ সেমি/সে² = ১০⁵ ডাইন।",
+    "question": "SI পদ্ধতিতে বলের একক কোনটি?",
+    "optionsJson": "ডাইন|নিউটন|জুল|ওয়াট",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "নিউটন",
+    "explanation": "SI পদ্ধতিতে বলের পরিমাপক একক হলো নিউটন (N)। CGS পদ্ধতিতে এটি ডাইন।",
     "marks": 1,
-    "tagsJson": "[\"বল ও গতি\", \"নিউটন\", \"ডাইন\", \"শ্রেণি ৯\"]",
-    "classId": "class_9_wbbse"
+    "tagsJson": "Class9|PhySci|Units",
+    "pyqYear": "2023",
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_q2",
+    "topicId": "c10_c9_phy_t2",
+    "chapterId": "c10_c9_phy_ch2",
+    "subjectId": "class_9_wbbse_phy_sci",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "নিউটোনের কোন গতিসূত্র থেকে বলের পরিমাপ বা গাণিতিক রূপ (F = ma) পাওয়া যায়?",
+    "optionsJson": "প্রথম গতিসূত্র|দ্বিতীয় গতিসূত্র|তৃতীয় গতিসূত্র|মহাকর্ষ সূত্র",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "দ্বিতীয় গতিসূত্র",
+    "explanation": "নিউটোনের দ্বিতীয় গতিসূত্র থেকে ভরবেগের পরিবর্তনের হার হিসেবে বলের গাণিতিক পরিমাপ F = ma পাওয়া যায়।",
+    "marks": 1,
+    "tagsJson": "Class9|PhySci|Newton",
+    "pyqYear": "2022",
+    "classId": "classId"
   }
 ]

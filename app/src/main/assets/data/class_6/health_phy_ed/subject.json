@@ -1,0 +1,12 @@
+{
+  "id": "class_6_wbbse_health",
+  "code": "HEALTH_PHY_ED",
+  "name": "স্বাস্থ্য ও শারীরিক শিক্ষা",
+  "textbookName": "স্বাস্থ্য ও শারীরিক শিক্ষা",
+  "totalChapters": 5,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4279339393,
+  "classId": "class_6_wbbse",
+  "stream": "common"
+}

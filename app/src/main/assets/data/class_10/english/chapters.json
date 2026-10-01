@@ -1,0 +1,38 @@
+[
+  {
+    "id": "c10_eng_ch1",
+    "subjectId": "c10_english",
+    "chapterNumber": 1,
+    "title": "Prose",
+    "description": "মাধ্যমিক ইংরেজির সকল গুরুত্বপূর্ণ Prose বা গদ্য।",
+    "totalTopics": 4,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 75
+  },
+  {
+    "id": "c10_eng_ch2",
+    "subjectId": "c10_english",
+    "chapterNumber": 2,
+    "title": "Poetry",
+    "description": "মাধ্যমিক ইংরেজির সকল গুরুত্বপূর্ণ Poetry বা কবিতা।",
+    "totalTopics": 4,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 65
+  },
+  {
+    "id": "c10_eng_ch3",
+    "subjectId": "c10_english",
+    "chapterNumber": 3,
+    "title": "Grammar & Vocabulary",
+    "description": "মাধ্যমিক স্পেশাল Grammar এবং Vocabulary।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 60
+  }
+]

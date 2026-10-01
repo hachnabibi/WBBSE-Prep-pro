@@ -1,12 +1,12 @@
 {
-  "id": "class_10_wbbse_life_science",
-  "code": "life_science",
+  "id": "c10_life_sci",
+  "code": "LIFE_SCIENCE",
   "name": "জীবনবিজ্ঞান ও পরিবেশ",
+  "textbookName": "জীবনবিজ্ঞান ও পরিবেশ",
   "totalChapters": 5,
   "completedChapters": 0,
-  "masteryPercentage": 0,
-  "colorHex": 4279318913,
+  "masteryPercentage": 80,
+  "colorHex": 4279286145,
   "classId": "class_10_wbbse",
-  "stream": "common",
-  "textbookName": "জীবনবিজ্ঞান ও পরিবেশ"
+  "stream": "common"
 }

@@ -1,0 +1,12 @@
+{
+  "id": "c10_bengali_grammar",
+  "code": "BENGALI_GRAMMAR",
+  "name": "বাংলা ব্যাকরণ",
+  "textbookName": "ব্যাকরণ ও নির্মিতি",
+  "totalChapters": 2,
+  "completedChapters": 0,
+  "masteryPercentage": 50,
+  "colorHex": 4285343961,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

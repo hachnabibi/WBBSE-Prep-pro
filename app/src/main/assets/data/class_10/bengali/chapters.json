@@ -1,0 +1,50 @@
+[
+  {
+    "id": "c10_ben_ch1",
+    "subjectId": "c10_bengali",
+    "chapterNumber": 1,
+    "title": "গল্প",
+    "description": "মাধ্যমিক বাংলার সকল গুরুত্বপূর্ণ গল্প।",
+    "totalTopics": 5,
+    "completedTopics": 1,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 75
+  },
+  {
+    "id": "c10_ben_ch2",
+    "subjectId": "c10_bengali",
+    "chapterNumber": 2,
+    "title": "কবিতা",
+    "description": "মাধ্যমিক বাংলার সকল গুরুত্বপূর্ণ কবিতা।",
+    "totalTopics": 7,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 60
+  },
+  {
+    "id": "c10_ben_ch3",
+    "subjectId": "c10_bengali",
+    "chapterNumber": 3,
+    "title": "প্রবন্ধ",
+    "description": "মাধ্যমিক বাংলার সকল গুরুত্বপূর্ণ প্রবন্ধ।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 65
+  },
+  {
+    "id": "c10_ben_ch4",
+    "subjectId": "c10_bengali",
+    "chapterNumber": 4,
+    "title": "নাটক",
+    "description": "মাধ্যমিক বাংলার নাটক: সিরাজদ্দৌলা।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 80
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "id": "c10_geography",
+  "code": "GEOGRAPHY",
+  "name": "ভূগোল",
+  "textbookName": "ভূগোল ও পরিবেশ",
+  "totalChapters": 7,
+  "completedChapters": 0,
+  "masteryPercentage": 70,
+  "colorHex": 4278630100,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

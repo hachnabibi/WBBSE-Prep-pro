@@ -1,0 +1,86 @@
+[
+  {
+    "id": "c10_geo_ch1",
+    "subjectId": "c10_geography",
+    "chapterNumber": 1,
+    "title": "বহির্জাত প্রক্রিয়া ও তাদের দ্বারা সৃষ্ট ভূমিরূপ",
+    "description": "নদী, হিমবাহ ও বায়ুর ক্ষয় এবং সঞ্চয়কাজের ফলে সৃষ্ট বিভিন্ন ভূমিরূপ।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 75
+  },
+  {
+    "id": "c10_geo_ch2",
+    "subjectId": "c10_geography",
+    "chapterNumber": 2,
+    "title": "বায়ুমণ্ডল",
+    "description": "বায়ুমণ্ডলের স্তরবিন্যাস, উষ্ণতা, চাপবলয়, বায়ুপ্রবাহ, আর্দ্রতা ও অধঃক্ষেপণ।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 70
+  },
+  {
+    "id": "c10_geo_ch3",
+    "subjectId": "c10_geography",
+    "chapterNumber": 3,
+    "title": "বারিমন্ডল",
+    "description": "সমুদ্রস্রোতের উৎপত্তি ও প্রভাব, জোয়ার-ভাটার কারণ, মরা কোটাল ও তেজ কোটাল।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 65
+  },
+  {
+    "id": "c10_geo_ch4",
+    "subjectId": "c10_geography",
+    "chapterNumber": 4,
+    "title": "বর্জ্য ব্যবস্থাপনা",
+    "description": "বর্জ্যের উৎস ও প্রকারভেদ, পরিবেশের ওপর প্রভাব এবং ৩R (Reduce, Reuse, Recycle) পদ্ধতি।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 80
+  },
+  {
+    "id": "c10_geo_ch5",
+    "subjectId": "c10_geography",
+    "chapterNumber": 5,
+    "title": "ভারত (প্রাকৃতিক পরিবেশ)",
+    "description": "ভারতের অবস্থান ও প্রশাসনিক বিভাগ, ভূপ্রকৃতি, নদনদী, জলবায়ু, মৃত্তিকা ও স্বাভাবিক উদ্ভিদ।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 75
+  },
+  {
+    "id": "c10_geo_ch6",
+    "subjectId": "c10_geography",
+    "chapterNumber": 6,
+    "title": "ভারত (অর্থনৈতিক পরিবেশ)",
+    "description": "ভারতের কৃষিকাজ, শিল্প (লৌহ-ইস্পাত, তথ্যপ্রযুক্তি), জনসংখ্যা বণ্টন ও পরিবহণ ব্যবস্থা।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 70
+  },
+  {
+    "id": "c10_geo_ch7",
+    "subjectId": "c10_geography",
+    "chapterNumber": 7,
+    "title": "উপগ্রহ চিত্র ও ভূ-বৈচিত্র্যসূচক মানচিত্র",
+    "description": "উপগ্রহ চিত্রের বৈশিষ্ট্য, ব্যবহার, ভূ-বৈচিত্র্যসূচক মানচিত্রের স্কেল ও টোপোশিটের পাঠপদ্ধতি।",
+    "totalTopics": 1,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 60
+  }
+]

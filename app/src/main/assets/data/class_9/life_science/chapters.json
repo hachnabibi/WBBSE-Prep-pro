@@ -1,0 +1,41 @@
+[
+  {
+    "id": "c10_c9_life_ch1",
+    "subjectId": "class_9_wbbse_life_sci",
+    "chapterNumber": 1,
+    "title": "জীবন ও তার বৈচিত্র্য (Life & Diversity)",
+    "description": "জীবনের লক্ষণ, ট্যাক্সোনমি, রাজ্য ও শ্রেণীবিন্যাস",
+    "totalTopics": 3,
+    "completedTopics": 3,
+    "bossUnlocked": true,
+    "bossCompleted": true,
+    "masteryPercentage": 88,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_life_ch2",
+    "subjectId": "class_9_wbbse_life_sci",
+    "chapterNumber": 2,
+    "title": "জীবনের সংগঠন স্তর (Levels of Organization)",
+    "description": "কোষের গঠন, অঙ্গাণু, উদ্ভিদ ও প্রাণী কলা",
+    "totalTopics": 3,
+    "completedTopics": 1,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 65,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_life_ch3",
+    "subjectId": "class_9_wbbse_life_sci",
+    "chapterNumber": 3,
+    "title": "জৈবনিক প্রক্রিয়া (Physiological Processes)",
+    "description": "সালোকসংশ্লেষ, শ্বসন, পুষ্টি, সংবহন ও রেচন",
+    "totalTopics": 3,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 45,
+    "classId": "classId"
+  }
+]

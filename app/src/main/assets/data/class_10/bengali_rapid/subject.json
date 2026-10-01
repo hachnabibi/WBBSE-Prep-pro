@@ -1,0 +1,12 @@
+{
+  "id": "c10_bengali_rapid",
+  "code": "BENGALI_RAPID",
+  "name": "সহায়ক পাঠ",
+  "textbookName": "কোনি",
+  "totalChapters": 1,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4287323382,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

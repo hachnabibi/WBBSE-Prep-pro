@@ -1,0 +1,12 @@
+{
+  "id": "c10_english",
+  "code": "ENGLISH",
+  "name": "ইংরেজি",
+  "textbookName": "Bliss",
+  "totalChapters": 9,
+  "completedChapters": 0,
+  "masteryPercentage": 75,
+  "colorHex": 4279548070,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

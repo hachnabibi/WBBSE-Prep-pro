@@ -1,0 +1,24 @@
+[
+  {
+    "id": "c10_ben_gram_top_1",
+    "subjectId": "c10_bengali_grammar",
+    "chapterId": "c10_ben_gram_ch1",
+    "orderIndex": 1,
+    "title": "কারক ও বিভক্তি নির্ণয়",
+    "summary": "কর্তৃকারক, কর্মকারক, করণকারক, সম্প্রদানকারক, অপাদানকারক ও অধিকরণকারকের বিস্তারিত নিয়মাবলি।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_ben_gram_top_2",
+    "subjectId": "c10_bengali_grammar",
+    "chapterId": "c10_ben_gram_ch2",
+    "orderIndex": 2,
+    "title": "দ্বন্দ ও তৎপুরুষ সমাস",
+    "summary": "দ্বন্দ সমাস এবং তৎপুরুষ সমাসের বিস্তারিত সূত্রাবলী এবং উদাহরণ।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  }
+]

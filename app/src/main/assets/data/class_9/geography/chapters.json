@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c10_c9_geog_ch1",
+    "subjectId": "class_9_wbbse_geography",
+    "chapterNumber": 1,
+    "title": "গ্রহ রূপে পৃথিবী (Earth as a Planet)",
+    "description": "পৃথিবীর আকার, গোলকীয় প্রমাণ ও জিপিএস",
+    "totalTopics": 2,
+    "completedTopics": 1,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 70,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_geog_ch2",
+    "subjectId": "class_9_wbbse_geography",
+    "chapterNumber": 2,
+    "title": "পৃথিবীর গতিসমূহ (Motions of the Earth)",
+    "description": "আহ্নিক গতি, বার্ষিক গতি, দিন-রাত্রি হ্রাস-বৃদ্ধি ও ঋতুপরিবর্তন",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 60,
+    "classId": "classId"
+  }
+]

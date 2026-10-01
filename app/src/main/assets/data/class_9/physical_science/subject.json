@@ -1,12 +1,12 @@
 {
-  "id": "class_9_wbbse_physical_science",
-  "code": "physical_science",
+  "id": "class_9_wbbse_phy_sci",
+  "code": "PHYSICAL_SCIENCE",
   "name": "ভৌতবিজ্ঞান ও পরিবেশ",
-  "totalChapters": 2,
-  "completedChapters": 0,
-  "masteryPercentage": 0,
-  "colorHex": 4282084086,
+  "textbookName": "ভৌতবিজ্ঞান ও পরিবেশ",
+  "totalChapters": 7,
+  "completedChapters": 1,
+  "masteryPercentage": 75,
+  "colorHex": 4282090230,
   "classId": "class_9_wbbse",
-  "stream": "common",
-  "textbookName": "ভৌতবিজ্ঞান ও পরিবেশ"
+  "stream": "common"
 }

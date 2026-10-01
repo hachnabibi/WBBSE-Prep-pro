@@ -1,28 +1,54 @@
 [
   {
-    "id": "c9_phy_ch1",
-    "subjectId": "class_9_wbbse_physical_science",
+    "id": "c10_c9_phy_ch1",
+    "subjectId": "class_9_wbbse_phy_sci",
     "chapterNumber": 1,
-    "title": "পরিমাপ (Measurement)",
-    "description": "ভৌত রাশি, একক, মাত্রা এবং সাধারণ তুলাযন্ত্র ও ভার্নিয়ার ক্যালিপার্স।",
-    "totalTopics": 2,
-    "completedTopics": 0,
-    "bossUnlocked": false,
-    "bossCompleted": false,
-    "masteryPercentage": 0,
-    "classId": "class_9_wbbse"
+    "title": "পরিমাপ ও একক (Measurement)",
+    "description": "ভৌত রাশি, পরিমাপের একক, SI একক ও পরিমাপক যন্ত্রের ব্যবহার",
+    "totalTopics": 3,
+    "completedTopics": 3,
+    "bossUnlocked": true,
+    "bossCompleted": true,
+    "masteryPercentage": 90,
+    "classId": "classId"
   },
   {
-    "id": "c9_phy_ch2",
-    "subjectId": "class_9_wbbse_physical_science",
+    "id": "c10_c9_phy_ch2",
+    "subjectId": "class_9_wbbse_phy_sci",
     "chapterNumber": 2,
-    "title": "বল ও গতি (Force and Motion)",
-    "description": "নিউটনের তিনটি গতিসূত্র, রৈখিক ভরবেগ ও সংরক্ষণ সূত্র।",
-    "totalTopics": 2,
+    "title": "বল ও গতি (Force & Motion)",
+    "description": "নিউটোনের গতিসূত্র, ভরবেগ, কার্য-শক্তি ও ত্বরণ",
+    "totalTopics": 3,
+    "completedTopics": 2,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 75,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_phy_ch3",
+    "subjectId": "class_9_wbbse_phy_sci",
+    "chapterNumber": 3,
+    "title": "পদার্থ: গঠন ও ধর্ম (Matter: Structure & Properties)",
+    "description": "প্লবতা, আর্কিমিডিসের নীতি, পৃষ্ঠটান ও সান্দ্রতা",
+    "totalTopics": 3,
     "completedTopics": 0,
     "bossUnlocked": false,
     "bossCompleted": false,
-    "masteryPercentage": 0,
-    "classId": "class_9_wbbse"
+    "masteryPercentage": 40,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_phy_ch4",
+    "subjectId": "class_9_wbbse_phy_sci",
+    "chapterNumber": 4,
+    "title": "পরমাণুর গঠন (Atomic Structure)",
+    "description": "ইলেকট্রন, প্রোটন, নিউট্রন, বোর মডেল ও আইসোটোপ",
+    "totalTopics": 3,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 30,
+    "classId": "classId"
   }
 ]

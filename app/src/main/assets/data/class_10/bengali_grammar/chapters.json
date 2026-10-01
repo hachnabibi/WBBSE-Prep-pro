@@ -1,0 +1,26 @@
+[
+  {
+    "id": "c10_ben_gram_ch1",
+    "subjectId": "c10_bengali_grammar",
+    "chapterNumber": 1,
+    "title": "কারক ও অকারক সম্পর্ক",
+    "description": "বাক্যের ক্রিয়াপদের সাথে নামপদের সম্পর্ক ও কারক বিভক্তি নির্ণয়।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_ben_gram_ch2",
+    "subjectId": "c10_bengali_grammar",
+    "chapterNumber": 2,
+    "title": "সমাস",
+    "description": "বাংলা ব্যাকরণে সমাসের সংজ্ঞা, প্রকারভেদ এবং ব্যাসবাক্যসহ সমাস নির্ণয়।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 45
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "id": "c10_english_grammar",
+  "code": "ENGLISH_GRAMMAR",
+  "name": "ইংরেজি ব্যাকরণ",
+  "textbookName": "ইংরেজি ব্যাকরণ ও কম্পোজিশন",
+  "totalChapters": 2,
+  "completedChapters": 0,
+  "masteryPercentage": 45,
+  "colorHex": 4279080072,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

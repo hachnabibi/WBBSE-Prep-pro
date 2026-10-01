@@ -1,0 +1,12 @@
+{
+  "id": "c10_history",
+  "code": "HISTORY",
+  "name": "ইতিহাস",
+  "textbookName": "ইতিহাস ও পরিবেশ",
+  "totalChapters": 8,
+  "completedChapters": 0,
+  "masteryPercentage": 75,
+  "colorHex": 4293675161,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

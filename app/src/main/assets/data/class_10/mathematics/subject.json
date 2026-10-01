@@ -1,12 +1,12 @@
 {
-  "id": "class_10_wbbse_mathematics",
-  "code": "mathematics",
-  "name": "গণিত প্রকাশ (Mathematics)",
-  "totalChapters": 6,
+  "id": "c10_math",
+  "code": "MATHEMATICS",
+  "name": "গণিত",
+  "textbookName": "গণিত প্রকাশ",
+  "totalChapters": 4,
   "completedChapters": 0,
-  "masteryPercentage": 0,
-  "colorHex": 4294287115,
+  "masteryPercentage": 62,
+  "colorHex": 4294286859,
   "classId": "class_10_wbbse",
-  "stream": "common",
-  "textbookName": "গণিত প্রকাশ"
+  "stream": "common"
 }

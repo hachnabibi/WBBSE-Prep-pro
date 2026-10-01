@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c10_c9_q4",
+    "topicId": "c10_c9_hist_t1",
+    "chapterId": "c10_c9_hist_ch1",
+    "subjectId": "class_9_wbbse_history",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "ফরাসি বিপ্লবের সময় ফ্রান্সে কত তারিখে বাস্তিল দুর্গের পতন ঘটেছিল?",
+    "optionsJson": "১৪ই জুলাই ১৭৮৯|৫ই মে ১৭৮৯|২৬শে আগস্ট ১৭৮৯|৪ঠা আগস্ট ১৭৮৯",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "১৪ই জুলাই ১৭৮৯",
+    "explanation": "১৭৮৯ সালের ১৪ই জুলাই প্যারিসের জনতা স্বৈরাচারের প্রতীক বাস্তিল দুর্গ আক্রমণ ও পতন ঘটায়।",
+    "marks": 1,
+    "tagsJson": "Class9|History|FrenchRevolution",
+    "pyqYear": "2023",
+    "classId": "classId"
+  }
+]

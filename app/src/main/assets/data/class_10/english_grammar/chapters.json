@@ -1,0 +1,26 @@
+[
+  {
+    "id": "c10_eng_gram_ch1",
+    "subjectId": "c10_english_grammar",
+    "chapterNumber": 1,
+    "title": "Tenses & Verbs",
+    "description": "Mastery of tenses, auxiliary verbs, and subject-verb agreement rules.",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_gram_ch2",
+    "subjectId": "c10_english_grammar",
+    "chapterNumber": 2,
+    "title": "Voice & Narration",
+    "description": "Rules and conversions for active/passive voice and direct/indirect narration.",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 45
+  }
+]

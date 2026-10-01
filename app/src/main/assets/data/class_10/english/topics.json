@@ -1,0 +1,101 @@
+[
+  {
+    "id": "c10_eng_top_1",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch1",
+    "orderIndex": 1,
+    "title": "Lesson 1: Father's Help",
+    "summary": "স্বামীনথন, তার বাবা ও শিক্ষক স্যামুয়েলের গল্প। হেডমাস্টারকে দেওয়া চিঠি ও অপরাধবোধের মনস্তাত্ত্বিক রূপায়ণ।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_2",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch2",
+    "orderIndex": 2,
+    "title": "Lesson 2: Fable",
+    "summary": "পর্বত এবং কাঠবিড়ালির দ্বন্দ্ব ও প্রকৃতির প্রতিটি ক্ষুদ্র-বৃহৎ সৃষ্টির অপরিহার্য ভূমিকার নীতিশিক্ষা।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_3",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch1",
+    "orderIndex": 3,
+    "title": "Lesson 3: The Passing Away of Bapu",
+    "summary": "মহাত্মা গান্ধীর প্রয়াণে দেশবাসীর শোক, শেষকৃত্য এবং বাপুর আদর্শে বেঁচে থাকার প্রেরণা।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_4",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch2",
+    "orderIndex": 4,
+    "title": "Lesson 4: My Own True Family",
+    "summary": "ওক গাছের সঙ্গে মানবজাতির নিবিড় আত্মীয়তা এবং পরিবেশ সংরক্ষণে বৃক্ষরোপণের শপথ।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_5",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch1",
+    "orderIndex": 5,
+    "title": "Lesson 5: Our Runaway Kite",
+    "summary": "বিগ হাফ মুন দ্বীপের ফিলিপা ও ক্লদের ঘুড়ি ওড়ানো এবং ছেঁড়া চিঠির ঘুড়ির মাধ্যমে হারানো আত্মীয়দের পুনর্মিলন।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_6",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch2",
+    "orderIndex": 6,
+    "title": "Lesson 6: Sea Fever",
+    "summary": "সমুদ্রযাত্রার চিরন্তন আকর্ষণ, উত্তাল তরঙ্গ, মুক্ত বাতাস ও যাযাবর জীবনের ছন্দময় কাব্যগাথা।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_7",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch1",
+    "orderIndex": 7,
+    "title": "Lesson 7: The Cat",
+    "summary": "বিড়ালের বৈচিত্র্যময় জীবনযাপন, আভিজাত্য, গোপন নৈশ অভিযান ও শিকারী স্বভাবের রসাত্মক বিবরণ।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_8",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch2",
+    "orderIndex": 8,
+    "title": "Lesson 8: The Snail",
+    "summary": "শামুকের আত্মকেন্দ্রিক নিরাপদ জীবন, ক্ষুদ্র খোলের ভেতর সুরক্ষিত জগৎ ও সন্তোষ।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  },
+  {
+    "id": "c10_eng_top_9",
+    "subjectId": "c10_english",
+    "chapterId": "c10_eng_ch3",
+    "orderIndex": 9,
+    "title": "English Grammar & Vocabulary",
+    "summary": "Voice change, Narration, Clause, Phrasal Verbs, Tense, Prepositions ও মাধ্যমিক স্পেশাল আনসিন ভোকাবুলারি।",
+    "keyPointsJson": "",
+    "isUnlocked": true,
+    "masteryPercentage": 50
+  }
+]

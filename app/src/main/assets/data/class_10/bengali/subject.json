@@ -1,0 +1,12 @@
+{
+  "id": "c10_bengali",
+  "code": "BENGALI",
+  "name": "বাংলা",
+  "textbookName": "সাহিত্য সঞ্চয়ন",
+  "totalChapters": 14,
+  "completedChapters": 0,
+  "masteryPercentage": 80,
+  "colorHex": 4287323382,
+  "classId": "class_10_wbbse",
+  "stream": "common"
+}

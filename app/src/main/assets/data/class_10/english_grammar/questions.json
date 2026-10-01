@@ -1,0 +1,32 @@
+[
+  {
+    "id": "c10_q_eng_gram_1_01",
+    "topicId": "c10_eng_gram_top_1",
+    "chapterId": "c10_eng_gram_ch1",
+    "subjectId": "c10_english_grammar",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "Identify the correct verb form: 'Neither of the boys ___ present yesterday.'",
+    "optionsJson": "was|were|are|have been",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "was",
+    "explanation": "Subject-verb agreement rule: 'Neither' is singular, so it takes the singular verb 'was'.",
+    "marks": 1,
+    "tagsJson": "Grammar|Verb"
+  },
+  {
+    "id": "c10_q_eng_gram_1_02",
+    "topicId": "c10_eng_gram_top_2",
+    "chapterId": "c10_eng_gram_ch2",
+    "subjectId": "c10_english_grammar",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "Change the voice: 'Open the door.'",
+    "optionsJson": "Let the door be opened.|The door was opened.|Open should be the door.|Let the door open.",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "Let the door be opened.",
+    "explanation": "Imperative sentences in passive voice are converted using 'Let + object + be + past participle'.",
+    "marks": 1,
+    "tagsJson": "Voice|Grammar"
+  }
+]

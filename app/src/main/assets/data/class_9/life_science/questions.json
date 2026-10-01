@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c10_c9_q3",
+    "topicId": "c10_c9_life_t1",
+    "chapterId": "c10_c9_life_ch1",
+    "subjectId": "class_9_wbbse_life_sci",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "দ্বিপদ নামকরণের (Binomial Nomenclature) প্রবক্তা কে?",
+    "optionsJson": "চার্লস ডারউইন|ক্যারোলাস লিনিয়াস|গ্রেগর জোহান মেন্ডেল|রবার্ট হুক",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "ক্যারোলাস লিনিয়াস",
+    "explanation": "ক্যারোলাস লিনিয়াস (Carolus Linnaeus) ১৭৫৩ সালে জীবের দ্বিপদ নামকরণ পদ্ধতি উদ্ভাবন করেন।",
+    "marks": 1,
+    "tagsJson": "Class9|LifeSci|Taxonomy",
+    "pyqYear": "2023",
+    "classId": "classId"
+  }
+]

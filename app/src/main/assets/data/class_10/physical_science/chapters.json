@@ -1,41 +1,62 @@
 [
   {
     "id": "c10_phy_ch1",
-    "subjectId": "class_10_wbbse_physical_science",
+    "subjectId": "c10_phy_sci",
     "chapterNumber": 1,
-    "title": "পরিবেশের জন্য ভাবনা (Concern about Our Environment)",
-    "description": "বায়ুমণ্ডলের স্তরবিন্যাস, ওজোন স্তর ধ্বংস, গ্রিনহাউস প্রভাব এবং পুনর্নবীকরণযোগ্য শক্তি।",
-    "totalTopics": 2,
-    "completedTopics": 0,
-    "bossUnlocked": false,
-    "bossCompleted": false,
-    "masteryPercentage": 0,
-    "classId": "class_10_wbbse"
+    "title": "পরিবেশের জন্য ভাবনা",
+    "description": "বায়ুমণ্ডলের স্তরবিন্যাস, ওজোন স্তর ধ্বংস, গ্রিনহাউস প্রভাব ও বিকল্প শক্তি",
+    "totalTopics": 3,
+    "completedTopics": 3,
+    "bossUnlocked": true,
+    "bossCompleted": true,
+    "masteryPercentage": 92
   },
   {
     "id": "c10_phy_ch2",
-    "subjectId": "class_10_wbbse_physical_science",
+    "subjectId": "c10_phy_sci",
     "chapterNumber": 2,
-    "title": "গ্যাসের আচরণ (Behavior of Gases)",
-    "description": "বয়েলের সূত্র, চার্লসের সূত্র, পরম শূন্য উষ্ণতা, আদর্শ গ্যাস সমীকরণ (PV = nRT)।",
-    "totalTopics": 2,
-    "completedTopics": 0,
-    "bossUnlocked": false,
+    "title": "গ্যাসের আচরণ",
+    "description": "বয়েলের সূত্র, চার্লসের সূত্র, পরম উষ্ণতা স্কেল ও PV=nRT সমীকরণ",
+    "totalTopics": 3,
+    "completedTopics": 2,
+    "bossUnlocked": true,
     "bossCompleted": false,
-    "masteryPercentage": 0,
-    "classId": "class_10_wbbse"
+    "masteryPercentage": 68
   },
   {
     "id": "c10_phy_ch3",
-    "subjectId": "class_10_wbbse_physical_science",
+    "subjectId": "c10_phy_sci",
     "chapterNumber": 3,
-    "title": "চলতড়িৎ (Current Electricity)",
-    "description": "ওহমের সূত্র, রোধাঙ্ক, তড়িৎপ্রবাহের তাপীয় ফল, জুলের সূত্র ও ফ্লেমিং-এর বামহস্ত নিয়ম।",
+    "title": "আলো",
+    "description": "গোলীয় দর্পণে প্রতিফলন, লেন্স, আলোর প্রতিসরণ ও বিচ্ছুরণ",
+    "totalTopics": 3,
+    "completedTopics": 1,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 40
+  },
+  {
+    "id": "c10_phy_ch4",
+    "subjectId": "c10_phy_sci",
+    "chapterNumber": 4,
+    "title": "চলতড়িৎ",
+    "description": "ওহমের সূত্র, তড়িৎ বিভব, রোধের সমবায় ও জুলের তাপীয় ফল",
+    "totalTopics": 3,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 15
+  },
+  {
+    "id": "c10_phy_ch5",
+    "subjectId": "c10_phy_sci",
+    "chapterNumber": 5,
+    "title": "পর্যায় সারণি ও মৌলদের ধর্মের পর্যায়বৃত্ততা",
+    "description": "মেন্ডেলিফ ও আধুনিক পর্যায় সূত্র, তড়িৎঋণাত্মকতা, আয়নীয় বন্ধন",
     "totalTopics": 2,
     "completedTopics": 0,
     "bossUnlocked": false,
     "bossCompleted": false,
-    "masteryPercentage": 0,
-    "classId": "class_10_wbbse"
+    "masteryPercentage": 0
   }
 ]

@@ -1,0 +1,12 @@
+{
+  "id": "c9_bengali_rapid",
+  "code": "BENGALI_RAPID",
+  "name": "বাংলা (সহায়ক পাঠ)",
+  "textbookName": "প্রফেসর শঙ্কুর ডায়রি",
+  "totalChapters": 5,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4285406425,
+  "classId": "class_9_wbbse",
+  "stream": "common"
+}

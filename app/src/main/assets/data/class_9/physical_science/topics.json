@@ -1,15 +1,28 @@
 [
   {
-    "id": "c9_phy_t1",
-    "chapterId": "c9_phy_ch2",
-    "subjectId": "class_9_wbbse_physical_science",
+    "id": "c10_c9_phy_t1",
+    "chapterId": "c10_c9_phy_ch1",
+    "subjectId": "class_9_wbbse_phy_sci",
     "orderIndex": 1,
-    "title": "নিউটনের দ্বিতীয় গতিসূত্র ও F = ma",
-    "summary": "ভরবেগের পরিবর্তনের হার প্রযুক্ত বলের সমানুপাতিক।",
-    "keyPointsJson": "[\"বল = ভর × ত্বরণ (F = ma)\", \"এসআই একক নিউটন (N)\", \"১ N = ১০⁵ ডাইন\"]",
+    "title": "ভৌত রাশি ও পরিমাপের একক",
+    "summary": "মৌলিক একক ও লব্ধ একক, CGS ও SI পদ্ধতি",
+    "keyPointsJson": "CGS ও SI একক|মৌলিক রাশি|দৈর্ঘ্য, ভর ও সময়",
     "isUnlocked": true,
-    "masteryPercentage": 0,
-    "questionCount": 2,
-    "classId": "class_9_wbbse"
+    "masteryPercentage": 95,
+    "questionCount": 3,
+    "classId": "classId"
+  },
+  {
+    "id": "c10_c9_phy_t2",
+    "chapterId": "c10_c9_phy_ch2",
+    "subjectId": "class_9_wbbse_phy_sci",
+    "orderIndex": 1,
+    "title": "নিউটোনের গতিসূত্রসমূহ",
+    "summary": "প্রথম, দ্বিতীয় ও তৃতীয় গতিসূত্র, জড়তা ও বলের সংজ্ঞা",
+    "keyPointsJson": "F = ma|ক্রিয়া ও প্রতিক্রিয়া|ভরবেগ সংরক্ষণ",
+    "isUnlocked": true,
+    "masteryPercentage": 80,
+    "questionCount": 3,
+    "classId": "classId"
   }
 ]

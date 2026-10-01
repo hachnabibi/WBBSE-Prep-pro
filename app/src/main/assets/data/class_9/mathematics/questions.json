@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c9_q_math_01",
+    "topicId": "c9_top_math_1_1",
+    "chapterId": "c9_math_ch1",
+    "subjectId": "class_9_wbbse_math",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "নিচের কোনটি অমূলদ সংখ্যা?",
+    "optionsJson": "2|1/2|√2|0",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "√2",
+    "explanation": "√2 কে p/q আকারে প্রকাশ করা যায় না, তাই এটি অমূলদ।",
+    "marks": 1,
+    "tagsJson": "Class9|Math|Numbers",
+    "pyqYear": "2023",
+    "classId": "class_9_wbbse"
+  }
+]
