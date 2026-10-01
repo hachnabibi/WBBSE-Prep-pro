@@ -2201,7 +2201,6 @@ class DeshExamRepository(
         val assetManager = ctx.assets
         val topics = dao.getTopicsForChapterOnce(chapterId)
         val topicIds = topics.map { it.id }.toSet()
-        if (topicIds.isEmpty()) return@withContext null
 
         fun searchSolutionsInFolder(path: String): String? {
             try {
@@ -2253,7 +2252,42 @@ class DeshExamRepository(
             return null
         }
 
-        return@withContext searchSolutionsInFolder("data")
+        val assetResult = searchSolutionsInFolder("data")
+        if (!assetResult.isNullOrBlank()) {
+            return@withContext assetResult
+        }
+
+        // Fallback to real up-to-date questions from Room DB for this chapter
+        val questions = dao.getQuestionsForChapter(chapterId)
+        if (questions.isEmpty()) return@withContext null
+
+        val gson = com.google.gson.Gson()
+        val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+        val sb = StringBuilder()
+        sb.append("### 📚 অধ্যায়ের গুরুত্বপূর্ণ প্রশ্ন ও বিস্তারিত সমাধান (WBBSE Real Up-to-Date)\n\n")
+        questions.forEachIndexed { idx, q ->
+            val qNum = idx + 1
+            sb.append("**$qNum. ${q.question}** `[${q.type} • মান: ${q.marks}]`\n\n")
+            val opts: List<String>? = try {
+                gson.fromJson(q.optionsJson, type)
+            } catch (e: Exception) { null }
+
+            if (!opts.isNullOrEmpty()) {
+                opts.forEachIndexed { optIdx, opt ->
+                    val optNum = optIdx + 1
+                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText == opt
+                    val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
+                    sb.append("* $optNum. $opt$marker\n")
+                }
+                sb.append("\n")
+            }
+            sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            if (!q.explanation.isNullOrBlank()) {
+                sb.append("**ব্যাখ্যা:** ${q.explanation}\n\n")
+            }
+            sb.append("---\n\n")
+        }
+        return@withContext sb.toString().trim()
     }
 
     suspend fun getSolutionsFromAssetForTopic(topicId: String): String? = withContext(Dispatchers.IO) {
@@ -2308,7 +2342,42 @@ class DeshExamRepository(
             return null
         }
 
-        return@withContext searchSolutionsInFolder("data")
+        val assetResult = searchSolutionsInFolder("data")
+        if (!assetResult.isNullOrBlank()) {
+            return@withContext assetResult
+        }
+
+        // Fallback to real up-to-date questions from Room DB for this topic
+        val questions = dao.getQuestionsForTopic(topicId)
+        if (questions.isEmpty()) return@withContext null
+
+        val gson = com.google.gson.Gson()
+        val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+        val sb = StringBuilder()
+        sb.append("### 📖 টপিকের গুরুত্বপূর্ণ প্রশ্ন ও সমাধান (Real Up-to-Date)\n\n")
+        questions.forEachIndexed { idx, q ->
+            val qNum = idx + 1
+            sb.append("**$qNum. ${q.question}** `[${q.type} • মান: ${q.marks}]`\n\n")
+            val opts: List<String>? = try {
+                gson.fromJson(q.optionsJson, type)
+            } catch (e: Exception) { null }
+
+            if (!opts.isNullOrEmpty()) {
+                opts.forEachIndexed { optIdx, opt ->
+                    val optNum = optIdx + 1
+                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText == opt
+                    val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
+                    sb.append("* $optNum. $opt$marker\n")
+                }
+                sb.append("\n")
+            }
+            sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            if (!q.explanation.isNullOrBlank()) {
+                sb.append("**ব্যাখ্যা:** ${q.explanation}\n\n")
+            }
+            sb.append("---\n\n")
+        }
+        return@withContext sb.toString().trim()
     }
 }
 
