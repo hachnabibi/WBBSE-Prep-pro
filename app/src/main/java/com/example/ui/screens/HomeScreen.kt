@@ -55,6 +55,37 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.AppScreen
 
 @Composable
+fun RecentlyViewedCard(item: RecentlyViewedEntity, isBengali: Boolean) {
+    Card(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.width(160.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Icon(
+                imageVector = if (item.type == "PYQ") Icons.Default.Description else Icons.AutoMirrored.Filled.MenuBook,
+                contentDescription = null,
+                tint = PrimaryIndigo,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = item.subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
 fun HomeScreen(
     profile: StudentProfile,
     subjects: List<SubjectItem>,
@@ -1209,22 +1240,46 @@ fun SubjectProgressCard(
 
     val subjectColor = Color(subject.colorHex)
 
+    val isDark = isSystemInDarkTheme()
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSystemInDarkTheme()) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+            containerColor = Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.2.dp, subjectColor.copy(alpha = if (isDark) 0.45f else 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable { onOpenJourney() }
             .testTag("subject_card_${subject.id}")
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    if (isDark) {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF1E293B),
+                                Color(0xFF0F172A)
+                            )
+                        )
+                    } else {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                subjectColor.copy(alpha = 0.12f)
+                            )
+                        )
+                    }
+                )
+                .padding(16.dp)
         ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1351,6 +1406,7 @@ fun SubjectProgressCard(
                     trackColor = subjectColor.copy(alpha = 0.15f)
                 )
             }
+          }
         }
     }
 }
@@ -1642,36 +1698,5 @@ fun ActiveClassBanner(
                 }
             }
         )
-    }
-}
-
-@Composable
-fun RecentlyViewedCard(item: RecentlyViewedEntity, isBengali: Boolean) {
-    Card(
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.width(160.dp)
-    ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Icon(
-                imageVector = if (item.type == "PYQ") Icons.Default.Description else Icons.AutoMirrored.Filled.MenuBook,
-                contentDescription = null,
-                tint = PrimaryIndigo,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = item.subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
     }
 }

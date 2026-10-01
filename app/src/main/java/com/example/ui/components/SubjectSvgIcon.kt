@@ -76,7 +76,6 @@ object SubjectSvgIconProvider {
             SubjectCode.COSTING_TAXATION -> Icons.Default.RequestQuote
             SubjectCode.BUSINESS_MATH_STATISTICS -> Icons.Default.Calculate
             SubjectCode.VOCATIONAL -> Icons.Default.Build
-            else -> getIconForSubjectId(code.id)
         }
     }
 
