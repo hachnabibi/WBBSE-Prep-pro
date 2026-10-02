@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c11_s1_coma_ch1",
+    "subjectId": "wbchse_c11_sem1_coma",
+    "chapterNumber": 1,
+    "title": "কম্পিউটারের মূল ভিত্তি ও বিবর্তন (Fundamentals of Computer)",
+    "description": "কম্পিউটারের প্রজন্ম, হার্ডওয়্যার, সফটওয়্যার এবং মেমরির প্রাথমিক ধারণা।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  },
+  {
+    "id": "c11_s1_coma_ch2",
+    "subjectId": "wbchse_c11_sem1_coma",
+    "chapterNumber": 2,
+    "title": "সংখ্যা পদ্ধতি ও ডিজিটাল লজিক (Number Systems & Boolean Logic)",
+    "description": "বাইনারি, অক্টাল, ডেসিমাল, হেক্সাডেসিমাল রূপান্তর ও বুলিয়ান বীজগণিত।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  }
+]

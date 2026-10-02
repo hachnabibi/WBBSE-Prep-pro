@@ -407,7 +407,12 @@ class DeshExamRepository(
 
     fun getSubjectsForClass(classId: String, stream: String = "all"): Flow<List<SubjectItem>> =
         dao.getSubjectsForClassAndStream(classId, stream).map { entities ->
-            entities.map { entity ->
+            val matchingEntities = if (stream == "all" || stream.isBlank()) {
+                entities
+            } else {
+                entities.filter { com.example.util.StreamHelper.matchesStream(it.stream, stream) }
+            }
+            matchingEntities.map { entity ->
                 val codeEnum = SubjectCode.values().find { it.id == entity.code.lowercase() }
                     ?: SubjectCode.values().find { it.name.equals(entity.code, ignoreCase = true) }
                     ?: SubjectCode.PHYSICAL_SCIENCE

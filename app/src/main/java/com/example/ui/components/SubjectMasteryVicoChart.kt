@@ -36,15 +36,18 @@ import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 data class WbbseSubjectPerformance(
     val id: String,
     val name: String = "",
-    val nameBengali: String = name,
-    val nameEnglish: String = name,
+    val nameBengali: String = "",
+    val nameEnglish: String = "",
     val masteryPercentage: Int, // 0 to 100
     val quizScorePercentage: Int,
     val mockTestScorePercentage: Int,
     val totalQuizzesTaken: Int,
     val totalMockTestsTaken: Int,
     val accentColor: Color
-)
+) {
+    val displayNameBengali: String get() = nameBengali.ifBlank { name.ifBlank { nameEnglish } }
+    val displayNameEnglish: String get() = nameEnglish.ifBlank { name.ifBlank { nameBengali } }
+}
 
 @Composable
 fun SubjectMasteryVicoChart(
@@ -116,12 +119,12 @@ fun SubjectMasteryVicoChart(
 
                     Column {
                         Text(
-                            text = "WBBSE বিষয়ভিত্তিক দক্ষতা chart",
+                            text = if (isBengali) "বিষয়ভিত্তিক দক্ষতা চার্ট" else "Subject Mastery Chart",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "মক টেস্ট ও কুইজের ফলের ভিত্তিতে ভিকো (Vico) চার্ট",
+                            text = if (isBengali) "মক টেস্ট ও কুইজের সামগ্রিক ফলাফল বিশ্লেষণ" else "Performance analysis from mock tests & quizzes",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -344,7 +347,7 @@ fun SubjectMasteryVicoChart(
                                             .background(subject.accentColor)
                                     )
                                     Text(
-                                        text = subject.name,
+                                        text = if (isBengali) subject.displayNameBengali else subject.displayNameEnglish,
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )

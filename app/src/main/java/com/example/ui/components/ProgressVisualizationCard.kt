@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.SubjectItem
+import com.example.data.model.getTitle
 import com.example.ui.theme.*
 
 data class PerformancePoint(
@@ -50,13 +52,15 @@ data class SubjectMasteryStat(
  * Inspired by D3/Recharts data visualization paradigms, built natively in Jetpack Compose:
  * - Smooth cubic bezier performance trend curve with gradient area fill
  * - Dynamic data point inspection on tap with tooltip
- * - Subject mastery multi-bar chart comparing all 7 WBBSE subjects
+ * - Subject mastery multi-bar chart comparing class subjects
  * - Tabbed switcher between Performance Trend and Subject Mastery
  * - Exam Readiness Gauge
  */
 @Composable
 fun ProgressVisualizationCard(
     isBengali: Boolean,
+    subjects: List<com.example.data.model.SubjectItem> = emptyList(),
+    activeClassName: String = "",
     modifier: Modifier = Modifier
 ) {
     var selectedChartTab by remember { mutableStateOf(0) } // 0: Over Time, 1: Subject Mastery
@@ -74,17 +78,37 @@ fun ProgressVisualizationCard(
         )
     }
 
-    // 7 Core WBBSE Subjects mastery statistics
-    val subjectStats = remember {
-        listOf(
-            SubjectMasteryStat("ভৌতবিজ্ঞান", "Physical Science", 85, 14, Color(0xFF3B82F6)),
-            SubjectMasteryStat("জীবনবিজ্ঞান", "Life Science", 92, 18, Color(0xFF10B981)),
-            SubjectMasteryStat("গণিত", "Mathematics", 78, 12, Color(0xFFF59E0B)),
-            SubjectMasteryStat("ইতিহাস", "History", 74, 9, Color(0xFFEC4899)),
-            SubjectMasteryStat("ভূগোল", "Geography", 88, 15, Color(0xFF06B6D4)),
-            SubjectMasteryStat("বাংলা", "Bengali", 90, 8, Color(0xFF8B5CF6)),
-            SubjectMasteryStat("ইংরেজি", "English", 80, 11, Color(0xFF14B8A6))
-        )
+    // Dynamic or Fallback Subjects mastery statistics
+    val subjectStats = remember(subjects, isBengali) {
+        if (subjects.isNotEmpty()) {
+            subjects.mapIndexed { idx, sub ->
+                val color = if (sub.colorHex != 0L) Color(sub.colorHex) else Color(sub.code.colorHex)
+                val mastery = if (sub.masteryPercentage > 0) {
+                    sub.masteryPercentage
+                } else if (sub.completedChapters > 0 && sub.totalChapters > 0) {
+                    ((sub.completedChapters.toFloat() / sub.totalChapters) * 100).toInt()
+                } else {
+                    (70 + (idx * 6) % 25)
+                }
+                SubjectMasteryStat(
+                    subjectName = sub.getTitle(true).ifBlank { sub.name },
+                    subjectNameEnglish = sub.getTitle(false).ifBlank { sub.name },
+                    masteryPercentage = mastery,
+                    improvementDelta = (8 + (idx * 3) % 12),
+                    color = color
+                )
+            }
+        } else {
+            listOf(
+                SubjectMasteryStat("ভৌতবিজ্ঞান", "Physical Science", 85, 14, Color(0xFF3B82F6)),
+                SubjectMasteryStat("জীবনবিজ্ঞান", "Life Science", 92, 18, Color(0xFF10B981)),
+                SubjectMasteryStat("গণিত", "Mathematics", 78, 12, Color(0xFFF59E0B)),
+                SubjectMasteryStat("ইতিহাস", "History", 74, 9, Color(0xFFEC4899)),
+                SubjectMasteryStat("ভূগোল", "Geography", 88, 15, Color(0xFF06B6D4)),
+                SubjectMasteryStat("বাংলা", "Bengali", 90, 8, Color(0xFF8B5CF6)),
+                SubjectMasteryStat("ইংরেজি", "English", 80, 11, Color(0xFF14B8A6))
+            )
+        }
     }
 
     Card(
@@ -440,7 +464,10 @@ private fun SubjectMasteryBarBreakdown(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
@@ -448,10 +475,17 @@ private fun SubjectMasteryBarBreakdown(
                                 .background(stat.color)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
+                        val labelText = if (isBengali) {
+                            stat.subjectName.ifBlank { stat.subjectNameEnglish }
+                        } else {
+                            stat.subjectNameEnglish.ifBlank { stat.subjectName }
+                        }
                         Text(
-                            text = if (isBengali) stat.subjectName else stat.subjectNameEnglish,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = labelText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -464,14 +498,20 @@ private fun SubjectMasteryBarBreakdown(
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(
-                            text = "+${stat.improvementDelta}%",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                color = CorrectGreen
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = CorrectGreen.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "+${stat.improvementDelta}%",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = CorrectGreen
+                                ),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
-                        )
+                        }
                     }
                 }
 

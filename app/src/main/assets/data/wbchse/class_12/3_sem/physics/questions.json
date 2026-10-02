@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c12_s3_phy_q1",
+    "topicId": "c12_s3_phy_ch1_top1",
+    "chapterId": "c12_s3_phy_ch1",
+    "subjectId": "wbchse_c12_sem3_physics",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "শূন্য মাধ্যমে দুটি একক আধানের মধ্যে ১ মিটার দূরত্বে ক্রিয়াশীল কুলম্ব বলের মান কত?",
+    "optionsJson": "9 × 10⁹ N|1 N|8.854 × 10⁻¹² N|9 × 10⁻⁹ N",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "9 × 10⁹ N",
+    "explanation": "কুলম্বের সূত্রানুযায়ী F = (1 / 4πε₀) × (q₁q₂ / r²)। শূন্য মাধ্যমে 1/(4πε₀) = 9 × 10⁹ N·m²/C²। অতএব F = 9 × 10⁹ N।",
+    "marks": 1,
+    "tagsJson": "c12_s3_phy_ch1_top1|COULOMB_LAW|MCQ",
+    "pyqYear": "2024",
+    "classId": "class_12_wbchse"
+  }
+]

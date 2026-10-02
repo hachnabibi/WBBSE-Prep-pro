@@ -18,6 +18,8 @@ data class SubjectEntity(
 ) {
     val nameBengali: String get() = com.example.data.model.ContentLocalization.getSubjectTitle(id, com.example.data.model.SubjectCode.values().find { it.id == code.lowercase() }, name, true)
     val nameEnglish: String get() = com.example.data.model.ContentLocalization.getSubjectTitle(id, com.example.data.model.SubjectCode.values().find { it.id == code.lowercase() }, name, false)
+    val parsedStreams: List<String> get() = com.example.util.StreamHelper.parseStreams(stream)
+    fun belongsToStream(targetStream: String?): Boolean = com.example.util.StreamHelper.matchesStream(stream, targetStream)
 
     constructor(
         id: String,

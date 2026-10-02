@@ -1,0 +1,36 @@
+[
+  {
+    "id": "c11_s1_phy_q1",
+    "topicId": "c11_s1_phy_ch1_top1",
+    "chapterId": "c11_s1_phy_ch1",
+    "subjectId": "wbchse_c11_sem1_physics",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "নিচের কোন জোড়টির মাত্রা একই?",
+    "optionsJson": "কার্য এবং টর্ক|বল এবং ক্ষমতা|ভরবেগ এবং শক্তি|চাপ এবং বল",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "কার্য এবং টর্ক",
+    "explanation": "কার্য = বল × সরণ = [ML²T⁻²] এবং টর্ক = বল × লম্ব দূরত্ব = [ML²T⁻²]। সুতরাং উভয়ের মাত্রা অভিন্ন।",
+    "marks": 1,
+    "tagsJson": "c11_s1_phy_ch1_top1|DIMENSIONS|MCQ",
+    "pyqYear": "2024",
+    "classId": "class_11_wbchse"
+  },
+  {
+    "id": "c11_s1_phy_q2",
+    "topicId": "c11_s1_phy_ch1_top1",
+    "chapterId": "c11_s1_phy_ch1",
+    "subjectId": "wbchse_c11_sem1_physics",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "একটি বৃত্তাকার চাকতির ব্যাসার্ধ পরিমাপে ২% ত্রুটি হলে তার ক্ষেত্রফল নির্ণয়ে শতকরা ত্রুটি কত হবে?",
+    "optionsJson": "৪%|২%|১%|৮%",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "৪%",
+    "explanation": "ক্ষেত্রফল A = πr²। সুতরাং শতকরা ত্রুটি = 2 × (Δr/r) × 100% = 2 × 2% = 4%।",
+    "marks": 1,
+    "tagsJson": "c11_s1_phy_ch1_top1|ERROR_ANALYSIS|MCQ",
+    "pyqYear": "2025",
+    "classId": "class_11_wbchse"
+  }
+]

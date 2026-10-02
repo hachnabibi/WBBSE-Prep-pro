@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c12_s4_phy_ch1_top1",
+    "chapterId": "c12_s4_phy_ch1",
+    "subjectId": "wbchse_c12_sem4_physics",
+    "orderIndex": 1,
+    "title": "তরঙ্গ আলোকবিজ্ঞান ও হাইগেনসের নীতি",
+    "summary": "তরঙ্গমুখ, হাইগেনসের নীতি প্রয়োগে প্রতিফলন ও প্রতিসরণের প্রমাণ।",
+    "keyPointsJson": "হাইগেনসের নীতি|তরঙ্গমুখ|ব্যতিচার|ইয়ং-এর দ্বি-রেখাছিদ্র পরীক্ষা",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_12_wbchse"
+  }
+]

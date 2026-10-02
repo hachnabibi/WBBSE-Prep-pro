@@ -1,0 +1,30 @@
+[
+  {
+    "id": "c11_s1_phy_ch1_top1",
+    "chapterId": "c11_s1_phy_ch1",
+    "subjectId": "wbchse_c11_sem1_physics",
+    "orderIndex": 1,
+    "title": "মাত্রীয় সমীকরণ ও ব্যবহার",
+    "summary": "ভৌত রাশির সমমাত্রিকতার নীতি ও সমীকরণের যাথার্থতা নির্ণয়।",
+    "keyPointsJson": "মাত্রার নীতি|সমমাত্রিকতা|ত্রুটির শতকরা হিসাব|স্ক্রু গজ ও ভার্নিয়ার",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_11_wbchse",
+    "contentData": "# ভৌত বিশ্ব ও পরিমাপ\n\n## মৌলিক ও লব্ধ রাশি\nপদার্থবিদ্যায় যে সমস্ত রাশি অন্য কোনো রাশির ওপর নির্ভর করে না, তাদের **মৌলিক রাশি** বলে (যেমন: দৈর্ঘ্য, ভর, সময়)। আর যে সমস্ত রাশি এক বা একাধিক মৌলিক রাশির সমন্বয়ে গঠিত হয়, তাদের **লব্ধ রাশি** বলে (যেমন: বেগ, বল, কার্য)।\n\n## মাত্রিক সমজাতীয়তার নীতি (Principle of Homogeneity of Dimensions)\nযেকোনো সঠিক ভৌত সমীকরণের উভয় পাশের প্রতিটি পদের মাত্রা সমান হতে হবে।",
+    "solutionData": "## 📝 সেমিস্টার ১ MCQ ও সংক্ষিপ্ত সমাধান\n\n**১. বলের মাত্রা কোনটি?** `[MCQ • মান: ১]`\n* ১. $[MLT^{-1}]$\n* ২. $[MLT^{-2}]$ ✅ [সঠিক উত্তর]\n* ৩. $[ML^2T^{-2}]$\n* ৪. $[M^{-1}L^3T^{-2}]$\n\n**উত্তর:** বল = ভর × ত্বরণ = $M \\times LT^{-2} = [MLT^{-2}]$।"
+  },
+  {
+    "id": "c11_s1_phy_ch1_top2",
+    "chapterId": "c11_s1_phy_ch1",
+    "subjectId": "wbchse_c11_sem1_physics",
+    "orderIndex": 2,
+    "title": "পরিমাপে ত্রুটি ও তাৎপর্যপূর্ণ অঙ্কসংখ্যা",
+    "summary": "আপেক্ষিক ত্রুটি, শতকরা ত্রুটি ও পরিমাপের নির্ভুলতা।",
+    "keyPointsJson": "পরম ত্রুটি|আপেক্ষিক ত্রুটি|শতকরা ত্রুটি|Significant Figures",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_11_wbchse"
+  }
+]

@@ -1316,19 +1316,41 @@ fun SubjectProgressCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     val classLevelName = subject.getClassLevelName(isBengali)
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = classLevelName,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                        ) {
+                            Text(
+                                text = classLevelName,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            )
+                        }
+
+                        if (subject.stream.isNotBlank() && subject.stream != "common") {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            ) {
+                                Text(
+                                    text = com.example.util.StreamHelper.getFormattedStreamLabel(subject.stream, isBengali),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
+                                )
+                            }
+                        }
                     }
                 }
 

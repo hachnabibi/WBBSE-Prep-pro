@@ -731,7 +731,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 )
                 val newSubs = repository.getSubjectsForClassOnce(classId)
                 if (newSubs.isNotEmpty()) {
-                    val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { it.stream == "common" || it.stream == finalStream } ?: newSubs.first())
+                    val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { com.example.util.StreamHelper.matchesStream(it.stream, finalStream) } ?: newSubs.first())
                     _selectedSubjectId.value = firstSub.id
                     _selectedSubjectEntity.value = firstSub
                     val chs = repository.getChaptersOnce(firstSub.id)
@@ -782,7 +782,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             repository.updateStudentProfile(name, school, district, targetExam, resolvedClassId, finalStream, studyGoals)
             val newSubs = repository.getSubjectsForClassOnce(resolvedClassId)
             if (newSubs.isNotEmpty()) {
-                val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { it.stream == "common" || it.stream == finalStream } ?: newSubs.first())
+                val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { com.example.util.StreamHelper.matchesStream(it.stream, finalStream) } ?: newSubs.first())
                 _selectedSubjectId.value = firstSub.id
                 _selectedSubjectEntity.value = firstSub
                 val chs = repository.getChaptersOnce(firstSub.id)

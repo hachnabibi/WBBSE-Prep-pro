@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c12_s3_phy_ch1",
+    "subjectId": "wbchse_c12_sem3_physics",
+    "chapterNumber": 1,
+    "title": "স্থির তড়িৎ ও কুলম্বের সূত্র (Electrostatics)",
+    "description": "আধানের কোয়ান্টায়ন, কুলম্বের সূত্র, তড়িৎ ক্ষেত্র ও গাউসের উপপাদ্য সংক্রান্ত MCQ।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_12_wbchse"
+  },
+  {
+    "id": "c12_s3_phy_ch2",
+    "subjectId": "wbchse_c12_sem3_physics",
+    "chapterNumber": 2,
+    "title": "প্রবাহী তড়িৎ ও ওহমের সূত্র (Current Electricity)",
+    "description": "ড্রিফ্ট বেগ, কার্শফের সূত্রাবলী, হুইটস্টোন ব্রিজ ও পোটেনশিওমিটার।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_12_wbchse"
+  }
+]

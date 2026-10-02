@@ -97,7 +97,17 @@ abstract class DeshExamDatabase : RoomDatabase() {
                 } ?: return
 
                 if (files.contains("subject.json")) {
-                    val inferredClassId = if (path.contains("class_5")) "class_5_wbbse" else "class_10_wbbse"
+                    val inferredClassId = when {
+                        path.contains("class_11") -> "class_11_wbchse"
+                        path.contains("class_12") -> "class_12_wbchse"
+                        path.contains("class_5") -> "class_5_wbbse"
+                        path.contains("class_6") -> "class_6_wbbse"
+                        path.contains("class_7") -> "class_7_wbbse"
+                        path.contains("class_8") -> "class_8_wbbse"
+                        path.contains("class_9") -> "class_9_wbbse"
+                        path.contains("cbse_10") || (path.contains("class_10") && path.contains("cbse")) -> "class_10_cbse"
+                        else -> "class_10_wbbse"
+                    }
 
                     // 1. Load Subject
                     try {

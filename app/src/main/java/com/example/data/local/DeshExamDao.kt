@@ -21,7 +21,7 @@ interface DeshExamDao {
     @Query("SELECT * FROM subjects WHERE classId = :classId ORDER BY code ASC")
     fun getSubjectsForClass(classId: String): Flow<List<SubjectEntity>>
 
-    @Query("SELECT * FROM subjects WHERE classId = :classId AND (:stream = 'all' OR stream = 'common' OR stream = :stream) ORDER BY code ASC")
+    @Query("SELECT * FROM subjects WHERE classId = :classId AND (:stream = 'all' OR stream = 'common' OR stream = 'all' OR stream = :stream OR stream LIKE '%' || :stream || '%') ORDER BY code ASC")
     fun getSubjectsForClassAndStream(classId: String, stream: String): Flow<List<SubjectEntity>>
 
     @Query("SELECT * FROM subjects WHERE classId = :classId")

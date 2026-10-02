@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c12_s4_phy_ch1",
+    "subjectId": "wbchse_c12_sem4_physics",
+    "chapterNumber": 1,
+    "title": "আলোকবিজ্ঞান (Optics & Wave Optics)",
+    "description": "প্রতিসরণ, প্রিজম, লেন্স, অপবর্তন, ব্যতিচার ও সমবর্তন সংক্রান্ত বিশ্লেষণ।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_12_wbchse"
+  }
+]

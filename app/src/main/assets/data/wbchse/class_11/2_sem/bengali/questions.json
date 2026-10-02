@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c11_s2_ben_q1",
+    "topicId": "c11_s2_ben_ch1_top1",
+    "chapterId": "c11_s2_ben_ch1",
+    "subjectId": "wbchse_c11_sem2_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "‘কর্তার ভূত’ গল্পটি কোন ধরণের রচনা?",
+    "optionsJson": "রূপকধর্মী ব্যঙ্গ রচনা|ঐতিহাসিক কাহিনি|গোয়েন্দা গল্প|ভ্রমণকাহিনি",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "রূপকধর্মী ব্যঙ্গ রচনা",
+    "explanation": "‘কর্তার ভূত’ গল্পে রবীন্দ্রনাথ ঠাকুর রূপকের মাধ্যমে সমাজের অন্ধ সংস্কার ও পরাধীন মানসিকতাকে তীব্র ব্যঙ্গ করেছেন।",
+    "marks": 1,
+    "tagsJson": "c11_s2_ben_ch1_top1|BENGALI_LIT|MCQ",
+    "pyqYear": "2024",
+    "classId": "class_11_wbchse"
+  }
+]

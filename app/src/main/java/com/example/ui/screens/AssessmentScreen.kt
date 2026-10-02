@@ -16,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +58,9 @@ fun AssessmentScreen(
     modifier: Modifier = Modifier
 ) {
     val session = state.session ?: return
+    
+    // হ্যাপটিক ফিডব্যাকের জন্য
+    val haptic = LocalHapticFeedback.current
 
     if (session.mode == AssessmentMode.MOCK_TEST) {
         MockTestScreen(
@@ -83,7 +89,7 @@ fun AssessmentScreen(
     val screenBgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     val cardBgColorUi = if (isDark) Color(0xFF1E293B) else Color.White
     val borderColorUi = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-    val navyBlueBadge = Color(0xFF1E3A8A) // Navy Blue for Option Number Badge
+    val navyBlueBadge = Color(0xFF1E3A8A)
 
     var showExitConfirmation by remember { mutableStateOf(false) }
     var extraTimeSeconds by remember { mutableIntStateOf(0) }
@@ -176,30 +182,12 @@ fun AssessmentScreen(
         )
     }
 
+    // Rewarded Dialogs (Omitted standard details for brevity, assumed correctly handled in components)
     if (showRewardedAdForFiftyFifty) {
-        RewardedAdDialog(
-            rewardType = AdRewardType.FIFTY_FIFTY,
-            isBengali = isBengali,
-            onRewardEarned = {
-                showRewardedAdForFiftyFifty = false
-                onUseFiftyFifty?.invoke()
-            },
-            onDismiss = { showRewardedAdForFiftyFifty = false }
-        )
+        RewardedAdDialog(rewardType = AdRewardType.FIFTY_FIFTY, isBengali = isBengali, onRewardEarned = { showRewardedAdForFiftyFifty = false; onUseFiftyFifty?.invoke() }, onDismiss = { showRewardedAdForFiftyFifty = false })
     }
-
     if (showRewardedAdForExtraTime) {
-        RewardedAdDialog(
-            rewardType = AdRewardType.EXTRA_TIME,
-            isBengali = isBengali,
-            onRewardEarned = {
-                showRewardedAdForExtraTime = false
-                extraTimeSeconds += 60
-                isExtraTimeUsed = true
-                onUseExtraTime?.invoke()
-            },
-            onDismiss = { showRewardedAdForExtraTime = false }
-        )
+        RewardedAdDialog(rewardType = AdRewardType.EXTRA_TIME, isBengali = isBengali, onRewardEarned = { showRewardedAdForExtraTime = false; extraTimeSeconds += 60; isExtraTimeUsed = true; onUseExtraTime?.invoke() }, onDismiss = { showRewardedAdForExtraTime = false })
     }
 
     Box(modifier = modifier.fillMaxSize().background(screenBgColor).testTag("assessment_screen")) {
@@ -226,12 +214,7 @@ fun AssessmentScreen(
                                     .clip(CircleShape)
                                     .background(if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9))
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "বেরিয়ে যান",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Icon(Icons.Default.Close, contentDescription = "Exit", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                             }
 
                             RealtimeCountdownTimer(
@@ -254,10 +237,7 @@ fun AssessmentScreen(
                                 ) {
                                     Text(
                                         text = "প্রশ্ন $currentNum/$totalQ",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
-                                        ),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
                                         color = if (isDark) Color(0xFFA5B4FC) else PrimaryIndigo
                                     )
                                 }
@@ -266,17 +246,10 @@ fun AssessmentScreen(
 
                         Text(
                             text = session.title,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
-                            ),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -284,8 +257,7 @@ fun AssessmentScreen(
                         LinearProgressIndicator(
                             progress = { progress },
                             modifier = Modifier.fillMaxWidth().height(3.dp),
-                            color = PrimaryIndigo,
-                            trackColor = borderColorUi
+                            color = PrimaryIndigo, trackColor = borderColorUi
                         )
                     }
                 }
@@ -306,14 +278,14 @@ fun AssessmentScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
-                            onClick = { if (!state.isFiftyFiftyUsed) showRewardedAdForFiftyFifty = true },
+                            onClick = { 
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (!state.isFiftyFiftyUsed) showRewardedAdForFiftyFifty = true 
+                            },
                             enabled = !state.isFiftyFiftyUsed && !state.isAnswerChecked,
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, if (state.isFiftyFiftyUsed) borderColorUi else ExamCyan),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (state.isFiftyFiftyUsed) Color.Transparent else ExamCyan.copy(alpha = 0.08f),
-                                contentColor = ExamCyan
-                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (state.isFiftyFiftyUsed) Color.Transparent else ExamCyan.copy(alpha = 0.08f), contentColor = ExamCyan),
                             contentPadding = PaddingValues(horizontal = 4.dp),
                             modifier = Modifier.weight(1f).height(44.dp)
                         ) {
@@ -323,14 +295,14 @@ fun AssessmentScreen(
                         }
 
                         OutlinedButton(
-                            onClick = { if (!isExtraTimeUsed) showRewardedAdForExtraTime = true },
+                            onClick = { 
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (!isExtraTimeUsed) showRewardedAdForExtraTime = true 
+                            },
                             enabled = !isExtraTimeUsed,
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, if (isExtraTimeUsed) borderColorUi else ExamGold),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isExtraTimeUsed) Color.Transparent else ExamGold.copy(alpha = 0.08f),
-                                contentColor = ExamGold
-                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isExtraTimeUsed) Color.Transparent else ExamGold.copy(alpha = 0.08f), contentColor = ExamGold),
                             contentPadding = PaddingValues(horizontal = 4.dp),
                             modifier = Modifier.weight(1f).height(44.dp)
                         ) {
@@ -341,18 +313,13 @@ fun AssessmentScreen(
 
                         OutlinedButton(
                             onClick = {
-                                if (!isSkipUsed) {
-                                    isSkipUsed = true
-                                    onUseSkip?.invoke()
-                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (!isSkipUsed) { isSkipUsed = true; onUseSkip?.invoke() }
                             },
                             enabled = !isSkipUsed && !state.isAnswerChecked,
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, if (isSkipUsed) borderColorUi else ExamFlame),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSkipUsed) Color.Transparent else ExamFlame.copy(alpha = 0.08f),
-                                contentColor = ExamFlame
-                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isSkipUsed) Color.Transparent else ExamFlame.copy(alpha = 0.08f), contentColor = ExamFlame),
                             contentPadding = PaddingValues(horizontal = 4.dp),
                             modifier = Modifier.weight(1f).height(44.dp)
                         ) {
@@ -372,20 +339,27 @@ fun AssessmentScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                AdBannerCard(
-                    isBengali = isBengali,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                AdBannerCard(isBengali = isBengali, modifier = Modifier.fillMaxWidth())
 
-                // Premium Question Card
+                // Premium Question Card with Gradient Background
                 Card(
                     shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = cardBgColorUi),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent), // Transparent to show gradient
                     border = BorderStroke(1.dp, borderColorUi),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 22.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = if (isDark) listOf(Color(0xFF1E293B), Color(0xFF0F172A))
+                                    else listOf(Color.White, Color(0xFFF1F5F9))
+                                )
+                            )
+                            .padding(horizontal = 20.dp, vertical = 22.dp)
+                    ) {
                         Text(
                             text = currentQ.question,
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -398,7 +372,7 @@ fun AssessmentScreen(
                     }
                 }
 
-                // Options List
+                // Options List with Animated Colors & Haptics
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -410,7 +384,8 @@ fun AssessmentScreen(
                         val isSelected = state.selectedOptionIndex == idx
                         val isCorrectOption = idx == currentQ.correctOptionIndex
 
-                        val itemBgColor = when {
+                        // Determine target colors
+                        val targetItemBgColor = when {
                             state.isAnswerChecked && isCorrectOption -> CorrectGreen.copy(alpha = if (isDark) 0.25f else 0.1f)
                             state.isAnswerChecked && isSelected && !isCorrectOption -> WrongRed.copy(alpha = if (isDark) 0.25f else 0.1f)
                             isSelected -> if (isDark) Color(0xFF1E2145) else Color(0xFFEEF2FF)
@@ -418,26 +393,39 @@ fun AssessmentScreen(
                             else -> cardBgColorUi
                         }
 
-                        val borderLineColor = when {
+                        val targetBorderColor = when {
                             state.isAnswerChecked && isCorrectOption -> CorrectGreen
                             state.isAnswerChecked && isSelected && !isCorrectOption -> WrongRed
                             isSelected -> PrimaryIndigo
                             else -> borderColorUi
                         }
 
+                        // Smoothly animate colors
+                        val animatedItemBgColor by animateColorAsState(
+                            targetValue = targetItemBgColor,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "bg_anim_$idx"
+                        )
+                        val animatedBorderColor by animateColorAsState(
+                            targetValue = targetBorderColor,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "border_anim_$idx"
+                        )
+
                         Card(
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = itemBgColor),
+                            colors = CardDefaults.cardColors(containerColor = animatedItemBgColor),
                             elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected && !state.isAnswerChecked) 2.dp else 0.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .border(
                                     width = if (state.isAnswerChecked && (isCorrectOption || isSelected)) 2.dp else if (isSelected) 1.5.dp else 1.dp,
-                                    color = borderLineColor,
+                                    color = animatedBorderColor,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable(enabled = !state.isAnswerChecked && !isEliminated) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Haptic on tap
                                     onSelectOption(idx)
                                     onCheckOrSubmit()
                                 }
@@ -449,7 +437,7 @@ fun AssessmentScreen(
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 1. Option Number Badge (Always Navy Blue now)
+                                // Navy Blue Badge
                                 Box(
                                     modifier = Modifier
                                         .size(32.dp)
@@ -466,7 +454,7 @@ fun AssessmentScreen(
 
                                 Spacer(modifier = Modifier.width(14.dp))
 
-                                // 2. Option Text (Weighted to push icons to the right)
+                                // Option Text
                                 Text(
                                     text = if (isEliminated) "— বাতিলকৃত অপশন —" else optionText,
                                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -478,24 +466,16 @@ fun AssessmentScreen(
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                // 3. Check / Cross Marks (On the right side)
-                                if (state.isAnswerChecked) {
+                                // Animated Icons on Right
+                                AnimatedVisibility(
+                                    visible = state.isAnswerChecked && (isCorrectOption || (isSelected && !isCorrectOption)),
+                                    enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                                    exit = fadeOut()
+                                ) {
                                     if (isCorrectOption) {
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Icon(
-                                            imageVector = Icons.Rounded.CheckCircle,
-                                            contentDescription = "Correct",
-                                            tint = CorrectGreen,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Correct", tint = CorrectGreen, modifier = Modifier.size(24.dp).padding(start = 6.dp))
                                     } else if (isSelected && !isCorrectOption) {
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Icon(
-                                            imageVector = Icons.Rounded.Cancel,
-                                            contentDescription = "Wrong",
-                                            tint = WrongRed,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Icon(Icons.Rounded.Cancel, contentDescription = "Wrong", tint = WrongRed, modifier = Modifier.size(24.dp).padding(start = 6.dp))
                                     }
                                 }
                             }
@@ -527,8 +507,12 @@ private fun QuizResultPopupCard(
 ) {
     val scaleAnim = remember { Animatable(0.4f) }
     val timerProgress = remember { Animatable(0f) }
+    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(Unit) {
+        // Trigger haptic when result popup appears
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        
         scaleAnim.animateTo(
             targetValue = 1f,
             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
@@ -669,7 +653,10 @@ private fun QuizResultPopupCard(
                     }
 
                     Button(
-                        onClick = onDismiss,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onDismiss()
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isCorrect) Color(0xFF10B981) else Color(0xFFE11D48),
                             contentColor = Color.White

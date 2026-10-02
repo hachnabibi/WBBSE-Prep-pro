@@ -1,0 +1,19 @@
+[
+  {
+    "id": "c12_s4_phy_q1",
+    "topicId": "c12_s4_phy_ch1_top1",
+    "chapterId": "c12_s4_phy_ch1",
+    "subjectId": "wbchse_c12_sem4_physics",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "আলোর তরঙ্গতত্ত্বের সাহায্যে নিচের কোন ঘটনাটি ব্যাখ্যা করা যায় না?",
+    "optionsJson": "আলোকতড়িৎ ক্রিয়া|ব্যতিচার|অপবর্তন|সমবর্তন",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "আলোকতড়িৎ ক্রিয়া",
+    "explanation": "আলোকতড়িৎ ক্রিয়া (Photoelectric Effect) শুধুমাত্র আলোর কোয়ান্টাম তত্ত্ব (আইনস্টাইনের ফোটন তত্ত্ব) দ্বারা ব্যাখ্যা করা যায়, চিরায়ত তরঙ্গতত্ত্ব দ্বারা নয়।",
+    "marks": 1,
+    "tagsJson": "c12_s4_phy_ch1_top1|WAVE_OPTICS|MCQ",
+    "pyqYear": "2024",
+    "classId": "class_12_wbchse"
+  }
+]

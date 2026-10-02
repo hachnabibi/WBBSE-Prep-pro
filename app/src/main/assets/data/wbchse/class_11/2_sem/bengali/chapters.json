@@ -1,0 +1,28 @@
+[
+  {
+    "id": "c11_s2_ben_ch1",
+    "subjectId": "wbchse_c11_sem2_bengali",
+    "chapterNumber": 1,
+    "title": "কর্তার ভূত - রবীন্দ্রনাথ ঠাকুর",
+    "description": "রূপকধর্মী গল্প, বিষয়সংক্ষেপ ও বর্ণনামূলক প্রশ্নোত্তর।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": true,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  },
+  {
+    "id": "c11_s2_ben_ch2",
+    "subjectId": "wbchse_c11_sem2_bengali",
+    "chapterNumber": 2,
+    "title": "তেলেনাপোতা আবিষ্কার - প্রেমেন্দ্র মিত্র",
+    "description": "রহস্যময় রোমান্টিক আবহ ও মানবিক ব্যর্থতার গল্প।",
+    "totalTopics": 2,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_11_wbchse"
+  }
+]

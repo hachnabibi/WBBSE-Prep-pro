@@ -1,0 +1,15 @@
+[
+  {
+    "id": "c12_s3_phy_ch1_top1",
+    "chapterId": "c12_s3_phy_ch1",
+    "subjectId": "wbchse_c12_sem3_physics",
+    "orderIndex": 1,
+    "title": "কুলম্বের সূত্র ও তড়িৎ ক্ষেত্র",
+    "summary": "তড়িৎ আধানের মধ্যে আকর্ষণ ও বিকর্ষণ বল এবং তড়িৎ প্রাবল্য।",
+    "keyPointsJson": "কুলম্বের ভেক্টর রূপ|পরাবৈদ্যুতিক ধ্রুবক|তড়িৎ দ্বিমেরু|তড়িৎ ফ্লাক্স ও গাউসের সূত্র",
+    "isUnlocked": true,
+    "masteryPercentage": 0,
+    "questionCount": 5,
+    "classId": "class_12_wbchse"
+  }
+]

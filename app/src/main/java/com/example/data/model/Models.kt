@@ -128,6 +128,9 @@ data class SubjectItem(
     fun getTextbook(isBengali: Boolean = true): String {
         return textbookName
     }
+
+    val parsedStreams: List<String> get() = com.example.util.StreamHelper.parseStreams(stream)
+    fun belongsToStream(targetStream: String?): Boolean = com.example.util.StreamHelper.matchesStream(stream, targetStream)
 }
 
 data class ChapterItem(
