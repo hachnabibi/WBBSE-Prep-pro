@@ -79,10 +79,11 @@ fun AssessmentScreen(
     val progress = currentNum.toFloat() / totalQ.toFloat()
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
-    // Premium Background Colors
+    // Premium Colors
     val screenBgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
     val cardBgColorUi = if (isDark) Color(0xFF1E293B) else Color.White
     val borderColorUi = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+    val navyBlueBadge = Color(0xFF1E3A8A) // Navy Blue for Option Number Badge
 
     var showExitConfirmation by remember { mutableStateOf(false) }
     var extraTimeSeconds by remember { mutableIntStateOf(0) }
@@ -376,7 +377,7 @@ fun AssessmentScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Premium Question Card (Reduced Border Radius 10.dp, Increased Font Size 19.sp)
+                // Premium Question Card
                 Card(
                     shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = cardBgColorUi),
@@ -397,7 +398,7 @@ fun AssessmentScreen(
                     }
                 }
 
-                // Options List (Reduced padding, minHeight 52.dp)
+                // Options List
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -448,35 +449,24 @@ fun AssessmentScreen(
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // 1. Option Number Badge (Always Navy Blue now)
                                 Box(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            when {
-                                                state.isAnswerChecked && isCorrectOption -> CorrectGreen
-                                                state.isAnswerChecked && isSelected && !isCorrectOption -> WrongRed
-                                                isSelected -> PrimaryIndigo
-                                                else -> if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9)
-                                            }
-                                        ),
+                                        .background(if (isEliminated) navyBlueBadge.copy(alpha = 0.4f) else navyBlueBadge),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (state.isAnswerChecked && isCorrectOption) {
-                                        Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    } else if (state.isAnswerChecked && isSelected && !isCorrectOption) {
-                                        Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    } else {
-                                        Text(
-                                            text = optionLabels.getOrElse(idx) { "$idx" },
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
-                                            color = if (isSelected) Color.White else if (isDark) Color.LightGray else Color.DarkGray
-                                        )
-                                    }
+                                    Text(
+                                        text = optionLabels.getOrElse(idx) { "$idx" },
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                                        color = if (isEliminated) Color.White.copy(alpha = 0.5f) else Color.White
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.width(14.dp))
 
+                                // 2. Option Text (Weighted to push icons to the right)
                                 Text(
                                     text = if (isEliminated) "— বাতিলকৃত অপশন —" else optionText,
                                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -487,6 +477,27 @@ fun AssessmentScreen(
                                     color = if (isEliminated) Color.Gray else MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
+
+                                // 3. Check / Cross Marks (On the right side)
+                                if (state.isAnswerChecked) {
+                                    if (isCorrectOption) {
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Icon(
+                                            imageVector = Icons.Rounded.CheckCircle,
+                                            contentDescription = "Correct",
+                                            tint = CorrectGreen,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    } else if (isSelected && !isCorrectOption) {
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Icon(
+                                            imageVector = Icons.Rounded.Cancel,
+                                            contentDescription = "Wrong",
+                                            tint = WrongRed,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
