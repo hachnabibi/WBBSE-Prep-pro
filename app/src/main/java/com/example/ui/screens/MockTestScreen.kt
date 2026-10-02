@@ -446,25 +446,25 @@ fun MockTestScreen(
                 currentQuestion.options.forEachIndexed { optionIndex, optionText ->
                     val isSelected = currentSelectedOption == optionIndex
                     val optionLabel = when (optionIndex) {
-                        0 -> "ক"
-                        1 -> "খ"
-                        2 -> "গ"
-                        3 -> "ঘ"
-                        else -> "${optionIndex + 1}"
+                        0 -> "A"
+                        1 -> "B"
+                        2 -> "C"
+                        3 -> "D"
+                        else -> "${(optionIndex + 65).toChar()}"
                     }
 
                     Card(
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                Color(0xFF3730A3)
                             } else {
                                 MaterialTheme.colorScheme.surface
                             }
                         ),
                         border = BorderStroke(
                             width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                            color = if (isSelected) Color(0xFF818CF8) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -481,43 +481,52 @@ fun MockTestScreen(
                             // Option Label Circle
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(34.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        if (isSelected) Color(0xFF6366F1)
                                         else MaterialTheme.colorScheme.surfaceVariant
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = optionLabel,
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
                             // Option Content Text
                             Text(
                                 text = optionText,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 15.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
                             )
 
                             // Radio Check Icon
                             if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Selected",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFF6366F1),
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             } else {
                                 Box(
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(22.dp)
                                         .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                                 )
                             }
