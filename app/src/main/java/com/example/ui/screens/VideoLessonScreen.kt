@@ -1082,14 +1082,15 @@ private fun PlaylistItemCard(
                         text = item.safeTitle,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                            fontSize = 13.5.sp
+                            fontSize = 13.5.sp,
+                            lineHeight = 18.sp
                         ),
                         color = if (isActive) {
                             if (isDark) Color(0xFF34D399) else Color(0xFF047857)
                         } else {
                             if (isDark) Color.White else Color(0xFF0F172A)
                         },
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

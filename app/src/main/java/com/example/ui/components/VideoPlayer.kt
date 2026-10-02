@@ -1,8 +1,11 @@
 package com.example.ui.components
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -22,6 +25,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +60,15 @@ import com.example.data.model.VideoLesson
 import com.example.ui.theme.ExamCyan
 import com.example.ui.theme.ExamGold
 import kotlinx.coroutines.delay
+
+internal fun Context.findPlayerActivity(): Activity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is Activity) return currentContext
+        currentContext = currentContext.baseContext
+    }
+    return null
+}
 
 private const val TAG = "VideoPlayer"
 
@@ -338,6 +351,11 @@ fun ExoPlayerMediaView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val audioManager = remember(context) {
+        context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    }
+    val activity = remember(context) { context.findPlayerActivity() }
+
     val exoPlayer = remember(context) {
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = autoPlay
@@ -352,6 +370,11 @@ fun ExoPlayerMediaView(
     var showControls by remember { mutableStateOf(true) }
     var resumeBannerDismissed by remember { mutableStateOf(false) }
 
+    var isAudioOnlyMode by remember { mutableStateOf(false) }
+    var hudMessage by remember { mutableStateOf("") }
+    var hudIconName by remember { mutableStateOf("volume") } // volume / brightness
+    var showHud by remember { mutableStateOf(false) }
+
     var showRewindIndicator by remember { mutableStateOf(false) }
     var showForwardIndicator by remember { mutableStateOf(false) }
     var showPlayPauseIndicator by remember { mutableStateOf(false) }
@@ -363,6 +386,14 @@ fun ExoPlayerMediaView(
         if (showControls && isPlaying) {
             delay(3500)
             showControls = false
+        }
+    }
+
+    // Auto-hide HUD timer
+    LaunchedEffect(showHud) {
+        if (showHud) {
+            delay(1100)
+            showHud = false
         }
     }
 
@@ -504,6 +535,44 @@ fun ExoPlayerMediaView(
                     }
                 )
             }
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { change, dragAmount ->
+                    change.consume()
+                    val width = size.width
+                    if (width > 0) {
+                        val isLeftHalf = change.position.x < width / 2
+                        if (isLeftHalf) {
+                            // Brightness Gesture (Left Side)
+                            val window = activity?.window
+                            if (window != null) {
+                                val params = window.attributes
+                                val curBrightness = if (params.screenBrightness < 0) 0.5f else params.screenBrightness
+                                val nextBrightness = (curBrightness - (dragAmount / 800f)).coerceIn(0.05f, 1.0f)
+                                params.screenBrightness = nextBrightness
+                                window.attributes = params
+                                hudIconName = "brightness"
+                                hudMessage = "উজ্জ্বলতা: ${(nextBrightness * 100).toInt()}%"
+                                showHud = true
+                            }
+                        } else {
+                            // Volume Gesture (Right Side)
+                            if (audioManager != null) {
+                                val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                                val curVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                val delta = if (dragAmount < 0) 1 else -1
+                                if (Math.abs(dragAmount) > 10) {
+                                    val nextVol = (curVol + delta).coerceIn(0, maxVol)
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, nextVol, 0)
+                                    val percent = ((nextVol.toFloat() / maxVol.toFloat()) * 100).toInt()
+                                    hudIconName = if (nextVol == 0) "mute" else "volume"
+                                    hudMessage = "ভলিউম: $percent%"
+                                    showHud = true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
     ) {
         // AndroidView holding PlayerView
         AndroidView(
@@ -528,8 +597,50 @@ fun ExoPlayerMediaView(
             modifier = Modifier.fillMaxSize()
         )
 
+        // Audio-Only Listening Mode Overlay
+        if (isAudioOnlyMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0F172A)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = ExamGold.copy(alpha = 0.2f),
+                        border = BorderStroke(1.5.dp, ExamGold),
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Headphones,
+                                contentDescription = "অডিও মোড",
+                                tint = ExamGold,
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "🎧 ব্যাকগ্রাউন্ড অডিও মোড সক্রিয়",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                        color = Color.White
+                    )
+                    Text(
+                        text = "ভিডিও ডিসপ্লে বন্ধ থাকায় ব্যাটারি ও মোবাইল ডাটা সেভ হচ্ছে",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = Color(0xFF94A3B8)
+                    )
+                }
+            }
+        }
+
         // Buffering Spinner
-        if (isBuffering) {
+        if (isBuffering && !isAudioOnlyMode) {
             CircularProgressIndicator(
                 color = ExamGold,
                 modifier = Modifier
@@ -538,8 +649,43 @@ fun ExoPlayerMediaView(
             )
         }
 
+        // Brightness / Volume Swipe HUD Overlay
+        if (showHud) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Black.copy(alpha = 0.85f),
+                border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.8f)),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = when (hudIconName) {
+                            "brightness" -> Icons.Default.BrightnessMedium
+                            "mute" -> Icons.Default.VolumeMute
+                            else -> Icons.Default.VolumeUp
+                        },
+                        contentDescription = null,
+                        tint = ExamGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = hudMessage,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        ),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
         // Center Animated Play / Pause Visual Feedback Indicator on screen tap
-        if (showPlayPauseIndicator) {
+        if (showPlayPauseIndicator && !showHud) {
             Surface(
                 shape = CircleShape,
                 color = Color.Black.copy(alpha = 0.7f),
@@ -810,6 +956,19 @@ fun ExoPlayerMediaView(
                             .padding(horizontal = 6.dp)
                     )
 
+                    // Audio-Only Mode Toggle Button
+                    IconButton(
+                        onClick = { isAudioOnlyMode = !isAudioOnlyMode },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isAudioOnlyMode) Icons.Default.Videocam else Icons.Default.Headphones,
+                            contentDescription = if (isAudioOnlyMode) "ভিডিও মোড" else "অডিও মোড",
+                            tint = if (isAudioOnlyMode) ExamGold else Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     // Playback Speed Button (Standard Default Dropdown Menu)
                     if (showSpeedControls) {
                         Box {
@@ -1035,6 +1194,20 @@ fun YouTubeWebView(
                     settings.loadWithOverviewMode = true
                     settings.useWideViewPort = true
                     settings.cacheMode = WebSettings.LOAD_DEFAULT
+
+                    // Fix for YouTube Error 152-4:
+                    // YouTube blocks embedded player requests from Android WebViews when User-Agent contains '; wv' or 'Version/4.0'.
+                    // Removing '; wv' and 'Version/4.0' presents a standard Mobile Chrome User-Agent to YouTube.
+                    val rawUA = settings.userAgentString
+                    if (!rawUA.isNullOrBlank()) {
+                        settings.userAgentString = rawUA
+                            .replace("; wv", "")
+                            .replace("Version/4.0 ", "")
+                            .replace("Version/4.0", "")
+                    } else {
+                        settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                    }
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     }
@@ -1047,7 +1220,8 @@ fun YouTubeWebView(
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                         val url = request?.url?.toString() ?: return false
-                        if (url.startsWith("intent:") || url.startsWith("market:") || url.startsWith("vnd.youtube:")) {
+                        if (url.contains("youtube.com/watch") || url.contains("youtu.be/") ||
+                            url.startsWith("intent:") || url.startsWith("market:") || url.startsWith("vnd.youtube:")) {
                             try {
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -1094,7 +1268,6 @@ private fun loadYouTubeHtml(
     playbackSpeed: Float,
     startSeconds: Long = 0L
 ) {
-    val embedUrl = "https://www.youtube.com/embed/$youtubeId?autoplay=${if (autoPlay) 1 else 0}&start=$startSeconds&playsinline=1&rel=0&modestbranding=1"
     val html = """
         <!DOCTYPE html>
         <html>
@@ -1102,21 +1275,64 @@ private fun loadYouTubeHtml(
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-                html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-                iframe { width: 100%; height: 100%; border: 0; outline: none; }
+                html, body { width: 100%; height: 100%; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+                .video-wrapper {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                }
+                iframe {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 125%;
+                    height: 125%;
+                    transform: translate(-50%, -50%);
+                    border: 0;
+                    outline: none;
+                }
             </style>
         </head>
         <body>
-            <iframe 
-                src="$embedUrl" 
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" 
-                allowfullscreen>
-            </iframe>
+            <div class="video-wrapper">
+                <div id="player"></div>
+            </div>
+            <script>
+                var tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                var firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+                var player;
+                function onYouTubeIframeAPIReady() {
+                    player = new YT.Player('player', {
+                        videoId: '$youtubeId',
+                        playerVars: {
+                            'autoplay': ${if (autoPlay) 1 else 0},
+                            'controls': 1,
+                            'modestbranding': 1,
+                            'rel': 0,
+                            'showinfo': 0,
+                            'iv_load_policy': 3,
+                            'playsinline': 1,
+                            'enablejsapi': 1,
+                            'start': $startSeconds,
+                            'origin': 'https://www.youtube-nocookie.com'
+                        },
+                        events: {
+                            'onReady': function(event) {
+                                event.target.setPlaybackRate($playbackSpeed);
+                                ${if (autoPlay) "event.target.playVideo();" else ""}
+                            }
+                        }
+                    });
+                }
+            </script>
         </body>
         </html>
     """.trimIndent()
-    webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
+    webView.loadDataWithBaseURL("https://www.youtube-nocookie.com", html, "text/html", "UTF-8", null)
 }
 
 private fun formatTimeMs(timeMs: Long): String {
