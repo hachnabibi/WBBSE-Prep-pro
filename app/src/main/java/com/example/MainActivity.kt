@@ -194,6 +194,7 @@ fun DeshExamApp(
         val isFullScreenMode = (currentScreen == AppScreen.ASSESSMENT) ||
                 (currentScreen == AppScreen.RESULT) ||
                 (currentScreen == AppScreen.LEARN_TOPIC) ||
+                (currentScreen == AppScreen.VIDEO_LESSON) ||
                 (currentScreen == AppScreen.AUTH) ||
                 (currentScreen == AppScreen.ONBOARDING) ||
                 (currentScreen == AppScreen.MULTIPLAYER_BATTLE) ||
@@ -695,6 +696,7 @@ fun DeshExamApp(
                             onViewContent = { title, content, solution ->
                                 viewModel.openContentSolution(title, content, solution, initialTab = 0, chapterId = ch.id)
                             },
+                            viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -710,6 +712,24 @@ fun DeshExamApp(
                                 viewModel.startAssessment(mode, targetId, title, setNumber)
                             },
                             getQuestionCount = { topicId -> viewModel.getTopicQuestionCount(topicId) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+                AppScreen.VIDEO_LESSON -> {
+                    val activeLesson by viewModel.activeVideoLesson.collectAsState()
+                    val activeTopic by viewModel.activeVideoTopic.collectAsState()
+                    activeLesson?.let { lesson ->
+                        VideoLessonScreen(
+                            lesson = lesson,
+                            topic = activeTopic,
+                            isBengali = isBengali,
+                            viewModel = viewModel,
+                            onBack = { viewModel.goBack() },
+                            onStartQuiz = { mode, targetId, title ->
+                                viewModel.startAssessment(mode, targetId, title)
+                            },
+                            onOpenDoubtSolver = { viewModel.navigateTo(AppScreen.DOUBT_SOLVER) },
                             modifier = Modifier.fillMaxSize()
                         )
                     }

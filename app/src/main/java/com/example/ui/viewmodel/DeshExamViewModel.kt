@@ -13,6 +13,7 @@ import com.example.data.auth.FirebaseAuthRepository
 import com.example.data.firestore.FirestoreQuestion
 import com.example.data.firestore.FirestoreService
 import com.example.data.firestore.FirestoreTestTemplate
+import com.example.data.firestore.FirestoreVideoProgress
 import com.example.data.local.*
 import com.example.data.model.*
 import com.example.data.repository.DeshExamRepository
@@ -64,7 +65,8 @@ enum class AppScreen {
     SUBJECT_DETAIL,
     CHAPTER_DETAIL,
     EDIT_PROFILE,
-    INTERNET_ARCHIVE_SEARCH
+    INTERNET_ARCHIVE_SEARCH,
+    VIDEO_LESSON
 }
 
 data class AppSettings(
@@ -153,46 +155,61 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             var finalContent = content
             var finalSolution = solution
 
-            // If chapterId is provided, fetch chapter-level solutions directly
-            if (chapterId != null) {
+            fun isPlaceholder(s: String?): Boolean {
+                if (s.isNullOrBlank()) return true
+                val t = s.trim()
+                if (t == "## সমাধান" || (t.startsWith("## সমাধান") && (t.contains("এখানে থাকবে") || t.length < 50))) return true
+                if (t.contains("খুব শীঘ্রই যুক্ত করা হবে")) return true
+                if (t.contains("উক্ত বিষয়টি সম্পর্কে বিস্তারিত ধারণা এবং সঠিক সমাধান এখানে দেওয়া হলো")) return true
+                return false
+            }
+
+            // 1. If topicId is provided, always prioritize real topic-level solution from assets or Room
+            if (topicId != null) {
+                val realTopicSolution = repository.getSolutionsFromAssetForTopic(topicId)
+                if (!realTopicSolution.isNullOrBlank() && !isPlaceholder(realTopicSolution)) {
+                    finalSolution = realTopicSolution
+                } else {
+                    val topicEntity = repository.getTopicByIdOnce(topicId)
+                    if (topicEntity != null) {
+                        if (!isPlaceholder(topicEntity.solutionData)) {
+                            finalSolution = topicEntity.solutionData
+                        }
+                        if (isPlaceholder(finalContent) && !topicEntity.contentData.isNullOrBlank()) {
+                            finalContent = topicEntity.contentData
+                        }
+                    }
+                }
+            }
+
+            // 2. If chapterId is provided and solution is still placeholder or blank, fetch real chapter solutions
+            if ((finalSolution.isNullOrBlank() || isPlaceholder(finalSolution)) && chapterId != null) {
                 val chapterSolutions = repository.getSolutionsFromAssetForChapter(chapterId)
-                if (!chapterSolutions.isNullOrBlank()) {
+                if (!chapterSolutions.isNullOrBlank() && !isPlaceholder(chapterSolutions)) {
                     finalSolution = chapterSolutions
                 }
             }
 
-            // Always fetch latest real-time data from Room if topicId is available
-            if (topicId != null && finalSolution.isNullOrBlank()) {
-                val topicEntity = repository.getTopicByIdOnce(topicId)
-                if (topicEntity != null) {
-                    if (!topicEntity.contentData.isNullOrBlank()) {
-                        finalContent = topicEntity.contentData
+            // 3. If chapterId is provided and content/solution still blank, aggregate from chapter topics
+            if ((finalContent.isNullOrBlank() || isPlaceholder(finalContent) || finalSolution.isNullOrBlank() || isPlaceholder(finalSolution)) && chapterId != null) {
+                val topics = repository.getTopicsForChapterOnce(chapterId)
+                if (finalContent.isNullOrBlank() || isPlaceholder(finalContent)) {
+                    val cList = topics.mapNotNull { it.contentData?.takeIf { c -> c.isNotBlank() && !isPlaceholder(c) } }
+                    if (cList.isNotEmpty()) {
+                        finalContent = cList.joinToString("\n\n---\n\n")
                     }
                 }
-                val assetSolutions = repository.getSolutionsFromAssetForTopic(topicId)
-                if (!assetSolutions.isNullOrBlank()) {
-                    finalSolution = assetSolutions
-                } else if (topicEntity != null && !topicEntity.solutionData.isNullOrBlank()) {
-                    finalSolution = topicEntity.solutionData
-                }
-            }
-
-            // If chapterId is provided and content/solution still blank, aggregate from chapter topics
-            if ((finalContent.isNullOrBlank() || finalSolution.isNullOrBlank()) && chapterId != null) {
-                val topics = repository.getTopicsForChapterOnce(chapterId)
-                if (finalContent.isNullOrBlank()) {
-                    finalContent = topics.mapNotNull { it.contentData?.takeIf { c -> c.isNotBlank() } }.joinToString("\n\n")
-                }
-                if (finalSolution.isNullOrBlank()) {
+                if (finalSolution.isNullOrBlank() || isPlaceholder(finalSolution)) {
                     val solList = mutableListOf<String>()
                     for (t in topics) {
                         val sol = repository.getSolutionsFromAssetForTopic(t.id) ?: t.solutionData
-                        if (!sol.isNullOrBlank()) {
-                            solList.add(sol)
+                        if (!sol.isNullOrBlank() && !isPlaceholder(sol)) {
+                            solList.add("### 📌 ${t.title}\n\n$sol")
                         }
                     }
-                    finalSolution = solList.takeIf { it.isNotEmpty() }?.joinToString("\n\n")
-                        ?: topics.mapNotNull { it.solutionData?.takeIf { s -> s.isNotBlank() } }.joinToString("\n\n")
+                    if (solList.isNotEmpty()) {
+                        finalSolution = solList.joinToString("\n\n---\n\n")
+                    }
                 }
             }
 
@@ -200,7 +217,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             if (finalContent.isNullOrBlank()) {
                 finalContent = "# $title\n\nএই অধ্যায় বা টপিকের বিস্তারিত কন্টেন্ট এবং নোটস শীট খুব শীঘ্রই যুক্ত করা হবে।"
             }
-            if (finalSolution.isNullOrBlank()) {
+            if (finalSolution.isNullOrBlank() || isPlaceholder(finalSolution)) {
                 finalSolution = "# $title - সমাধান\n\nএই অধ্যায় বা টপিকের অনুশীলনী ও প্রশ্নোত্তর সমাধান খুব শীঘ্রই যুক্ত করা হবে।"
             }
 
@@ -309,6 +326,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val _activeTopicStudy = MutableStateFlow<TopicItem?>(null)
     val activeTopicStudy: StateFlow<TopicItem?> = _activeTopicStudy.asStateFlow()
 
+    private val _activeVideoLesson = MutableStateFlow<VideoLesson?>(null)
+    val activeVideoLesson: StateFlow<VideoLesson?> = _activeVideoLesson.asStateFlow()
+
+    private val _activeVideoTopic = MutableStateFlow<TopicItem?>(null)
+    val activeVideoTopic: StateFlow<TopicItem?> = _activeVideoTopic.asStateFlow()
+
     private val _assessmentState = MutableStateFlow(AssessmentUiState())
     val assessmentState: StateFlow<AssessmentUiState> = _assessmentState.asStateFlow()
 
@@ -346,9 +369,21 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val _testScoresVersion = MutableStateFlow(0)
     val testScoresVersion: StateFlow<Int> = _testScoresVersion.asStateFlow()
 
+    private val _videoProgressMap = MutableStateFlow<Map<String, FirestoreVideoProgress>>(emptyMap())
+    val videoProgressMap: StateFlow<Map<String, FirestoreVideoProgress>> = _videoProgressMap.asStateFlow()
+
     private var timerJob: Job? = null
 
     init {
+        // Sync & update database from assets so that any subject/chapter/question changes reflect immediately
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncDatabaseWithAssets()
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Database asset sync failed: ${e.message}")
+            }
+        }
+
         // Load Pyq Questions
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -374,6 +409,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             authRepository.authStateFlow.collect { user ->
                 if (user != null) {
                     _isGuestUser.value = false
+                    loadUserVideoProgress()
                     _currentScreen.value = AppScreen.HOME
                 }
             }
@@ -388,6 +424,24 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         _selectedSubjectId.value = first.id
                         _selectedSubjectEntity.value = repository.getSubjectById(first.id)
                     }
+                }
+            }
+        }
+    }
+
+    fun reloadAllDataFromAssets(onComplete: (() -> Unit)? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncDatabaseWithAssets(forceRefresh = true)
+                val currentSelected = _selectedSubjectId.value
+                if (currentSelected.isNotEmpty()) {
+                    _selectedSubjectEntity.value = repository.getSubjectById(currentSelected)
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Manual asset sync error: ${e.message}")
+            } finally {
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
                 }
             }
         }
@@ -435,6 +489,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             }
             AppScreen.LEARN_TOPIC -> {
                 _currentScreen.value = if (_previousScreen.value == AppScreen.CHAPTER_DETAIL) AppScreen.CHAPTER_DETAIL else AppScreen.JOURNEY
+                true
+            }
+            AppScreen.VIDEO_LESSON -> {
+                _currentScreen.value = if (_previousScreen.value != AppScreen.VIDEO_LESSON) _previousScreen.value else AppScreen.LEARN_TOPIC
                 true
             }
             AppScreen.CONTENT_SOLUTION -> {
@@ -602,6 +660,34 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 navigateTo(AppScreen.LEARN_TOPIC)
             }
         }
+    }
+
+    fun openVideoLesson(lesson: VideoLesson, topic: TopicItem? = null) {
+        _activeVideoLesson.value = lesson
+        _activeVideoTopic.value = topic
+        navigateTo(AppScreen.VIDEO_LESSON)
+    }
+
+    fun openVideoLessonForEntity(lesson: VideoLesson, entity: TopicEntity? = null) {
+        val topicItem = entity?.let {
+            TopicItem(
+                id = it.id,
+                chapterId = it.chapterId,
+                subjectId = it.subjectId,
+                orderIndex = it.orderIndex,
+                title = it.title,
+                summary = it.summary,
+                keyPoints = emptyList(),
+                isUnlocked = it.isUnlocked,
+                masteryPercentage = it.masteryPercentage,
+                questionCount = it.questionCount,
+                contentData = it.contentData,
+                solutionData = it.solutionData,
+                videoUrl = it.videoUrl,
+                playlistJson = it.playlistJson
+            )
+        }
+        openVideoLesson(lesson, topicItem)
     }
 
     fun selectSubject(subjectId: String) {
@@ -1230,7 +1316,66 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun saveVideoPlaybackProgress(
+        videoId: String,
+        topicId: String = "",
+        lessonTitle: String = "",
+        videoUrl: String = "",
+        positionMs: Long,
+        durationMs: Long,
+        playbackSpeed: Float = 1.0f,
+        isCompleted: Boolean = false
+    ) {
+        if (videoId.isBlank()) return
+        val percentage = if (durationMs > 0) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
+        val progress = FirestoreVideoProgress(
+            videoId = videoId,
+            topicId = topicId,
+            lessonTitle = lessonTitle,
+            videoUrl = videoUrl,
+            lastPositionMs = positionMs,
+            durationMs = durationMs,
+            playbackSpeed = playbackSpeed,
+            isCompleted = isCompleted || percentage >= 0.92f,
+            percentage = percentage,
+            updatedAt = System.currentTimeMillis()
+        )
+        _videoProgressMap.update { current -> current + (videoId to progress) }
+
+        // Sync with Firebase Firestore
+        val userId = authUserState.value?.uid ?: "guest_user"
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.saveVideoProgress(userId, progress)
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Failed to sync video progress: ${e.message}")
+            }
+        }
+    }
+
+    fun getVideoPlaybackProgress(videoId: String): FirestoreVideoProgress? {
+        return _videoProgressMap.value[videoId]
+    }
+
+    fun loadUserVideoProgress() {
+        val userId = authUserState.value?.uid ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = firestoreService.getAllVideoProgress(userId)
+                result.onSuccess { list ->
+                    val map = list.associateBy { it.videoId }
+                    _videoProgressMap.update { current -> current + map }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Error loading video progress: ${e.message}")
+            }
+        }
+    }
+
     fun syncAllDataWithFirebase(onProgress: (String) -> Unit = {}, onComplete: (Boolean, String) -> Unit = { _, _ -> }) {
-        viewModelScope.launch { onComplete(true, "সম্পূর্ণ ডেটা সিঙ্ক সম্পন্ন হয়েছে") }
+        viewModelScope.launch {
+            loadUserVideoProgress()
+            onComplete(true, "সম্পূর্ণ ডেটা ও ভিডিও প্রগ্রেস সিঙ্ক সম্পন্ন হয়েছে")
+        }
     }
 }

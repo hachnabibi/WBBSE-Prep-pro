@@ -162,7 +162,9 @@ data class TopicItem(
     val masteryPercentage: Int,
     val questionCount: Int,
     val contentData: String? = null,
-    val solutionData: String? = null
+    val solutionData: String? = null,
+    val videoUrl: String? = null,
+    val playlistJson: String? = null
 ) {
     val titleBengali: String get() = ContentLocalization.getTopicTitle(id, title, true)
     val titleEnglish: String get() = ContentLocalization.getTopicTitle(id, title, false)

@@ -263,6 +263,13 @@ fun MarkdownText(
 }
 
 fun formatSolutionMarkdown(markdown: String): String {
+    val trimmedMd = markdown.trim()
+    if (trimmedMd.isEmpty()) return ""
+    // If already contains structured markdown headings, lists, or tags, render directly
+    if (trimmedMd.contains("## ") || trimmedMd.contains("### ") || trimmedMd.contains("`[") || trimmedMd.contains("✅") || trimmedMd.contains("---")) {
+        return markdown
+    }
+    
     val lines = markdown.lines()
     val processedLines = mutableListOf<String>()
 
@@ -275,11 +282,11 @@ fun formatSolutionMarkdown(markdown: String): String {
 
         // Check if line contains question number and "উত্তর:"
         if ((trimmed.contains("উত্তর:") || trimmed.contains("**উত্তর:**")) && 
-            (trimmed.matches(Regex("^.*\\d+([\\.\\)].*)+.*")) || trimmed.contains("___") || trimmed.contains("("))) {
+            (trimmed.matches(Regex("^.*[0-9১-৯]+([\\.\\)].*)+.*")) || trimmed.contains("___") || trimmed.contains("("))) {
             
             val splitKeyword = if (trimmed.contains("**উত্তর:**")) "**উত্তর:**" else "উত্তর:"
             val parts = trimmed.split(splitKeyword, limit = 2)
-            if (parts.size == 2) {
+            if (parts.size == 2 && parts[0].isNotBlank()) {
                 val questionPart = parts[0].trim().removeSuffix("।").removeSuffix(".").trim()
                 val answerPart = parts[1].trim()
                 
@@ -298,8 +305,8 @@ fun formatSolutionMarkdown(markdown: String): String {
             }
         }
         
-        // Check if line starts with question numbering like "১.", "১.১", "২.", "৩." etc.
-        if (trimmed.matches(Regex("^\\d+(\\.\\d+)?\\..*")) && !trimmed.startsWith("**")) {
+        // Check if line starts with question numbering like "১.", "১.১", "২.", "1.", "1.1" etc.
+        if (trimmed.matches(Regex("^[0-9১-৯]+(\\.[0-9১-৯]+)?\\..*")) && !trimmed.startsWith("**")) {
             processedLines.add("")
             processedLines.add("**$trimmed**")
         } else {

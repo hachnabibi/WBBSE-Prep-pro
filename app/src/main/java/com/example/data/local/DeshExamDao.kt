@@ -185,4 +185,26 @@ interface DeshExamDao {
 
     @Query("SELECT * FROM recently_viewed ORDER BY timestamp DESC LIMIT 5")
     fun getRecentlyViewed(): Flow<List<RecentlyViewedEntity>>
+
+    // Video Playback Progress
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveVideoProgress(progress: VideoProgressEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveAllVideoProgress(progressList: List<VideoProgressEntity>)
+
+    @Query("SELECT * FROM video_progress WHERE id = :id LIMIT 1")
+    suspend fun getVideoProgressById(id: String): VideoProgressEntity?
+
+    @Query("SELECT * FROM video_progress WHERE topicId = :topicId ORDER BY lastWatchedTimestamp DESC LIMIT 1")
+    suspend fun getLatestVideoProgressForTopic(topicId: String): VideoProgressEntity?
+
+    @Query("SELECT * FROM video_progress WHERE topicId = :topicId")
+    fun getVideoProgressForTopicFlow(topicId: String): Flow<List<VideoProgressEntity>>
+
+    @Query("SELECT * FROM video_progress ORDER BY lastWatchedTimestamp DESC")
+    fun getAllVideoProgressFlow(): Flow<List<VideoProgressEntity>>
+
+    @Query("SELECT * FROM video_progress ORDER BY lastWatchedTimestamp DESC")
+    suspend fun getAllVideoProgressOnce(): List<VideoProgressEntity>
 }

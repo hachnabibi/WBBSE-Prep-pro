@@ -1050,7 +1050,9 @@ fun SettingsScreen(
                         ) {
                             OutlinedButton(
                                 onClick = {
-                                    snackbarMessage = "সিলেবাস ও অফলাইন ক্যাশ রিফ্রেশ সম্পন্ন হয়েছে!"
+                                    viewModel.reloadAllDataFromAssets {
+                                        snackbarMessage = "সিলেবাস, বিষয় ও অফলাইন ডাটাবেস সম্পূর্ণ রিলোড ও আপডেট হয়েছে!"
+                                    }
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier

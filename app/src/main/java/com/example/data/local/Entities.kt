@@ -81,7 +81,9 @@ data class TopicEntity(
     val questionCount: Int = 0,
     val classId: String = "class_10_wbbse",
     val contentData: String? = null,
-    val solutionData: String? = null
+    val solutionData: String? = null,
+    val videoUrl: String? = null,
+    val playlistJson: String? = null
 ) {
     val titleBengali: String get() = com.example.data.model.ContentLocalization.getTopicTitle(id, title, true)
     val titleEnglish: String get() = com.example.data.model.ContentLocalization.getTopicTitle(id, title, false)
@@ -172,5 +174,18 @@ data class RecentlyViewedEntity(
     val subtitle: String,
     val type: String, // "PYQ" or "TEXTBOOK"
     val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "video_progress")
+data class VideoProgressEntity(
+    @PrimaryKey val id: String, // format: "${topicId}_${videoId}"
+    val topicId: String,
+    val videoId: String,
+    val title: String,
+    val positionMs: Long,
+    val durationMs: Long,
+    val playbackSpeed: Float = 1.0f,
+    val isCompleted: Boolean = false,
+    val lastWatchedTimestamp: Long = System.currentTimeMillis()
 )
 

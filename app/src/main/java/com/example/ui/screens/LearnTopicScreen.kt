@@ -24,10 +24,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.components.VideoLessonPlayerDialog
+import com.example.ui.components.VideoPlayer
 import com.example.ui.theme.CorrectGreen
+import com.example.ui.theme.ExamCyan
 import com.example.ui.theme.ExamGold
 import com.example.ui.theme.WrongRed
 import com.example.ui.viewmodel.DeshExamViewModel
@@ -40,7 +44,8 @@ fun LearnTopicHeroBanner(
     totalSets: Int,
     isBengali: Boolean,
     onViewContent: () -> Unit,
-    onViewSolution: () -> Unit
+    onViewSolution: () -> Unit,
+    onViewVideo: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val mastery = topic.masteryPercentage.coerceIn(0, 100)
@@ -137,14 +142,14 @@ fun LearnTopicHeroBanner(
                     trackColor = Color.White.copy(alpha = 0.3f)
                 )
 
-                // Separate Very Small Action Buttons (Content & Solution)
+                // Quick Action Buttons: Content, Solution, & Video Class
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Content Button (Very Small)
+                    // Content Button
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.White.copy(alpha = 0.22f),
@@ -154,7 +159,7 @@ fun LearnTopicHeroBanner(
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                                .padding(horizontal = 6.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -164,9 +169,9 @@ fun LearnTopicHeroBanner(
                                 tint = Color(0xFFFBBF24),
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = if (isBengali) "📖 কন্টেন্ট" else "📖 Content",
+                                text = if (isBengali) "কন্টেন্ট" else "Content",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -176,7 +181,7 @@ fun LearnTopicHeroBanner(
                         }
                     }
 
-                    // Solution Button (Very Small)
+                    // Solution Button
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.White.copy(alpha = 0.22f),
@@ -186,7 +191,7 @@ fun LearnTopicHeroBanner(
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                                .padding(horizontal = 6.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -196,9 +201,42 @@ fun LearnTopicHeroBanner(
                                 tint = Color(0xFFFBBF24),
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = if (isBengali) "💡 সমাধান" else "💡 Solution",
+                                text = if (isBengali) "সমাধান" else "Solution",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    // Video Class Button (New!)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFEF4444).copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.7f)),
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .clickable(onClick = onViewVideo)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (isBengali) "ভিডিও ক্লাস" else "Video Class",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -227,7 +265,20 @@ fun LearnTopicScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    var showVideoDialog by remember { mutableStateOf(false) }
+    val videoLesson = remember(topic, isBengali) {
+        VideoLessonProvider.getVideoForTopic(
+            topicId = topic.id,
+            topicTitle = topic.getTitle(isBengali),
+            subjectId = topic.subjectId,
+            topicVideoUrl = topic.videoUrl,
+            topicPlaylistJson = topic.playlistJson
+        )
+    }
+
     val testScoresVersion by (viewModel?.testScoresVersion?.collectAsState() ?: remember { mutableIntStateOf(0) })
+    val videoProgressMap by (viewModel?.videoProgressMap?.collectAsState() ?: remember { mutableStateOf(emptyMap()) })
+    val currentSavedProgress = videoProgressMap[videoLesson.safeId] ?: videoProgressMap[topic.id]
 
     var totalQuestions by remember(topic.id) { 
         mutableStateOf(if (topic.questionCount > 0) topic.questionCount else 50) 
@@ -266,17 +317,13 @@ fun LearnTopicScreen(
     }
 
     val finalSolution = remember(topic, isBengali) {
-        topic.solutionData?.takeIf { it.isNotBlank() } ?: buildString {
-            append("# ${if (isBengali) topic.titleBengali else topic.titleEnglish} - সমাধান ও প্রশ্নোত্তর\n\n")
-            append("## অনুশীলনী ও গুরুত্বপূর্ণ প্রশ্নাবলী\n")
-            if (topic.keyPoints.isNotEmpty()) {
-                topic.keyPoints.forEachIndexed { idx, point ->
-                    append("### প্রশ্ন ${idx + 1}: $point\n")
-                    append("**উত্তর:** উক্ত বিষয়টি সম্পর্কে বিস্তারিত ধারণা এবং সঠিক সমাধান এখানে দেওয়া হলো।\n\n")
-                }
-            } else {
-                append("এই অধ্যায়ের অনুশীলনী ও প্রশ্নোত্তর শীট খুব শীঘ্রই যুক্ত করা হবে।\n")
-            }
+        if (!topic.solutionData.isNullOrBlank() && 
+            !topic.solutionData.contains("এর প্রশ্নোত্তরগুলো এখানে থাকবে") &&
+            topic.solutionData.trim() != "## সমাধান" &&
+            !topic.solutionData.contains("খুব শীঘ্রই যুক্ত করা হবে")) {
+            topic.solutionData
+        } else {
+            null
         }
     }
 
@@ -444,6 +491,9 @@ fun LearnTopicScreen(
                         initialTab = 1,
                         topicId = topic.id
                     )
+                },
+                onViewVideo = {
+                    showVideoDialog = true
                 }
             )
 
@@ -454,6 +504,136 @@ fun LearnTopicScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 🎬 Video Lecture Action Card (Opens full player & playlist dialog)
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFEFF6FF)
+                    ),
+                    border = BorderStroke(
+                        1.2.dp,
+                        if (isDark) Color(0xFF38BDF8).copy(alpha = 0.4f) else Color(0xFF60A5FA).copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (viewModel != null) {
+                                viewModel.openVideoLesson(videoLesson, topic)
+                            } else {
+                                showVideoDialog = true
+                            }
+                        }
+                        .testTag("topic_video_card")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Video Play Icon Bubble
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isDark) Color(0xFFEF4444).copy(alpha = 0.25f) else Color(0xFFFEE2E2),
+                            border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.6f)),
+                            modifier = Modifier.size(46.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "ভিডিও ক্লাস",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        }
+
+                        // Video Title & Meta
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                    modifier = Modifier.padding(end = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "ভিডিও লেকচার",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                if (currentSavedProgress != null && currentSavedProgress.lastPositionMs > 3000L) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = ExamGold.copy(alpha = 0.2f),
+                                        modifier = Modifier.padding(end = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = "চলমান",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = ExamGold,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = videoLesson.safeTitle,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!videoLesson.safeInstructorName.isNullOrBlank()) {
+                                Text(
+                                    text = "👨‍🏫 ${videoLesson.safeInstructorName}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+                        }
+
+                        // Watch Button
+                        Button(
+                            onClick = {
+                                if (viewModel != null) {
+                                    viewModel.openVideoLesson(videoLesson, topic)
+                                } else {
+                                    showVideoDialog = true
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) Color(0xFF312E81) else Color(0xFF4F46E5),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = ExamGold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (currentSavedProgress != null && currentSavedProgress.lastPositionMs > 3000L) "চালিয়ে যান" else "দেখুন",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+
                 // Summary Card
             Card(
                 shape = RoundedCornerShape(10.dp),
@@ -1104,6 +1284,22 @@ fun LearnTopicScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
         }
+    }
+
+    if (showVideoDialog) {
+        VideoLessonPlayerDialog(
+            lesson = videoLesson,
+            onDismiss = { showVideoDialog = false },
+            onStartQuiz = {
+                onStartPractice(
+                    AssessmentMode.PRACTICE,
+                    topic.id,
+                    "${topic.getTitle(true)} - ভিডিও কুইজ টেস্ট",
+                    1
+                )
+            },
+            viewModel = viewModel
+        )
     }
 }
 }

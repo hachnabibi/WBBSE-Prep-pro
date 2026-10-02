@@ -289,3 +289,19 @@ data class FirestoreDistrict(
     val schools: List<String> = emptyList()
 )
 
+/**
+ * Student's Video Playback Progress in Firestore for multi-device sync & resume.
+ */
+data class FirestoreVideoProgress(
+    val videoId: String = "",
+    val topicId: String = "",
+    val lessonTitle: String = "",
+    val videoUrl: String = "",
+    val lastPositionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val playbackSpeed: Float = 1.0f,
+    val isCompleted: Boolean = false,
+    val percentage: Float = 0f,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+

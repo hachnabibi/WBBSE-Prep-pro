@@ -14,8 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,8 +26,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.local.ChapterEntity
 import com.example.data.local.TopicEntity
 import com.example.data.model.*
-import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.components.HeroBanner
+import com.example.ui.components.ScreenHeaderBar
+import com.example.ui.components.VideoLessonPlayerDialog
 import com.example.ui.theme.ExamGold
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,10 +42,12 @@ fun ChapterDetailScreen(
     onSelectTopic: (String) -> Unit,
     onStartAssessment: (AssessmentMode, String, String) -> Unit,
     onViewContent: (String, String?, String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: com.example.ui.viewmodel.DeshExamViewModel? = null
 ) {
     val isDark = MaterialTheme.colorScheme.background.red < 0.3f
     val subjectColor = Color(subjectColorLong)
+    var activeVideoLesson by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<VideoLesson?>(null) }
 
     Column(
         modifier = modifier
@@ -75,25 +77,72 @@ fun ChapterDetailScreen(
                     masteryPercentage = chapter.masteryPercentage,
                     primaryColor = subjectColor,
                     bottomContent = {
-                        Button(
-                            onClick = {
-                                onViewContent(
-                                    if (isBengali) chapter.titleBengali else chapter.titleEnglish,
-                                    chapter.contentData,
-                                    chapter.solutionData
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
-                            shape = RoundedCornerShape(12.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "কন্টেন্ট ও সমাধান দেখুন",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Button(
+                                onClick = {
+                                    onViewContent(
+                                        if (isBengali) chapter.titleBengali else chapter.titleEnglish,
+                                        chapter.contentData,
+                                        chapter.solutionData
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "কন্টেন্ট ও নোটস",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    try {
+                                        val firstTopic = topics.firstOrNull()
+                                        val topicId = firstTopic?.id ?: "chap_${chapter.id}"
+                                        val title = firstTopic?.let { if (isBengali) it.titleBengali else it.titleEnglish } ?: (if (isBengali) chapter.titleBengali else chapter.titleEnglish)
+                                        val lesson = VideoLessonProvider.getVideoForTopic(topicId, title, chapter.subjectId, firstTopic?.videoUrl, firstTopic?.playlistJson)
+                                        if (viewModel != null) {
+                                            viewModel.openVideoLessonForEntity(lesson, firstTopic)
+                                        } else {
+                                            activeVideoLesson = lesson
+                                        }
+                                    } catch (_: Exception) {
+                                        val fallback = VideoLessonProvider.getVideoForTopic(chapter.id)
+                                        if (viewModel != null) {
+                                            viewModel.openVideoLessonForEntity(fallback, topics.firstOrNull())
+                                        } else {
+                                            activeVideoLesson = fallback
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFEF4444).copy(alpha = 0.35f),
+                                    contentColor = Color.White
+                                ),
+                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.8f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "ভিডিও ক্লাস",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
                 )
@@ -204,38 +253,94 @@ fun ChapterDetailScreen(
                                     color = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9)
                                 ) {
                                     Text(
-                                        text = "💡 ${keyPointCount.toBengaliDigits()}টি পরীক্ষা পয়েন্ট",
+                                        text = "💡 ${keyPointCount.toBengaliDigits()}টি পয়েন্ট",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
-                                            )
-                                        )
-                                        .clickable { onSelectTopic(topic.id) }
-                                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Study",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "পড়ো ও টেস্টসমূহ",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = Color.White
-                                        )
+                                    // Quick Video Button
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = Color(0xFFEF4444).copy(alpha = if (isDark) 0.25f else 0.12f),
+                                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                        modifier = Modifier
+                                            .clickable {
+                                                try {
+                                                    val title = if (isBengali) topic.titleBengali else topic.titleEnglish
+                                                    val lesson = VideoLessonProvider.getVideoForTopic(
+                                                        topicId = topic.id,
+                                                        topicTitle = title,
+                                                        subjectId = chapter.subjectId,
+                                                        topicVideoUrl = topic.videoUrl,
+                                                        topicPlaylistJson = topic.playlistJson
+                                                    )
+                                                    if (viewModel != null) {
+                                                        viewModel.openVideoLessonForEntity(lesson, topic)
+                                                    } else {
+                                                        activeVideoLesson = lesson
+                                                    }
+                                                } catch (_: Exception) {
+                                                    val fallback = VideoLessonProvider.getVideoForTopic(topic.id)
+                                                    if (viewModel != null) {
+                                                        viewModel.openVideoLessonForEntity(fallback, topic)
+                                                    } else {
+                                                        activeVideoLesson = fallback
+                                                    }
+                                                }
+                                            }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayCircle,
+                                                contentDescription = "ভিডিও ক্লাস",
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "ভিডিও",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = if (isDark) Color.White else Color(0xFFB91C1C)
+                                            )
+                                        }
+                                    }
+
+                                    // Study Button
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+                                                )
+                                            )
+                                            .clickable { onSelectTopic(topic.id) }
+                                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Study",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "পড়ো ও টেস্ট",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color.White
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -402,5 +507,23 @@ fun ChapterDetailScreen(
                 }
             }
         }
+    }
+
+    val currentLesson = activeVideoLesson
+    if (currentLesson != null) {
+        VideoLessonPlayerDialog(
+            lesson = currentLesson,
+            onDismiss = { activeVideoLesson = null },
+            onStartQuiz = {
+                val topicId = currentLesson.safeTopicId
+                activeVideoLesson = null
+                onStartAssessment(
+                    AssessmentMode.PRACTICE,
+                    topicId,
+                    "ভিডিও অনুশীলন টেস্ট"
+                )
+            },
+            viewModel = viewModel
+        )
     }
 }

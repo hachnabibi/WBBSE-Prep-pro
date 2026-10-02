@@ -67,6 +67,7 @@ class FirestoreService(
         // Student Data Collections
         private const val COLLECTION_USERS = "users"
         private const val COLLECTION_TOPIC_PROGRESS = "topic_progress"
+        private const val COLLECTION_VIDEO_PROGRESS = "video_progress"
         private const val COLLECTION_LEADERBOARD = "leaderboard"
         private const val COLLECTION_DISTRICTS = "districts"
     }
@@ -586,6 +587,66 @@ class FirestoreService(
             Result.success(item)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting topic mastery: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    // =========================================================================
+    // 8.1 VIDEO PLAYBACK PROGRESS & MULTI-DEVICE SYNC
+    // =========================================================================
+
+    suspend fun saveVideoProgress(userId: String, progress: FirestoreVideoProgress): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank() || progress.videoId.isBlank()) {
+                return@withContext Result.success(Unit)
+            }
+            firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_VIDEO_PROGRESS)
+                .document(progress.videoId)
+                .set(progress, SetOptions.merge())
+                .await()
+            Log.d(TAG, "Saved video progress for ${progress.videoId} at ${progress.lastPositionMs}ms")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving video progress: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getVideoProgress(userId: String, videoId: String): Result<FirestoreVideoProgress?> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank() || videoId.isBlank()) {
+                return@withContext Result.success(null)
+            }
+            val doc = firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_VIDEO_PROGRESS)
+                .document(videoId)
+                .get()
+                .await()
+            val item = if (doc.exists()) doc.toObject(FirestoreVideoProgress::class.java) else null
+            Result.success(item)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting video progress for $videoId: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllVideoProgress(userId: String): Result<List<FirestoreVideoProgress>> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank()) {
+                return@withContext Result.success(emptyList())
+            }
+            val snapshot = firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_VIDEO_PROGRESS)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreVideoProgress::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting all video progress: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }

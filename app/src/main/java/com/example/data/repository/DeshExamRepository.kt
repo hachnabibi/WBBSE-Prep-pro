@@ -671,7 +671,9 @@ class DeshExamRepository(
                     masteryPercentage = entity.masteryPercentage,
                     questionCount = entity.questionCount,
                     contentData = entity.contentData,
-                    solutionData = entity.solutionData
+                    solutionData = entity.solutionData,
+                    videoUrl = entity.videoUrl,
+                    playlistJson = entity.playlistJson
                 )
             }
         }.flowOn(Dispatchers.IO)
@@ -691,7 +693,9 @@ class DeshExamRepository(
                     masteryPercentage = entity.masteryPercentage,
                     questionCount = entity.questionCount,
                     contentData = entity.contentData,
-                    solutionData = entity.solutionData
+                    solutionData = entity.solutionData,
+                    videoUrl = entity.videoUrl,
+                    playlistJson = entity.playlistJson
                 )
             }
         }.flowOn(Dispatchers.IO)
@@ -1066,7 +1070,11 @@ class DeshExamRepository(
                 keyPoints = entity.keyPointsJson.split("|").filter { it.isNotBlank() },
                 isUnlocked = entity.isUnlocked,
                 masteryPercentage = entity.masteryPercentage,
-                questionCount = entity.questionCount
+                questionCount = entity.questionCount,
+                contentData = entity.contentData,
+                solutionData = entity.solutionData,
+                videoUrl = entity.videoUrl,
+                playlistJson = entity.playlistJson
             )
         }
     }
@@ -2268,20 +2276,29 @@ class DeshExamRepository(
         questions.forEachIndexed { idx, q ->
             val qNum = idx + 1
             sb.append("**$qNum. ${q.question}** `[${q.type} • মান: ${q.marks}]`\n\n")
-            val opts: List<String>? = try {
-                gson.fromJson(q.optionsJson, type)
-            } catch (e: Exception) { null }
+            val opts: List<String> = when {
+                q.optionsJson.isBlank() -> emptyList()
+                q.optionsJson.startsWith("[") -> try {
+                    gson.fromJson(q.optionsJson, type) ?: emptyList()
+                } catch (e: Exception) {
+                    q.optionsJson.split("|").filter { it.isNotBlank() }
+                }
+                q.optionsJson.contains("|") -> q.optionsJson.split("|").filter { it.isNotBlank() }
+                else -> listOf(q.optionsJson)
+            }
 
-            if (!opts.isNullOrEmpty()) {
+            if (opts.isNotEmpty()) {
                 opts.forEachIndexed { optIdx, opt ->
                     val optNum = optIdx + 1
-                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText == opt
+                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText.trim().equals(opt.trim(), ignoreCase = true)
                     val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
                     sb.append("* $optNum. $opt$marker\n")
                 }
                 sb.append("\n")
             }
-            sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            if (q.correctAnswerText.isNotBlank()) {
+                sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            }
             if (!q.explanation.isNullOrBlank()) {
                 sb.append("**ব্যাখ্যা:** ${q.explanation}\n\n")
             }
@@ -2305,6 +2322,7 @@ class DeshExamRepository(
                     val wrapper = wrappers.find { it.topicId == topicId }
                     if (wrapper != null) {
                         val sb = StringBuilder()
+                        sb.append("### 📝 পাঠ্যবইয়ের অনুশীলনী ও পূর্ণাঙ্গ সমাধান\n\n")
                         wrapper.solutions.forEach { item ->
                             sb.append("**${item.question}** `[${item.type} • মান: ${item.marks}]`\n\n")
                             
@@ -2325,7 +2343,7 @@ class DeshExamRepository(
                                 sb.append("\n")
                             }
                             
-                            sb.append("**উত্তর:** ${item.answer}\n\n")
+                            sb.append("**উত্তর:** ${item.answer}\n\n---\n\n")
                         }
                         return sb.toString().trim()
                     }
@@ -2354,30 +2372,48 @@ class DeshExamRepository(
         val gson = com.google.gson.Gson()
         val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
         val sb = StringBuilder()
-        sb.append("### 📖 টপিকের গুরুত্বপূর্ণ প্রশ্ন ও সমাধান (Real Up-to-Date)\n\n")
+        sb.append("### 📖 টপিকের গুরুত্বপূর্ণ প্রশ্ন ও বিস্তারিত সমাধান\n\n")
         questions.forEachIndexed { idx, q ->
             val qNum = idx + 1
             sb.append("**$qNum. ${q.question}** `[${q.type} • মান: ${q.marks}]`\n\n")
-            val opts: List<String>? = try {
-                gson.fromJson(q.optionsJson, type)
-            } catch (e: Exception) { null }
+            val opts: List<String> = when {
+                q.optionsJson.isBlank() -> emptyList()
+                q.optionsJson.startsWith("[") -> try {
+                    gson.fromJson(q.optionsJson, type) ?: emptyList()
+                } catch (e: Exception) {
+                    q.optionsJson.split("|").filter { it.isNotBlank() }
+                }
+                q.optionsJson.contains("|") -> q.optionsJson.split("|").filter { it.isNotBlank() }
+                else -> listOf(q.optionsJson)
+            }
 
-            if (!opts.isNullOrEmpty()) {
+            if (opts.isNotEmpty()) {
                 opts.forEachIndexed { optIdx, opt ->
                     val optNum = optIdx + 1
-                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText == opt
+                    val isCorrect = q.correctOptionIndex == optIdx || q.correctAnswerText.trim().equals(opt.trim(), ignoreCase = true)
                     val marker = if (isCorrect) " ✅ [সঠিক উত্তর]" else ""
                     sb.append("* $optNum. $opt$marker\n")
                 }
                 sb.append("\n")
             }
-            sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            if (q.correctAnswerText.isNotBlank()) {
+                sb.append("**সঠিক উত্তর:** ${q.correctAnswerText}\n\n")
+            }
             if (!q.explanation.isNullOrBlank()) {
                 sb.append("**ব্যাখ্যা:** ${q.explanation}\n\n")
             }
             sb.append("---\n\n")
         }
         return@withContext sb.toString().trim()
+    }
+
+    suspend fun syncDatabaseWithAssets(forceRefresh: Boolean = false) = withContext(Dispatchers.IO) {
+        val ctx = context ?: return@withContext
+        try {
+            com.example.data.local.DeshExamDatabase.populateDataFromAssets(ctx, dao, forceRefresh)
+        } catch (e: Exception) {
+            android.util.Log.e("DeshExamRepository", "Error syncing database with assets: ${e.message}")
+        }
     }
 }
 
