@@ -131,6 +131,19 @@ data class LocalDatabaseStats(
     val videoProgressCount: Int = 0
 )
 
+data class CloudDatabaseStats(
+    val boardCount: Int = 0,
+    val classCount: Int = 0,
+    val subjectCount: Int = 0,
+    val chapterCount: Int = 0,
+    val topicCount: Int = 0,
+    val questionCount: Int = 0,
+    val testCount: Int = 0,
+    val isOnline: Boolean = true,
+    val isChecking: Boolean = false,
+    val lastCheckedTimestamp: Long = 0L
+)
+
 class DeshExamViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = DeshExamDatabase.getDatabase(application, viewModelScope)
@@ -140,6 +153,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private val _cloudBackupState = MutableStateFlow(CloudBackupState())
     val cloudBackupState: StateFlow<CloudBackupState> = _cloudBackupState.asStateFlow()
+
+    private val _cloudStats = MutableStateFlow(CloudDatabaseStats())
+    val cloudStats: StateFlow<CloudDatabaseStats> = _cloudStats.asStateFlow()
+
+    private val _isPullingFromCloud = MutableStateFlow(false)
+    val isPullingFromCloud: StateFlow<Boolean> = _isPullingFromCloud.asStateFlow()
 
     val authUserState: StateFlow<AuthUserState?> = authRepository.authStateFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), authRepository.currentUserState)
@@ -363,7 +382,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     val isBengali: StateFlow<Boolean> = _isBengali.asStateFlow()
 
     private val prefs by lazy {
-        application.getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
+        getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
     }
 
     private val _appSettings = MutableStateFlow(AppSettings())
@@ -411,7 +430,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         // Load Pyq Questions
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                _allPyqQuestions.value = PyqRepository.loadAllPyqQuestions(application)
+                _allPyqQuestions.value = PyqRepository.loadAllPyqQuestions(getApplication())
             } catch (e: Exception) {
                 Log.w("DeshExamViewModel", "Failed to load pyq: ${e.message}")
             }
@@ -477,7 +496,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
         // Notification channels
         try {
-            MadhyamikNotificationManager.createNotificationChannels(application)
+            MadhyamikNotificationManager.createNotificationChannels(getApplication())
         } catch (_: Throwable) {}
 
         // Auth state listener
@@ -1333,8 +1352,108 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     videoProgressCount = videos.size
                 )
                 _cloudBackupState.update { it.copy(stats = stats) }
+                checkCloudDatabaseIntegrity()
             } catch (e: Exception) {
                 Log.e("DeshExamViewModel", "Error loading stats: ${e.message}", e)
+            }
+        }
+    }
+
+    fun checkCloudDatabaseIntegrity() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _cloudStats.update { it.copy(isChecking = true) }
+            val countsRes = firestoreService.getCloudCollectionCounts()
+            if (countsRes.isSuccess) {
+                val map = countsRes.getOrNull().orEmpty()
+                _cloudStats.update {
+                    it.copy(
+                        boardCount = map["boards"] ?: 0,
+                        classCount = map["classes"] ?: 0,
+                        subjectCount = map["subjects"] ?: 0,
+                        chapterCount = map["chapters"] ?: 0,
+                        topicCount = map["topics"] ?: 0,
+                        questionCount = map["questions"] ?: 0,
+                        testCount = map["tests"] ?: 0,
+                        isOnline = true,
+                        isChecking = false,
+                        lastCheckedTimestamp = System.currentTimeMillis()
+                    )
+                }
+            } else {
+                _cloudStats.update {
+                    it.copy(isOnline = false, isChecking = false, lastCheckedTimestamp = System.currentTimeMillis())
+                }
+            }
+        }
+    }
+
+    fun pullCloudDatabaseToLocal(
+        onProgress: (String, Float) -> Unit = { _, _ -> },
+        onComplete: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        if (_isPullingFromCloud.value) return
+        _isPullingFromCloud.value = true
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                withContext(Dispatchers.Main) { onProgress("ক্লাউড থেকে তথ্য নামানো হচ্ছে...", 0.10f) }
+                val dao = database.deshExamDao()
+
+                // 1. Pull Boards & Classes
+                withContext(Dispatchers.Main) { onProgress("🏫 বোর্ড ও শ্রেণি লোড হচ্ছে...", 0.25f) }
+                val boardsRes = firestoreService.getAllBoards()
+                val boards = boardsRes.getOrNull().orEmpty()
+                if (boards.isNotEmpty()) {
+                    val entities = boards.mapIndexed { idx, b -> b.toEducationBoard().toEntity(idx) }
+                    dao.insertAllBoards(entities)
+                    AcademicClassProvider.updateBoards(boards.map { b -> b.toEducationBoard() })
+                }
+
+                val classesRes = firestoreService.getAllClasses()
+                val classes = classesRes.getOrNull().orEmpty()
+                if (classes.isNotEmpty()) {
+                    val entities = classes.mapIndexed { idx, c -> c.toAcademicClass().toEntity(idx) }
+                    dao.insertAllClasses(entities)
+                    AcademicClassProvider.updateClasses(classes.map { c -> c.toAcademicClass() })
+                }
+
+                // 2. Pull Questions
+                withContext(Dispatchers.Main) { onProgress("❓ প্রশ্নব্যাংক সিঙ্ক করা হচ্ছে...", 0.65f) }
+                val questionsRes = firestoreService.getAllQuestions(1500)
+                val fQuestions = questionsRes.getOrNull().orEmpty()
+                if (fQuestions.isNotEmpty()) {
+                    val qEntities = fQuestions.map { fq ->
+                        QuestionEntity(
+                            id = fq.id,
+                            topicId = fq.topicId,
+                            chapterId = fq.chapterId,
+                            subjectId = fq.subjectId,
+                            type = fq.type,
+                            difficulty = fq.difficulty,
+                            question = fq.question,
+                            optionsJson = org.json.JSONArray(fq.options).toString(),
+                            correctOptionIndex = fq.correctOptionIndex,
+                            correctAnswerText = fq.correctAnswerText,
+                            explanation = fq.explanation,
+                            marks = fq.marks,
+                            tagsJson = fq.tags.joinToString("|"),
+                            classId = fq.classId
+                        )
+                    }
+                    dao.insertQuestions(qEntities)
+                }
+
+                withContext(Dispatchers.Main) { onProgress("✅ লোকাল ডেটাবেজে সংরক্ষণ সম্পন্ন", 1.0f) }
+                loadLocalDatabaseStats()
+                checkCloudDatabaseIntegrity()
+                _isPullingFromCloud.value = false
+                val msg = "✅ ক্লাউড থেকে ${boards.size} টি বোর্ড, ${classes.size} টি ক্লাস এবং ${fQuestions.size} টি প্রশ্ন সফলভাবে সিঙ্ক ও রিস্টোর করা হয়েছে!"
+                withContext(Dispatchers.Main) { onComplete(true, msg) }
+            } catch (e: Exception) {
+                _isPullingFromCloud.value = false
+                Log.e("DeshExamViewModel", "Pull from cloud error: ${e.message}", e)
+                val err = "❌ ক্লাউড সিঙ্ক ব্যর্থ: ${e.localizedMessage}"
+                withContext(Dispatchers.Main) { onComplete(false, err) }
             }
         }
     }
@@ -1464,8 +1583,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 }
 
                 // 5. Questions Batch (0.75 -> 0.90)
-                _cloudBackupState.update { it.copy(step = "❓ প্রশ্ন ব্যাংক (Questions) ক্লাউডে পাঠানো হচ্ছে...", progress = 0.80f) }
-                withContext(Dispatchers.Main) { onProgress("❓ প্রশ্ন ব্যাংক (Questions) ক্লাউডে পাঠানো হচ্ছে...", 0.80f) }
+                _cloudBackupState.update { it.copy(step = "❓ সম্পূর্ণ প্রশ্ন ব্যাংক ও PYQ ক্লাউডে পাঠানো হচ্ছে...", progress = 0.80f) }
+                withContext(Dispatchers.Main) { onProgress("❓ সম্পূর্ণ প্রশ্ন ব্যাংক ও PYQ ক্লাউডে পাঠানো হচ্ছে...", 0.80f) }
+
+                // Ensure all subjects have their chapters & questions fully seeded locally before push
+                localSubjects.forEach { sub ->
+                    try { repository.ensureSubjectContentSeeded(sub.id) } catch (_: Exception) {}
+                }
 
                 val localQuestions = dao.getAllQuestions()
                 val fQuestionsList = localQuestions.map { q ->
@@ -1487,7 +1611,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         .filter { it.isNotEmpty() }
 
                     FirestoreQuestion(
-                        id = q.id,
+                        id = q.id.ifBlank { "q_${q.subjectId}_${System.currentTimeMillis()}" },
                         classId = q.classId.ifBlank { "class_10_wbbse" },
                         subjectId = q.subjectId,
                         chapterId = q.chapterId,
@@ -1503,8 +1627,64 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         tags = tagsList
                     )
                 }
-                val qBatchRes = firestoreService.saveQuestionsBatch(fQuestionsList)
-                val qSavedCount = qBatchRes.getOrDefault(fQuestionsList.size)
+
+                // Also include PYQ Board Exam questions
+                val pyqs = if (_allPyqQuestions.value.isNotEmpty()) _allPyqQuestions.value else {
+                    try { PyqRepository.loadAllPyqQuestions(getApplication()) } catch (_: Exception) { emptyList() }
+                }
+                val fPyqQuestions = pyqs.map { pyq ->
+                    FirestoreQuestion(
+                        id = pyq.id.ifBlank { "pyq_${pyq.year}_${pyq.subject}_${System.currentTimeMillis()}" },
+                        classId = "class_10_wbbse",
+                        subjectId = when (pyq.subject.uppercase()) {
+                            "MATHEMATICS", "MATH" -> "sub_10_math"
+                            "PHYSICAL_SCIENCE" -> "sub_10_physical_science"
+                            "LIFE_SCIENCE" -> "sub_10_life_science"
+                            "HISTORY" -> "sub_10_history"
+                            "GEOGRAPHY" -> "sub_10_geography"
+                            "BENGALI" -> "sub_10_bengali"
+                            "ENGLISH" -> "sub_10_english"
+                            else -> "sub_10_${pyq.subject.lowercase()}"
+                        },
+                        chapterId = "ch_${pyq.subject.lowercase()}_general",
+                        topicId = "top_${pyq.subject.lowercase()}_pyq",
+                        type = "MCQ",
+                        difficulty = "MEDIUM",
+                        question = pyq.question,
+                        options = pyq.options ?: emptyList(),
+                        correctOptionIndex = pyq.correctOptionIndex,
+                        correctAnswerText = pyq.officialAnswerBengali?.ifBlank { null } ?: pyq.options?.getOrNull(pyq.correctOptionIndex) ?: "",
+                        explanation = pyq.keyTips,
+                        marks = pyq.marks,
+                        tags = listOf("PYQ", "${pyq.year}", pyq.subject, pyq.group)
+                    )
+                }
+
+                val allQuestionsToPush = (fQuestionsList + fPyqQuestions).distinctBy { it.id }
+                val qBatchRes = firestoreService.saveQuestionsBatch(allQuestionsToPush)
+                val qSavedCount = qBatchRes.getOrElse { 0 }
+
+                // 5.1 Test Templates (0.90 -> 0.94)
+                _cloudBackupState.update { it.copy(step = "📝 পরীক্ষা টেমপ্লেট ক্লাউডে পাঠানো হচ্ছে...", progress = 0.92f) }
+                val chaptersList = dao.getAllChaptersOnce()
+                var testTemplatesSaved = 0
+                for (ch in chaptersList.take(60)) {
+                    val template = FirestoreTestTemplate(
+                        id = "test_${ch.id}",
+                        classId = ch.classId.ifBlank { "class_10_wbbse" },
+                        subjectId = ch.subjectId,
+                        chapterId = ch.id,
+                        testType = FirestoreTestType.CHAPTER_ASSESSMENT.name,
+                        title = "${ch.title} - অধ্যায়ভিত্তিক মক টেস্ট",
+                        description = "বোর্ড পরীক্ষার প্যাটার্নে ১০টি গুরুত্বপূর্ণ প্রশ্ন ও মূল্যায়ন",
+                        durationMinutes = 15,
+                        totalMarks = 10,
+                        passMarks = 4,
+                        questionCount = 10,
+                        isPublished = true
+                    )
+                    if (firestoreService.saveTestTemplate(template).isSuccess) testTemplatesSaved++
+                }
 
                 // 6. User Profile & Video Progress (0.90 -> 1.0)
                 _cloudBackupState.update { it.copy(step = "👤 ইউজার প্রোফাইল ও ভিডিও প্রগ্রেস ব্যাকআপ হচ্ছে...", progress = 0.95f) }
@@ -1531,7 +1711,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     firestoreService.saveVideoProgress(userId, fVp)
                 }
 
-                val summaryMsg = "✅ ক্লাউড ব্যাকআপ সফল!\n$bSuccess টি বোর্ড, $cSuccess টি ক্লাস, $sSuccess টি বিষয়, $chSuccess টি অধ্যায়, $tpSuccess টি টপিক এবং $qSavedCount টি প্রশ্ন ফায়ারবেস ক্লাউডে পুশ ও ব্যাকআপ রাখা হয়েছে।"
+                val summaryMsg = "✅ ক্লাউড ব্যাকআপ সফল!\n$bSuccess টি বোর্ড, $cSuccess টি ক্লাস, $sSuccess টি বিষয়, $chSuccess টি অধ্যায়, $tpSuccess টি টপিক, $qSavedCount টি প্রশ্ন এবং $testTemplatesSaved টি টেস্ট ফায়ারবেস ক্লাউডে ব্যাকআপ রাখা হয়েছে।"
 
                 _cloudBackupState.update {
                     it.copy(
@@ -1544,6 +1724,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     )
                 }
                 loadLocalDatabaseStats()
+                checkCloudDatabaseIntegrity()
 
                 withContext(Dispatchers.Main) {
                     onProgress("সম্পন্ন", 1.0f)
@@ -1571,6 +1752,99 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             onProgress = { step, _ -> onProgress(step) },
             onComplete = onComplete
         )
+    }
+
+    fun forceSyncQuestionsToFirebase(onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val dao = database.deshExamDao()
+                val localSubjects = dao.getAllSubjectsOnce()
+                localSubjects.forEach { sub ->
+                    try { repository.ensureSubjectContentSeeded(sub.id) } catch (_: Exception) {}
+                }
+
+                val localQuestions = dao.getAllQuestions()
+                val fQuestionsList = localQuestions.map { q ->
+                    val optionsList: List<String> = when {
+                        q.optionsJson.isBlank() -> emptyList()
+                        q.optionsJson.startsWith("[") -> try {
+                            val arr = org.json.JSONArray(q.optionsJson)
+                            val list = mutableListOf<String>()
+                            for (i in 0 until arr.length()) list.add(arr.getString(i))
+                            list
+                        } catch (_: Exception) {
+                            q.optionsJson.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                        }
+                        q.optionsJson.contains("|") -> q.optionsJson.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                        else -> listOf(q.optionsJson)
+                    }
+                    val tagsList = (q.tagsJson.split("|", "#", ",") + listOfNotNull(q.pyqYear.ifBlank { null }))
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+
+                    FirestoreQuestion(
+                        id = q.id.ifBlank { "q_${q.subjectId}_${System.currentTimeMillis()}" },
+                        classId = q.classId.ifBlank { "class_10_wbbse" },
+                        subjectId = q.subjectId,
+                        chapterId = q.chapterId,
+                        topicId = q.topicId,
+                        type = q.type.ifBlank { "MCQ" },
+                        difficulty = q.difficulty.ifBlank { "MEDIUM" },
+                        question = q.question,
+                        options = optionsList,
+                        correctOptionIndex = q.correctOptionIndex,
+                        correctAnswerText = q.correctAnswerText.ifBlank { optionsList.getOrNull(q.correctOptionIndex) ?: "" },
+                        explanation = q.explanation,
+                        marks = if (q.marks > 0) q.marks else 1,
+                        tags = tagsList
+                    )
+                }
+
+                val pyqs = if (_allPyqQuestions.value.isNotEmpty()) _allPyqQuestions.value else {
+                    try { PyqRepository.loadAllPyqQuestions(getApplication()) } catch (_: Exception) { emptyList() }
+                }
+                val fPyqQuestions = pyqs.map { pyq ->
+                    FirestoreQuestion(
+                        id = pyq.id.ifBlank { "pyq_${pyq.year}_${pyq.subject}_${System.currentTimeMillis()}" },
+                        classId = "class_10_wbbse",
+                        subjectId = when (pyq.subject.uppercase()) {
+                            "MATHEMATICS", "MATH" -> "sub_10_math"
+                            "PHYSICAL_SCIENCE" -> "sub_10_physical_science"
+                            "LIFE_SCIENCE" -> "sub_10_life_science"
+                            "HISTORY" -> "sub_10_history"
+                            "GEOGRAPHY" -> "sub_10_geography"
+                            "BENGALI" -> "sub_10_bengali"
+                            "ENGLISH" -> "sub_10_english"
+                            else -> "sub_10_${pyq.subject.lowercase()}"
+                        },
+                        chapterId = "ch_${pyq.subject.lowercase()}_general",
+                        topicId = "top_${pyq.subject.lowercase()}_pyq",
+                        type = "MCQ",
+                        difficulty = "MEDIUM",
+                        question = pyq.question,
+                        options = pyq.options ?: emptyList(),
+                        correctOptionIndex = pyq.correctOptionIndex,
+                        correctAnswerText = pyq.officialAnswerBengali?.ifBlank { null } ?: pyq.options?.getOrNull(pyq.correctOptionIndex) ?: "",
+                        explanation = pyq.keyTips,
+                        marks = pyq.marks,
+                        tags = listOf("PYQ", "${pyq.year}", pyq.subject, pyq.group)
+                    )
+                }
+
+                val allQuestionsToPush = (fQuestionsList + fPyqQuestions).distinctBy { it.id }
+                val qBatchRes = firestoreService.saveQuestionsBatch(allQuestionsToPush)
+                val qSavedCount = qBatchRes.getOrElse { 0 }
+
+                checkCloudDatabaseIntegrity()
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "✅ সফলভাবে $qSavedCount টি প্রশ্ন ও PYQ ফায়ারবেস ক্লাউডে সিঙ্ক করা হয়েছে!")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "❌ প্রশ্ন সিঙ্ক ব্যর্থ: ${e.localizedMessage}")
+                }
+            }
+        }
     }
 
     fun addQuestionToFirestore(

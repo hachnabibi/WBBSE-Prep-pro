@@ -397,20 +397,73 @@ class FirestoreService(
     suspend fun saveQuestionsBatch(questions: List<FirestoreQuestion>): Result<Int> = withContext(Dispatchers.IO) {
         try {
             if (questions.isEmpty()) return@withContext Result.success(0)
-            // Firestore writeBatch max limit is 500 ops per batch
-            val chunks = questions.chunked(450)
+            var totalSaved = 0
+            // Firestore writeBatch max limit is 500 ops per batch. Use safe 150 chunks to prevent payload size timeouts
+            val chunks = questions.chunked(150)
             for (chunk in chunks) {
-                val batch = firestore.batch()
-                for (q in chunk) {
-                    val docRef = firestore.collection(COLLECTION_QUESTIONS).document(q.id)
-                    batch.set(docRef, q, SetOptions.merge())
+                try {
+                    val batch = firestore.batch()
+                    for (q in chunk) {
+                        val safeId = if (q.id.isNotBlank()) {
+                            q.id.replace("/", "_").replace(" ", "_").trim()
+                        } else {
+                            "q_${q.subjectId.ifBlank { "gen" }}_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().take(6)}"
+                        }
+                        val cleanQuestion = q.copy(id = safeId)
+                        val docRef = firestore.collection(COLLECTION_QUESTIONS).document(safeId)
+                        batch.set(docRef, cleanQuestion, SetOptions.merge())
+                    }
+                    batch.commit().await()
+                    totalSaved += chunk.size
+                } catch (batchErr: Exception) {
+                    Log.w(TAG, "Batch commit failed (${batchErr.message}), falling back to individual document writes for chunk...")
+                    for (q in chunk) {
+                        try {
+                            val safeId = if (q.id.isNotBlank()) {
+                                q.id.replace("/", "_").replace(" ", "_").trim()
+                            } else {
+                                "q_${q.subjectId.ifBlank { "gen" }}_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().take(6)}"
+                            }
+                            val cleanQuestion = q.copy(id = safeId)
+                            firestore.collection(COLLECTION_QUESTIONS)
+                                .document(safeId)
+                                .set(cleanQuestion, SetOptions.merge())
+                                .await()
+                            totalSaved++
+                        } catch (singleErr: Exception) {
+                            Log.e(TAG, "Failed saving single question ${q.id}: ${singleErr.message}")
+                        }
+                    }
                 }
-                batch.commit().await()
             }
-            Log.d(TAG, "Successfully batch saved ${questions.size} questions to Firestore")
-            Result.success(questions.size)
+            Log.d(TAG, "Successfully saved $totalSaved of ${questions.size} questions to Firestore")
+            Result.success(totalSaved)
         } catch (e: Exception) {
             Log.e(TAG, "Error in batch saving questions: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCloudCollectionCounts(): Result<Map<String, Int>> = withContext(Dispatchers.IO) {
+        try {
+            val counts = mutableMapOf<String, Int>()
+            val boardsSnap = firestore.collection(COLLECTION_BOARDS).get().await()
+            counts["boards"] = boardsSnap.size()
+            val classesSnap = firestore.collection(COLLECTION_CLASSES).get().await()
+            counts["classes"] = classesSnap.size()
+            val subjectsSnap = firestore.collection(COLLECTION_SUBJECTS).get().await()
+            counts["subjects"] = subjectsSnap.size()
+            val chaptersSnap = firestore.collection(COLLECTION_CHAPTERS).get().await()
+            counts["chapters"] = chaptersSnap.size()
+            val topicsSnap = firestore.collection(COLLECTION_TOPICS).get().await()
+            counts["topics"] = topicsSnap.size()
+            val questionsSnap = firestore.collection(COLLECTION_QUESTIONS).get().await()
+            counts["questions"] = questionsSnap.size()
+            val testsSnap = firestore.collection(COLLECTION_TESTS).get().await()
+            counts["tests"] = testsSnap.size()
+            Result.success(counts)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting cloud collection counts: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }

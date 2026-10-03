@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,12 +18,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.example.data.model.StudentProfile
 import com.example.data.auth.AuthUserState
 import com.example.ui.theme.ExamGold
@@ -56,101 +61,255 @@ fun AppNavigationDrawerSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(PrimaryIndigo)
-                    .padding(20.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF1E40AF), Color(0xFF0F172A))
+                        )
+                    )
+                    .padding(16.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Profile & Info Row (Horizontal Layout) with Actions at top-right
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(50.dp)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            // Circular avatar on the left with a subtle white ring/border & real picture if logged in with Google
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.2f),
+                                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.6f)),
+                                modifier = Modifier.size(54.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (!authUserState?.photoUrl.isNullOrBlank()) {
+                                        SubcomposeAsyncImage(
+                                            model = authUserState?.photoUrl,
+                                            contentDescription = "User Profile Picture",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "👨‍🎓",
+                                            fontSize = 26.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            val realName = when {
+                                !profile.name.isBlank() -> profile.name
+                                authUserState?.displayName?.isNotBlank() == true -> authUserState.displayName
+                                authUserState?.email?.isNotBlank() == true -> authUserState.email.substringBefore("@")
+                                else -> "Sourav Das"
+                            }
+
+                            val boardAndClass = when {
+                                !profile.targetExam.isBlank() -> {
+                                    val cleanExam = profile.targetExam.replace("WBBSE", "পশ্চিমবঙ্গ পর্ষদ").replace("CBSE", "সিবিএসই")
+                                    "$cleanExam • ${profile.classLevel}"
+                                }
+                                else -> if (isBengali) "পশ্চিমবঙ্গ পর্ষদ • দশম শ্রেণি" else "WBBSE • Class 10"
+                            }
+
+                            val schoolName = if (!profile.school.isBlank()) profile.school else "Kolkata Model High School"
+
+                            // Vertically stacked user information
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                // User Name in bold white text (font size ~18px)
                                 Text(
-                                    text = "👨‍🎓",
-                                    fontSize = 26.sp
+                                    text = realName,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                // Board & Class in semi-transparent light white text (font size ~13px)
+                                Text(
+                                    text = boardAndClass,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 13.sp
+                                    ),
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                // School Name in soft muted white text (font size ~12px)
+                                Text(
+                                    text = schoolName,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 12.sp
+                                    ),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
 
-                        IconButton(onClick = onCloseDrawer) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White
-                            )
+                        // Top-right Action Buttons: Admin chip (if isAdmin), Edit Profile icon, Close icon
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isAdmin) {
+                                Surface(
+                                    shape = RoundedCornerShape(50.dp),
+                                    color = ExamGold,
+                                    modifier = Modifier.clickable {
+                                        onNavigate(AppScreen.ADMIN_PANEL)
+                                        onCloseDrawer()
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AdminPanelSettings,
+                                            contentDescription = "Admin",
+                                            tint = Color(0xFF261400),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = if (isBengali) "অ্যাডমিন" else "Admin",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF261400)
+                                        )
+                                    }
+                                }
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    onNavigate(AppScreen.EDIT_PROFILE)
+                                    onCloseDrawer()
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Profile",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = onCloseDrawer,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
 
-                    val realName = when {
-                        !profile.name.isBlank() -> profile.name
-                        authUserState?.displayName?.isNotBlank() == true -> authUserState.displayName
-                        authUserState?.email?.isNotBlank() == true -> authUserState.email.substringBefore("@")
-                        else -> if (isBengali) "অভিলাষী শিক্ষার্থী" else "Aspirant"
-                    }
-
-                    val realDetails = when {
-                        authUserState?.isAnonymous == true -> {
-                            if (isBengali) "অতিথি শিক্ষার্থী" else "Guest Student"
-                        }
-                        !profile.school.isBlank() -> {
-                            "${profile.school} • ${profile.classLevel}"
-                        }
-                        else -> {
-                            if (isBengali) "অনবোর্ডিং সম্পূর্ণ করুন" else "Please Onboard"
-                        }
-                    }
-
-                    Column {
-                        Text(
-                            text = realName,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-                        Text(
-                            text = realDetails,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-
+                    // Badges / Action Chips (Bottom Row): side-by-side pill-shaped chips
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Coins Chip (Light cream/gold background with coin icon, count text, and chevron right arrow >)
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = ExamGold
+                            shape = RoundedCornerShape(50.dp),
+                            color = Color(0xFFFEF3C7),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            onClick = { /* Action */ }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "🪙", fontSize = 11.sp)
-                                Text(
-                                    text = "${profile.coins} ${"কয়েন"}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF261400)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(text = "🪙", fontSize = 13.sp)
+                                    Text(
+                                        text = "${profile.coins} ${if (isBengali) "কয়েন" else "Coins"}",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        ),
+                                        color = Color(0xFF78350F)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = Color(0xFF78350F),
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
 
+                        // XP Chip (Matching translucent/soft-colored pill with bolt/thunder icon, XP text, and chevron right arrow >)
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color.White.copy(alpha = 0.25f)
+                            shape = RoundedCornerShape(50.dp),
+                            color = Color.White.copy(alpha = 0.18f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            onClick = { /* Action */ }
                         ) {
-                            Text(
-                                text = "⚡ ${profile.currentXp} XP",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(text = "⚡", fontSize = 13.sp)
+                                    Text(
+                                        text = "${profile.currentXp} XP",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }

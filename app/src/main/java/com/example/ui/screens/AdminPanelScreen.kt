@@ -136,9 +136,12 @@ fun AdminPanelScreen(
 
     val autoSyncStatus by viewModel.autoSyncStatus.collectAsState()
     val backupState by viewModel.cloudBackupState.collectAsState()
+    val cloudStats by viewModel.cloudStats.collectAsState()
+    val isPulling by viewModel.isPullingFromCloud.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadLocalDatabaseStats()
+        viewModel.checkCloudDatabaseIntegrity()
     }
 
     val liveBoards by viewModel.allBoards.collectAsState()
@@ -999,6 +1002,37 @@ fun AdminPanelScreen(
                                 }
                             }
 
+                            // Dedicated Force Sync Questions Button
+                            Button(
+                                onClick = {
+                                    viewModel.forceSyncQuestionsToFirebase { success, msg ->
+                                        actionSuccess = success
+                                        actionMessage = msg
+                                    }
+                                },
+                                enabled = !isLoading && !backupState.isBackingUp,
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                                shape = RoundedCornerShape(14.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CloudUpload,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    "❓ প্রশ্ন ব্যাংক ক্লাউডে সিঙ্ক ও পুশ করুন",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+
                             // Quick Action Chip Buttons (রিফ্রেশ ও ক্লাউড সংযোগ চিপ বাটন)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1041,6 +1075,183 @@ fun AdminPanelScreen(
                                     ),
                                     modifier = Modifier.weight(1f)
                                 )
+                            }
+                        }
+                    }
+                }
+                
+                // 2. Cloud Restore / Pull & Health Monitor Card
+                item {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(CorrectGreen.copy(alpha = 0.20f), ExamCyan.copy(alpha = 0.10f))
+                                                )
+                                            )
+                                            .border(1.dp, CorrectGreen.copy(alpha = 0.35f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CloudDownload,
+                                            contentDescription = null,
+                                            tint = CorrectGreen,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "📥 ক্লাউড থেকে রিস্টোর ও সিঙ্ক",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "ক্লাউড ফায়ারস্টোর থেকে সমস্ত প্রশ্ন ও সিলেবাস লোকাল ডিভাইসে নামিয়ে নিন",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.checkCloudDatabaseIntegrity() },
+                                    enabled = !cloudStats.isChecking,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                ) {
+                                    Icon(
+                                        Icons.Default.CloudQueue,
+                                        contentDescription = "Check Cloud",
+                                        tint = CorrectGreen,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+
+                            // Cloud Stats Summary Surface
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.Transparent,
+                                border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.3f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(CorrectGreen.copy(alpha = 0.08f), MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                                        ),
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "☁️ ফায়ারস্টোর ক্লাউড ডেটা পরিসংখ্যান:",
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = CorrectGreen.copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = if (cloudStats.isOnline) "🟢 অনলাইন" else "🔴 অফলাইন",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = CorrectGreen,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("বোর্ড: ${cloudStats.boardCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("ক্লাস: ${cloudStats.classCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("বিষয়: ${cloudStats.subjectCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("প্রশ্ন: ${cloudStats.questionCount}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CorrectGreen)
+                                    }
+                                }
+                            }
+
+                            // Pull / Restore Button
+                            Button(
+                                onClick = {
+                                    viewModel.pullCloudDatabaseToLocal { success, msg ->
+                                        actionSuccess = success
+                                        actionMessage = msg
+                                    }
+                                },
+                                enabled = !isPulling,
+                                colors = ButtonDefaults.buttonColors(containerColor = CorrectGreen),
+                                shape = RoundedCornerShape(14.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                            ) {
+                                if (isPulling) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.5.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        "ক্লাউড থেকে ডেটা নামানো হচ্ছে...",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        "📥 ক্লাউড থেকে লোকাল ডেটাবেজে সিঙ্ক ও রিস্টোর করুন",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
                             }
                         }
                     }

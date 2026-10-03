@@ -14,7 +14,8 @@ data class AuthUserState(
     val uid: String,
     val email: String?,
     val displayName: String?,
-    val isAnonymous: Boolean
+    val isAnonymous: Boolean,
+    val photoUrl: String? = null
 )
 
 sealed class AuthResult {
@@ -287,7 +288,8 @@ class FirebaseAuthRepository {
             uid = uid,
             email = email,
             displayName = displayName,
-            isAnonymous = isAnonymous
+            isAnonymous = isAnonymous,
+            photoUrl = photoUrl?.toString()
         )
     }
 
