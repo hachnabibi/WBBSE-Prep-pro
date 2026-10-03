@@ -163,102 +163,55 @@ fun AppNavigationDrawerSheet(
                             }
                         }
 
-                        // Top-right Action Buttons: Admin chip (if isAdmin), Edit Profile icon, Close icon
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Top-right Action Buttons: Close icon only
+                        IconButton(
+                            onClick = onCloseDrawer,
+                            modifier = Modifier.size(32.dp)
                         ) {
-                            if (isAdmin) {
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = ExamGold,
-                                    modifier = Modifier.clickable {
-                                        onNavigate(AppScreen.ADMIN_PANEL)
-                                        onCloseDrawer()
-                                    }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AdminPanelSettings,
-                                            contentDescription = "Admin",
-                                            tint = Color(0xFF261400),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Text(
-                                            text = if (isBengali) "অ্যাডমিন" else "Admin",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF261400)
-                                        )
-                                    }
-                                }
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    onNavigate(AppScreen.EDIT_PROFILE)
-                                    onCloseDrawer()
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Profile",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-
-                            IconButton(
-                                onClick = onCloseDrawer,
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
 
-                    // Badges / Action Chips (Bottom Row): side-by-side pill-shaped chips
+                    // Badges / Action Chips (Bottom Row): Coins, XP, Edit Profile, and Admin (if admin) side-by-side
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Coins Chip (Light cream/gold background with coin icon, count text, and chevron right arrow >)
+                        // Coins Chip (Opens Wallet Screen)
                         Surface(
                             shape = RoundedCornerShape(50.dp),
                             color = Color(0xFFFEF3C7),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(36.dp),
-                            onClick = { /* Action */ }
+                            onClick = {
+                                onNavigate(AppScreen.WALLET)
+                                onCloseDrawer()
+                            }
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Text(text = "🪙", fontSize = 13.sp)
+                                    Text(text = "🪙", fontSize = 12.sp)
                                     Text(
-                                        text = "${profile.coins} ${if (isBengali) "কয়েন" else "Coins"}",
+                                        text = "${profile.coins}",
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
+                                            fontSize = 11.sp
                                         ),
                                         color = Color(0xFF78350F)
                                     )
@@ -267,12 +220,12 @@ fun AppNavigationDrawerSheet(
                                     imageVector = Icons.Default.ChevronRight,
                                     contentDescription = null,
                                     tint = Color(0xFF78350F),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
 
-                        // XP Chip (Matching translucent/soft-colored pill with bolt/thunder icon, XP text, and chevron right arrow >)
+                        // XP Chip (Opens Profile / Progress Screen)
                         Surface(
                             shape = RoundedCornerShape(50.dp),
                             color = Color.White.copy(alpha = 0.18f),
@@ -280,25 +233,28 @@ fun AppNavigationDrawerSheet(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(36.dp),
-                            onClick = { /* Action */ }
+                            onClick = {
+                                onNavigate(AppScreen.PROFILE)
+                                onCloseDrawer()
+                            }
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Text(text = "⚡", fontSize = 13.sp)
+                                    Text(text = "⚡", fontSize = 12.sp)
                                     Text(
                                         text = "${profile.currentXp} XP",
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
+                                            fontSize = 11.sp
                                         ),
                                         color = Color.White
                                     )
@@ -307,8 +263,77 @@ fun AppNavigationDrawerSheet(
                                     imageVector = Icons.Default.ChevronRight,
                                     contentDescription = null,
                                     tint = Color.White.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
+                            }
+                        }
+
+                        // Edit Profile Pill Button
+                        Surface(
+                            shape = RoundedCornerShape(50.dp),
+                            color = Color.White.copy(alpha = 0.22f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .height(36.dp),
+                            onClick = {
+                                onNavigate(AppScreen.EDIT_PROFILE)
+                                onCloseDrawer()
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = if (isBengali) "এডিট" else "Edit",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    fontSize = 11.sp,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Admin Chip Button (if isAdmin)
+                        if (isAdmin) {
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = ExamGold,
+                                modifier = Modifier
+                                    .height(36.dp),
+                                onClick = {
+                                    onNavigate(AppScreen.ADMIN_PANEL)
+                                    onCloseDrawer()
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AdminPanelSettings,
+                                        contentDescription = "Admin",
+                                        tint = Color(0xFF261400),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = if (isBengali) "অ্যাডমিন" else "Admin",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF261400)
+                                    )
+                                }
                             }
                         }
                     }
@@ -407,6 +432,13 @@ fun AppNavigationDrawerSheet(
                 label = "মেরিট সার্টিফিকেট",
                 isSelected = currentScreen == AppScreen.CERTIFICATE,
                 onClick = { onNavigate(AppScreen.CERTIFICATE); onCloseDrawer() }
+            )
+
+            DrawerMenuItem(
+                icon = Icons.Default.PlayCircle,
+                label = "ভিডিও লেসন",
+                isSelected = currentScreen == AppScreen.VIDEO_LESSON,
+                onClick = { onNavigate(AppScreen.VIDEO_LESSON); onCloseDrawer() }
             )
 
             DrawerMenuItem(

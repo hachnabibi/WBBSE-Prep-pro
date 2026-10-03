@@ -37,8 +37,8 @@ sealed class NavItem(
     object Home : NavItem(AppScreen.HOME, "হোম", Icons.Default.Home)
     object Journey : NavItem(AppScreen.JOURNEY, "রোডম্যাপ", Icons.Default.Map)
     object Mock : NavItem(AppScreen.MOCK, "মক", Icons.Default.Quiz)
-    object Leaderboard : NavItem(AppScreen.LEADERBOARD, "র‍্যাঙ্ক", Icons.Default.Leaderboard)
-    object AiCoach : NavItem(AppScreen.AI_COACH, "কোচ", Icons.Default.AutoAwesome)
+    object Video : NavItem(AppScreen.VIDEO_LESSON, "ভিডিও", Icons.Default.PlayCircle)
+    object Doubt : NavItem(AppScreen.DOUBT_SOLVER, "ডাউট", Icons.Default.QuestionAnswer)
     object Profile : NavItem(AppScreen.PROFILE, "প্রোফাইল", Icons.Default.Person)
 }
 
@@ -59,8 +59,8 @@ fun BottomNavBar(
         NavItem.Home,
         NavItem.Journey,
         NavItem.Mock,
-        NavItem.Leaderboard,
-        NavItem.AiCoach,
+        NavItem.Video,
+        NavItem.Doubt,
         NavItem.Profile
     )
 
