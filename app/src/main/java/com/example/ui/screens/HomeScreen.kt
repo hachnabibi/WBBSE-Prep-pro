@@ -126,32 +126,25 @@ fun HomeScreen(
             .fillMaxSize()
             .testTag("home_screen_column"),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 0. Real-time Active Students Ticker
+        // 0. Personalized Student Greeting & Quick Stats Header
+        item {
+            StudentGreetingHeader(
+                profile = profile,
+                isBengali = isBengali,
+                onOpenProfile = { onNavigate(AppScreen.PROFILE) },
+                onOpenWallet = { onNavigate(AppScreen.WALLET) },
+                onSwitchClassClick = { onSwitchClass(profile.classId) }
+            )
+        }
+
+        // 1. Real-time Active Students Pulse Ticker
         item {
             ActiveStudentsTicker(count = activeStudentsCount, isBengali = isBengali)
         }
 
-        // Newly added Recently Viewed section
-        if (recentlyViewed.isNotEmpty()) {
-            item {
-                Text(
-                    text = "সম্প্রতি দেখা",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(recentlyViewed) { item ->
-                        RecentlyViewedCard(item, isBengali)
-                    }
-                }
-            }
-        }
-
-
-
-        // 1. Hero Card: Exam Readiness & Countdown
+        // 2. Hero Card: Exam Readiness & Countdown
         item {
             HeroExamReadinessCard(
                 profile = profile,
@@ -162,7 +155,7 @@ fun HomeScreen(
             )
         }
 
-        // 2. Daily Learning Streak Tracker
+        // 3. Daily Learning Streak Tracker
         item {
             StreakTrackerCard(
                 profile = profile,
@@ -174,112 +167,205 @@ fun HomeScreen(
             )
         }
 
-        // Sponsored Educational Banner
-        item {
-            AdBannerCard(isBengali = isBengali)
-        }
-
-        // Horizontal Subject Cards Slider (Placed above Quick Practice Hub)
-        item {
-            Column(
-                modifier = Modifier.padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "বিষয়ভিত্তিক দ্রুত অগ্রগতি",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("home_subject_cards_horizontal_row")
-                ) {
-                    items(filteredSubjects) { subject ->
-                        SubjectProgressCard(
-                            subject = subject,
-                            isBengali = isBengali,
-                            onOpenJourney = {
-                                val subjectEntity = SubjectEntity(
-                                    id = subject.id,
-                                    code = subject.code.id,
-                                    nameBengali = subject.name,
-                                    nameEnglish = subject.name,
-                                    totalChapters = subject.totalChapters,
-                                    completedChapters = subject.completedChapters,
-                                    masteryPercentage = subject.masteryPercentage,
-                                    colorHex = subject.colorHex
-                                )
-                                if (onOpenSubjectDetail != null) {
-                                    onOpenSubjectDetail(subjectEntity)
-                                } else {
-                                    onSelectSubject(subject.id)
-                                    onNavigate(AppScreen.JOURNEY)
-                                }
-                            },
-                            modifier = Modifier.width(280.dp)
-                        )
+        // 4. Recently Viewed section (if any)
+        if (recentlyViewed.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (isBengali) "সম্প্রতি দেখা বিষয়বস্তু" else "Recently Viewed",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(recentlyViewed) { item ->
+                            RecentlyViewedCard(item, isBengali)
+                        }
                     }
                 }
             }
         }
 
-        // 3. Quick Assessment Modes Vertical List
+        // 5. ⚡ কুইক প্র্যাকটিস হাব (Tactile 2x2 Practice Grid)
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = "কুইক প্র্যাকটিস হাব",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
+            val firstActiveSub = subjects.firstOrNull()
+            QuickPractice2x2Grid(
+                firstActiveSubId = firstActiveSub?.id,
+                isBengali = isBengali,
+                onStartAssessment = onStartAssessment
+            )
+        }
+
+        // 6. Active Class & Stream Switcher Banner
+        item {
+            ActiveClassBanner(
+                profile = profile,
+                isBengali = isBengali,
+                onSwitchClass = onSwitchClass,
+                onSwitchStream = onSwitchStream
+            )
+        }
+
+        // 7. 📚 বিষয়ভিত্তিক সিলেবাস ও অগ্রগতি (Curriculum Hub)
+        item {
+            Column(
+                modifier = Modifier.padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = if (isBengali) "বিষয়ভিত্তিক সিলেবাস ও অগ্রগতি" else "Subject Syllabus & Progress",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = if (isBengali) "বোর্ড পাঠ্যক্রম অনুযায়ী সাজানো" else "Aligned with Board Curriculum",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "${subjects.size} টি বিষয়",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                // Search Bar for Subjects
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("subjects_search_input"),
+                    placeholder = {
+                        Text(
+                            text = if (isBengali) "বিষয় খুঁজুন (যেমন: গণিত, Physics, ইতিহাস)..." else "Search subject...",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
-                QuickActionCard(
-                    title = "ডেইলি ১০",
-                    subtitle = "১০ প্রশ্ন • ১৫০ XP",
-                    icon = Icons.Default.Bolt,
-                    containerColor = PrimaryIndigo,
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "quick_daily_10_btn",
-                    onClick = { onStartAssessment(AssessmentMode.DAILY_10, null, null) }
-                )
-
-                QuickActionCard(
-                    title = "ভুল সংশোধন",
-                    subtitle = "দুর্বল প্রশ্নসমূহ",
-                    icon = Icons.Default.Replay,
-                    containerColor = WrongRed,
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "quick_wrong_replay_btn",
-                    onClick = { onStartAssessment(AssessmentMode.WEAK_AREA, null, null) }
-                )
-
-                QuickActionCard(
-                    title = "স্পিড ব্লিৎজ",
-                    subtitle = "১৫ সেকেন্ড/প্রশ্ন",
-                    icon = Icons.Default.Timer,
-                    containerColor = ExamFlame,
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "quick_speed_blitz_btn",
-                    onClick = { onStartAssessment(AssessmentMode.SPEED_BLITZ, null, null) }
-                )
-
-                val firstActiveSub = subjects.firstOrNull()
-                QuickActionCard(
-                    title = "বস চ্যালেঞ্জ",
-                    subtitle = "অধ্যায় মাস্টারি",
-                    icon = Icons.Default.Shield,
-                    containerColor = ExamGold,
-                    contentColor = Color(0xFF78350F),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "quick_boss_raid_btn",
-                    onClick = { onStartAssessment(AssessmentMode.BOSS_BATTLE, firstActiveSub?.id?.let { "${it}_ch1" } ?: "phy_ch1", null) }
-                )
+                if (filteredSubjects.isEmpty()) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SearchOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "'$searchQuery' নামে কোনো বিষয় পাওয়া যায়নি",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            OutlinedButton(
+                                onClick = { searchQuery = "" },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("সার্চ ক্লিয়ার করুন")
+                            }
+                        }
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("home_subject_cards_horizontal_row")
+                    ) {
+                        items(filteredSubjects) { subject ->
+                            SubjectProgressCard(
+                                subject = subject,
+                                isBengali = isBengali,
+                                onOpenJourney = {
+                                    val subjectEntity = SubjectEntity(
+                                        id = subject.id,
+                                        code = subject.code.id,
+                                        nameBengali = subject.name,
+                                        nameEnglish = subject.name,
+                                        totalChapters = subject.totalChapters,
+                                        completedChapters = subject.completedChapters,
+                                        masteryPercentage = subject.masteryPercentage,
+                                        colorHex = subject.colorHex
+                                    )
+                                    if (onOpenSubjectDetail != null) {
+                                        onOpenSubjectDetail(subjectEntity)
+                                    } else {
+                                        onSelectSubject(subject.id)
+                                        onNavigate(AppScreen.JOURNEY)
+                                    }
+                                },
+                                modifier = Modifier.width(280.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Official Google AdMob In-Feed Test Ad
+        // 8. 🗂️ অল-ইন-ওয়ান স্টাডি ও এক্সাম টুলস (Categorized Modern 4-Item Grid)
+        item {
+            CategorizedToolsHub(
+                profile = profile,
+                isBengali = isBengali,
+                onNavigate = onNavigate
+            )
+        }
+
+        // Sponsored Educational Banner & AdMob Card
+        item {
+            AdBannerCard(isBengali = isBengali)
+        }
+
         item {
             com.example.ui.components.AdMobNativeCard(
                 isBengali = isBengali,
@@ -287,212 +373,11 @@ fun HomeScreen(
             )
         }
 
-        // Class-specific Special Exam Tools Vertical List Section
-        item {
-            val currentCls = remember(profile.classId) {
-                AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
-            }
-            val clsLabel = currentCls?.name ?: ("পাঠ্যক্রম")
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = "$clsLabel বিশেষ পরীক্ষার টুলস ও প্রস্তুতি",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                QuickActionCard(
-                    title = "স্মার্ট ফ্ল্যাশকার্ড",
-                    subtitle = "সূত্র ও রিভিশন হাব",
-                    icon = Icons.Default.Style,
-                    containerColor = PrimaryIndigo,
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_flashcards_btn",
-                    onClick = { onNavigate(AppScreen.FLASHCARDS) }
-                )
-
-                QuickActionCard(
-                    title = "PYQ এক্সপ্লোরার",
-                    subtitle = "২০১৫-২০২৫ আসল প্রশ্ন",
-                    icon = Icons.Default.HistoryEdu,
-                    containerColor = Color(0xFF0D9488),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_pyq_btn",
-                    onClick = { onNavigate(AppScreen.PYQ_EXPLORER) }
-                )
-
-                QuickActionCard(
-                    title = "OMR শিট সিমুলেটর",
-                    subtitle = "অপটিক্যাল স্ক্যান প্র্যাকটিস",
-                    icon = Icons.Default.DocumentScanner,
-                    containerColor = Color(0xFF7C3AED),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_omr_btn",
-                    onClick = { onNavigate(AppScreen.OMR_PRACTICE) }
-                )
-
-                QuickActionCard(
-                    title = "টপার্স খাতা গাইড",
-                    subtitle = "৯০+ স্কোর ব্লুপ্রিন্ট",
-                    icon = Icons.Default.MilitaryTech,
-                    containerColor = ExamGold,
-                    contentColor = Color(0xFF78350F),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_toppers_btn",
-                    onClick = { onNavigate(AppScreen.TOPPERS_GUIDE) }
-                )
-
-                QuickActionCard(
-                    title = "স্ন্যাপ ডাউট সলভার",
-                    subtitle = "এআই ছবি স্ক্যান সলিউশন",
-                    icon = Icons.Default.CameraAlt,
-                    containerColor = Color(0xFF0284C7),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_doubt_btn",
-                    onClick = { onNavigate(AppScreen.DOUBT_SOLVER) }
-                )
-
-                QuickActionCard(
-                    title = "১v১ কুইজ ব্যাটেল",
-                    subtitle = "লাইভ লড়াই ও এক্সপি",
-                    icon = Icons.Default.SportsEsports,
-                    containerColor = Color(0xFFDC2626),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_battle_btn",
-                    onClick = { onNavigate(AppScreen.MULTIPLAYER_BATTLE) }
-                )
-
-                QuickActionCard(
-                    title = "মেরিট সার্টিফিকেট",
-                    subtitle = "স্কলার সার্টিফিকেট",
-                    icon = Icons.Default.WorkspacePremium,
-                    containerColor = Color(0xFFD97706),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_certificate_btn",
-                    onClick = { onNavigate(AppScreen.CERTIFICATE) }
-                )
-
-                QuickActionCard(
-                    title = "অডিও পডকাস্ট",
-                    subtitle = "স্পিচ রিভিশন নোটস",
-                    icon = Icons.Default.Headphones,
-                    containerColor = Color(0xFF6366F1),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_podcasts_btn",
-                    onClick = { onNavigate(AppScreen.AUDIO_PODCASTS) }
-                )
-
-                QuickActionCard(
-                    title = "স্টাডি প্ল্যানার",
-                    subtitle = "রুটিন ও টাস্ক",
-                    icon = Icons.AutoMirrored.Filled.EventNote,
-                    containerColor = Color(0xFF059669),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_planner_btn",
-                    onClick = { onNavigate(AppScreen.STUDY_PLANNER) }
-                )
-
-                QuickActionCard(
-                    title = "বুকমার্ক হাব",
-                    subtitle = "সংরক্ষিত ফর্মুলা",
-                    icon = Icons.Default.Bookmark,
-                    containerColor = Color(0xFFD97706),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_bookmarks_btn",
-                    onClick = { onNavigate(AppScreen.BOOKMARK_HUB) }
-                )
-
-                QuickActionCard(
-                    title = "পিডিএফ নোটস",
-                    subtitle = "অধ্যায়ভিত্তিক মেটেরিয়াল",
-                    icon = Icons.Default.PictureAsPdf,
-                    containerColor = Color(0xFFF43F5E),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_pdf_notes_btn",
-                    onClick = { onNavigate(AppScreen.PDF_NOTES) }
-                )
-
-                QuickActionCard(
-                    title = "সমাধানসহ প্রশ্নপত্র PDF",
-                    subtitle = "২০১৫ – ২০২৬ জেনারেটেড পেপার",
-                    icon = Icons.Default.FileDownload,
-                    containerColor = Color(0xFF0284C7),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_solved_pyq_pdf_btn",
-                    onClick = { onNavigate(AppScreen.PYQ_PDF_DOWNLOAD) }
-                )
-
-                QuickActionCard(
-                    title = "আসল প্রশ্নপত্র PDF",
-                    subtitle = if (isBengali) {
-                        if (profile.classId.contains("wbchse")) "WBCHSE অফিশিয়াল প্রশ্নপত্র"
-                        else "WBBSE অফিশিয়াল প্রশ্নপত্র"
-                    } else "Official Board Papers",
-                    icon = Icons.Default.PictureAsPdf,
-                    containerColor = Color(0xFFD97706),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_original_pyq_pdf_btn",
-                    onClick = { onNavigate(AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD) }
-                )
-
-                QuickActionCard(
-                    title = "পাঠ্যপুস্তক PDF",
-                    subtitle = "WBBSE ও WBCHSE বোর্ড বই",
-                    icon = Icons.Default.AutoStories,
-                    containerColor = Color(0xFF0D9488),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_textbooks_pdf_btn",
-                    onClick = { onNavigate(AppScreen.TEXTBOOKS) }
-                )
-
-                QuickActionCard(
-                    title = "লাইভ কুইজ",
-                    subtitle = "১০০০+ প্রতিযোগী",
-                    icon = Icons.Default.Groups,
-                    containerColor = Color(0xFF8B5CF6),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_live_quiz_btn",
-                    onClick = { onNavigate(AppScreen.LIVE_QUIZ) }
-                )
-
-                QuickActionCard(
-                    title = "লাইভ মক টেস্ট",
-                    subtitle = "১৫ মিনিট • রিয়েল এক্সাম",
-                    icon = Icons.Default.Timer,
-                    containerColor = Color(0xFFE11D48),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_live_mock_test_btn",
-                    onClick = { onNavigate(AppScreen.LIVE_MOCK_TEST) }
-                )
-
-                QuickActionCard(
-                    title = "স্কুল স্কোয়াড",
-                    subtitle = "লিডারবোর্ড নেটওয়ার্ক",
-                    icon = Icons.Default.Groups,
-                    containerColor = Color(0xFF0D9488),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_squads_btn",
-                    onClick = { onNavigate(AppScreen.STUDY_SQUADS) }
-                )
-
-                QuickActionCard(
-                    title = "প্রোগ্রেস গ্রাফ",
-                    subtitle = "স্কোর ট্রেন্ড ড্যাশবোর্ড",
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    containerColor = Color(0xFF7C3AED),
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "home_progress_btn",
-                    onClick = { onNavigate(AppScreen.PROGRESS_DASHBOARD) }
-                )
-            }
-        }
-
-        // Leaderboard Spotlight Banner
+        // 9. 🏆 লাইভ রাজ্য মেধা তালিকা • টপার্স স্পটলাইট
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -547,7 +432,7 @@ fun HomeScreen(
                         }
 
                         Text(
-                            text = "১ম: অনন্যা (৮৯/৯০ মক • ১৮ বস জয়) • আপনি ৩য় স্থানে",
+                            text = "১ম: অনন্যা (৮৯/৯০ মক • ১৮ বস জয়) • আপনি ${profile.rankState} স্থানে",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -565,7 +450,7 @@ fun HomeScreen(
             }
         }
 
-        // 3. Daily Quests Section
+        // 10. 🎯 আজকের দৈনিক কোয়েস্ট ও মিশন
         item {
             DailyQuestsCard(
                 quests = dailyQuests,
@@ -573,127 +458,7 @@ fun HomeScreen(
             )
         }
 
-
-
-        // 4. Subjects & Journey Progression
-        // Search Bar for Subjects
-        item {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("subjects_search_input"),
-                placeholder = {
-                    Text(
-                        text = "বিষয় খুঁজুন (যেমন: গণিত, Physics)...",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-
-
-        if (filteredSubjects.isEmpty()) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SearchOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Text(
-                            text = "'$searchQuery' নামে কোনো বিষয় পাওয়া যায়নি",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "অন্য শ্রেণি নির্বাচন করুন অথবা ফিল্টার ক্লিয়ার করুন।",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        OutlinedButton(
-                            onClick = { searchQuery = "" },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("সার্চ ক্লিয়ার করুন")
-                        }
-                    }
-                }
-            }
-        } else {
-            // Filtered Subject cards list (Vertical list)
-            items(filteredSubjects) { subject ->
-                SubjectProgressCard(
-                    subject = subject,
-                    isBengali = isBengali,
-                    onOpenJourney = {
-                        val subjectEntity = SubjectEntity(
-                            id = subject.id,
-                            code = subject.code.id,
-                            nameBengali = subject.name,
-                            nameEnglish = subject.name,
-                            totalChapters = subject.totalChapters,
-                            completedChapters = subject.completedChapters,
-                            masteryPercentage = subject.masteryPercentage,
-                            colorHex = subject.colorHex
-                        )
-                        if (onOpenSubjectDetail != null) {
-                            onOpenSubjectDetail(subjectEntity)
-                        } else {
-                            onSelectSubject(subject.id)
-                            onNavigate(AppScreen.JOURNEY)
-                        }
-                    }
-                )
-            }
-        }
-
-        // AI Coach Callout (Weak area diagnostic card)
+        // 11. 🤖 এআই স্টাডি কোচ ডায়াগনস্টিক
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -744,7 +509,7 @@ fun HomeScreen(
             }
         }
 
-        // High-Priority Weak Area Focus Card (Weak Card)
+        // 12. ⚠️ অগ্রাধিকার ভিত্তিক দুর্বল ক্ষেত্র ফোকাস
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -816,6 +581,708 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun StudentGreetingHeader(
+    profile: StudentProfile,
+    isBengali: Boolean,
+    onOpenProfile: () -> Unit,
+    onOpenWallet: () -> Unit,
+    onSwitchClassClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val currentHour = remember { java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) }
+    val greeting = when (currentHour) {
+        in 4..11 -> if (isBengali) "শুভ সকাল" else "Good Morning"
+        in 12..16 -> if (isBengali) "শুভ দুপুর" else "Good Afternoon"
+        in 17..21 -> if (isBengali) "শুভ সন্ধ্যা" else "Good Evening"
+        else -> if (isBengali) "শুভ রাত্রি" else "Good Night"
+    }
+
+    val currentCls = remember(profile.classId) {
+        AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
+            ?: AcademicClassProvider.ALL_CLASSES.find { it.targetExam == profile.targetExam }
+            ?: AcademicClassProvider.ALL_CLASSES.getOrNull(5)
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onOpenProfile() }
+            ) {
+                Text(
+                    text = "$greeting, ${profile.name.ifBlank { if (isBengali) "শিক্ষার্থী" else "Student" }}! 👋",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    modifier = Modifier.clickable { onSwitchClassClick() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.School,
+                            contentDescription = "Class",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "${currentCls?.name ?: "১০ম শ্রেণি"} • ${currentCls?.board ?: "WBBSE"} ▼",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            // Stats row: Streak & Coins
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Streak
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = ExamFlame.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, ExamFlame.copy(alpha = 0.35f)),
+                    modifier = Modifier.clickable { onOpenProfile() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(text = "🔥", fontSize = 13.sp)
+                        Text(
+                            text = "${profile.currentStreak}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black),
+                            color = ExamFlame
+                        )
+                    }
+                }
+
+                // Coins
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = ExamGold.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.4f)),
+                    modifier = Modifier.clickable { onOpenWallet() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(text = "🪙", fontSize = 13.sp)
+                        Text(
+                            text = "${profile.coins}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFFB45309)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickPractice2x2Grid(
+    firstActiveSubId: String?,
+    isBengali: Boolean,
+    onStartAssessment: (AssessmentMode, String?, String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = ExamGold,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = if (isBengali) "কুইক প্র্যাকটিস হাব" else "Quick Practice Hub",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            ) {
+                Text(
+                    text = "দ্রুত প্রস্তুতি",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+
+        // Row 1: Daily 10 & Mistake Replay
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CompactPracticeCard(
+                title = "ডেইলি ১০",
+                subtitle = "১০ প্রশ্ন • ১৫০ XP",
+                badge = "জনপ্রিয়",
+                icon = Icons.Default.Bolt,
+                gradient = listOf(Color(0xFF4F46E5), Color(0xFF3730A3)),
+                testTag = "quick_daily_10_btn",
+                onClick = { onStartAssessment(AssessmentMode.DAILY_10, null, null) },
+                modifier = Modifier.weight(1f)
+            )
+
+            CompactPracticeCard(
+                title = "ভুল সংশোধন",
+                subtitle = "দুর্বল প্রশ্ন রিভিশন",
+                badge = "স্মার্ট",
+                icon = Icons.Default.Replay,
+                gradient = listOf(Color(0xFFDC2626), Color(0xFF991B1B)),
+                testTag = "quick_wrong_replay_btn",
+                onClick = { onStartAssessment(AssessmentMode.WEAK_AREA, null, null) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Row 2: Speed Blitz & Boss Battle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CompactPracticeCard(
+                title = "স্পিড ব্লিৎজ",
+                subtitle = "১৫ সে./প্রশ্ন ড্রিল",
+                badge = "টাইমার",
+                icon = Icons.Default.Timer,
+                gradient = listOf(Color(0xFFEA580C), Color(0xFFC2410C)),
+                testTag = "quick_speed_blitz_btn",
+                onClick = { onStartAssessment(AssessmentMode.SPEED_BLITZ, null, null) },
+                modifier = Modifier.weight(1f)
+            )
+
+            CompactPracticeCard(
+                title = "বস চ্যালেঞ্জ",
+                subtitle = "অধ্যায় মাস্টারি ট্রফি",
+                badge = "ব্যাটেল",
+                icon = Icons.Default.Shield,
+                gradient = listOf(Color(0xFFD97706), Color(0xFFB45309)),
+                testTag = "quick_boss_raid_btn",
+                onClick = {
+                    onStartAssessment(
+                        AssessmentMode.BOSS_BATTLE,
+                        firstActiveSubId?.let { "${it}_ch1" } ?: "phy_ch1",
+                        null
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun CompactPracticeCard(
+    title: String,
+    subtitle: String,
+    badge: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    gradient: List<Color>,
+    testTag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .testTag(testTag)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.linearGradient(gradient))
+                .padding(14.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.22f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            ),
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategorizedToolsHub(
+    profile: StudentProfile,
+    isBengali: Boolean,
+    onNavigate: (AppScreen) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val currentCls = remember(profile.classId) {
+        AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
+    }
+    val clsLabel = currentCls?.name ?: "পাঠ্যক্রম"
+
+    val tabs = listOf(
+        Pair("📚 পড়াশোনা ও নোটস", 0),
+        Pair("🎮 পরীক্ষা ও লাইভ", 1),
+        Pair("🤖 এআই ও টুলস", 2)
+    )
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "$clsLabel বিশেষ টুলস ও প্রস্তুতি",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "প্রয়োজনীয় রিসোর্স ও লাইভ ফিচারসমূহ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Category Tab Row
+        ScrollableTabRow(
+            selectedTabIndex = selectedTab,
+            edgePadding = 0.dp,
+            divider = {},
+            containerColor = Color.Transparent,
+            indicator = {}
+        ) {
+            tabs.forEach { (title, idx) ->
+                val isSelected = selectedTab == idx
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { selectedTab = idx },
+                    label = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
+        }
+
+        // Tools for the selected category
+        when (selectedTab) {
+            0 -> {
+                // Study Library & Notes
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "আসল প্রশ্নপত্র PDF",
+                            subtitle = if (profile.classId.contains("wbchse")) "WBCHSE পেপার্স" else "WBBSE পেপার্স",
+                            icon = Icons.Default.PictureAsPdf,
+                            tint = Color(0xFFD97706),
+                            testTag = "home_original_pyq_pdf_btn",
+                            onClick = { onNavigate(AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "সমাধানসহ PDF",
+                            subtitle = "২০১৫-২০২৬ সল্যুশন",
+                            icon = Icons.Default.FileDownload,
+                            tint = Color(0xFF0284C7),
+                            testTag = "home_solved_pyq_pdf_btn",
+                            onClick = { onNavigate(AppScreen.PYQ_PDF_DOWNLOAD) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "পিডিএফ নোটস",
+                            subtitle = "অধ্যায়ভিত্তিক মেটেরিয়াল",
+                            icon = Icons.Default.Description,
+                            tint = Color(0xFFF43F5E),
+                            testTag = "home_pdf_notes_btn",
+                            onClick = { onNavigate(AppScreen.PDF_NOTES) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "স্মার্ট ফ্ল্যাশকার্ড",
+                            subtitle = "সূত্র ও রিভিশন ডেক",
+                            icon = Icons.Default.Style,
+                            tint = Color(0xFF6366F1),
+                            testTag = "home_flashcards_btn",
+                            onClick = { onNavigate(AppScreen.FLASHCARDS) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "পাঠ্যপুস্তক PDF",
+                            subtitle = "বোর্ড অনুমোদিত বই",
+                            icon = Icons.Default.AutoStories,
+                            tint = Color(0xFF0D9488),
+                            testTag = "home_textbooks_pdf_btn",
+                            onClick = { onNavigate(AppScreen.TEXTBOOKS) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "অডিও পডকাস্ট",
+                            subtitle = "স্পিচ রিভিশন নোটস",
+                            icon = Icons.Default.Headphones,
+                            tint = Color(0xFF8B5CF6),
+                            testTag = "home_podcasts_btn",
+                            onClick = { onNavigate(AppScreen.AUDIO_PODCASTS) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+            1 -> {
+                // Exams & Live Competitions
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "১v১ কুইজ ব্যাটেল",
+                            subtitle = "লাইভ লড়াই ও XP",
+                            icon = Icons.Default.SportsEsports,
+                            tint = Color(0xFFDC2626),
+                            testTag = "home_battle_btn",
+                            onClick = { onNavigate(AppScreen.MULTIPLAYER_BATTLE) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "লাইভ কুইজ",
+                            subtitle = "১০০০+ প্রতিযোগী",
+                            icon = Icons.Default.Groups,
+                            tint = Color(0xFF8B5CF6),
+                            testTag = "home_live_quiz_btn",
+                            onClick = { onNavigate(AppScreen.LIVE_QUIZ) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "লাইভ মক টেস্ট",
+                            subtitle = "১৫ মিনিট • রিয়েল এক্সাম",
+                            icon = Icons.Default.Timer,
+                            tint = Color(0xFFE11D48),
+                            testTag = "home_live_mock_test_btn",
+                            onClick = { onNavigate(AppScreen.LIVE_MOCK_TEST) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "OMR শিট সিমুলেটর",
+                            subtitle = "অপটিক্যাল স্ক্যান",
+                            icon = Icons.Default.DocumentScanner,
+                            tint = Color(0xFF7C3AED),
+                            testTag = "home_omr_btn",
+                            onClick = { onNavigate(AppScreen.OMR_PRACTICE) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "PYQ এক্সপ্লোরার",
+                            subtitle = "২০১৫-২০২৫ আসল প্রশ্ন",
+                            icon = Icons.Default.HistoryEdu,
+                            tint = Color(0xFF0D9488),
+                            testTag = "home_pyq_btn",
+                            onClick = { onNavigate(AppScreen.PYQ_EXPLORER) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "স্কুল স্কোয়াড",
+                            subtitle = "টিম লিডারবোর্ড",
+                            icon = Icons.Default.Groups,
+                            tint = Color(0xFF059669),
+                            testTag = "home_squads_btn",
+                            onClick = { onNavigate(AppScreen.STUDY_SQUADS) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+            2 -> {
+                // Smart AI & Analytics
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "স্ন্যাপ ডাউট সলভার",
+                            subtitle = "এআই ফটো স্ক্যান",
+                            icon = Icons.Default.CameraAlt,
+                            tint = Color(0xFF0284C7),
+                            testTag = "home_doubt_btn",
+                            onClick = { onNavigate(AppScreen.DOUBT_SOLVER) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "টপার্স খাতা গাইড",
+                            subtitle = "৯০+ স্কোর ব্লুপ্রিন্ট",
+                            icon = Icons.Default.MilitaryTech,
+                            tint = Color(0xFFD97706),
+                            testTag = "home_toppers_btn",
+                            onClick = { onNavigate(AppScreen.TOPPERS_GUIDE) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "স্টাডি প্ল্যানার",
+                            subtitle = "রুটিন ও টাস্ক",
+                            icon = Icons.AutoMirrored.Filled.EventNote,
+                            tint = Color(0xFF059669),
+                            testTag = "home_planner_btn",
+                            onClick = { onNavigate(AppScreen.STUDY_PLANNER) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "প্রোগ্রেস গ্রাফ",
+                            subtitle = "স্কোর ট্রেন্ড ড্যাশবোর্ড",
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            tint = Color(0xFF7C3AED),
+                            testTag = "home_progress_btn",
+                            onClick = { onNavigate(AppScreen.PROGRESS_DASHBOARD) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToolTileCard(
+                            title = "বুকমার্ক হাব",
+                            subtitle = "সংরক্ষিত প্রশ্ন ও ফর্মুলা",
+                            icon = Icons.Default.Bookmark,
+                            tint = Color(0xFFEA580C),
+                            testTag = "home_bookmarks_btn",
+                            onClick = { onNavigate(AppScreen.BOOKMARK_HUB) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ToolTileCard(
+                            title = "মেরিট সার্টিফিকেট",
+                            subtitle = "স্কলার সার্টিফিকেট",
+                            icon = Icons.Default.WorkspacePremium,
+                            tint = Color(0xFFD97706),
+                            testTag = "home_certificate_btn",
+                            onClick = { onNavigate(AppScreen.CERTIFICATE) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolTileCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    testTag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .testTag(testTag)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
