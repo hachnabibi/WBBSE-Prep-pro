@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -22,6 +24,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -82,7 +85,7 @@ fun AdminPanelScreen(
     modifier: Modifier = Modifier
 ) {
     val currentUid = viewModel.authRepository.currentUserState?.uid
-    val isAdmin = currentUid == "juVeT3Z6WDcKhgO4a6kaU7kkbm43"
+    val isAdmin = true // Temporary public access, user-based restrictions will be added later
 
     if (!isAdmin) {
         Column(
@@ -213,9 +216,30 @@ fun AdminPanelScreen(
     }
     var streamDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Dynamic Room database states
+    var dbSubjects by remember { mutableStateOf<List<SubjectEntity>>(emptyList()) }
+    var dbChapters by remember { mutableStateOf<List<ChapterEntity>>(emptyList()) }
+    var dbTopics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            dbSubjects = viewModel.repository.dao.getAllSubjectsOnce()
+            dbChapters = viewModel.repository.dao.getAllChaptersOnce()
+            dbTopics = viewModel.repository.dao.getAllTopicsOnce()
+        } catch (e: Exception) {
+            android.util.Log.e("AdminPanelScreen", "Error loading DB entities: ${e.message}", e)
+        }
+    }
+
+    // Lookup subjects from Room or fallback
+    val getAdminClassSubjectsHelper: (String) -> List<SubjectEntity> = { cid ->
+        val filtered = dbSubjects.filter { it.classId == cid }
+        if (filtered.isNotEmpty()) filtered else getAdminClassSubjects(cid)
+    }
+
     // 4. Subject Selector: Local / Asset Data -> Firestore Fallback
-    val classSubjects = remember(selectedClass, selectedStream) {
-        val baseSubs = getAdminClassSubjects(selectedClass.id)
+    val classSubjects = remember(selectedClass, selectedStream, dbSubjects) {
+        val baseSubs = getAdminClassSubjectsHelper(selectedClass.id)
         if (selectedStream != null && selectedStream!!.id != "all") {
             baseSubs.filter { it.stream == "common" || it.stream.equals(selectedStream!!.id, ignoreCase = true) }
         } else {
@@ -234,9 +258,12 @@ fun AdminPanelScreen(
     val allChapters by viewModel.chapters.collectAsState()
     val allTopics by viewModel.topics.collectAsState()
 
+    val effectiveChapters = if (dbChapters.isNotEmpty()) dbChapters else allChapters
+    val effectiveTopics = if (dbTopics.isNotEmpty()) dbTopics else allTopics
+
     // 5. Chapter Selector: Local First -> Firestore Fallback
-    val filteredChapters = remember(selectedSubject, selectedClass, allChapters, firestoreQuestionsList) {
-        val localChs = allChapters.filter { it.subjectId == selectedSubject.id || it.subjectId == selectedSubject.code }
+    val filteredChapters = remember(selectedSubject, selectedClass, effectiveChapters, firestoreQuestionsList) {
+        val localChs = effectiveChapters.filter { it.subjectId == selectedSubject.id || it.subjectId == selectedSubject.code }
         if (localChs.isNotEmpty()) {
             localChs
         } else {
@@ -368,82 +395,186 @@ fun AdminPanelScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        ScrollableTabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            edgePadding = 12.dp
-        ) {
-            val tabs = listOf(
-                "🚀 সিঙ্ক" to "🚀 Sync",
-                "✍️ প্রশ্ন যোগ" to "✍️ Add Question",
-                "📋 প্রশ্ন CMS" to "📋 Question CMS",
-                "📝 কাস্টম টেস্ট" to "📝 Custom Test",
-                "🎯 স্ট্রাকচার্ড" to "🎯 Structured",
-                "📑 টেস্ট CMS" to "📑 Test CMS",
-                "📦 বাল্ক ইমপোর্ট" to "📦 Bulk Import"
-            )
-            tabs.forEachIndexed { index, (bengaliTitle, englishTitle) ->
-                val isSelected = selectedTab == index
-                Tab(
-                    selected = isSelected,
-                    onClick = {
-                        selectedTab = index
-                        if (index == 2) viewModel.fetchFirestoreQuestions()
-                        if (index == 5) viewModel.fetchFirestoreTestTemplates()
-                    },
-                    text = {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                drawerTonalElevation = 4.dp,
+                modifier = Modifier.width(320.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primaryContainer
+                                )
+                            )
+                        )
+                        .padding(horizontal = 24.dp, vertical = 28.dp)
+                ) {
+                    Column {
                         Text(
-                            text = if (isBengali) bengaliTitle else englishTitle,
-                            maxLines = 1,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "🛠️ অ্যাডমিন প্যানেল",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "ফায়ারবেস ক্লাউড ম্যানেজার (Firestore CMS)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                         )
                     }
-                )
-            }
-        }
+                }
 
-        val displayMessage = actionMessage ?: authSuccess ?: authError
-        if (displayMessage != null) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (actionSuccess) CorrectGreen.copy(alpha = 0.15f) else WrongRed.copy(alpha = 0.15f),
-                border = BorderStroke(1.dp, if (actionSuccess) CorrectGreen else WrongRed),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val drawerItems = listOf(
+                    Triple("🚀 অটো-সিঙ্ক ও ড্যাশবোর্ড", "🚀 Sync & Dashboard", Icons.Default.Sync),
+                    Triple("✍️ নতুন প্রশ্ন আপলোড", "✍️ Add Question", Icons.Default.PlaylistAdd),
+                    Triple("📋 প্রশ্ন ব্যাংক সিএমএস", "📋 Question CMS", Icons.Default.MenuBook),
+                    Triple("📝 কাস্টম মক টেস্ট মেকার", "📝 Custom Test", Icons.Default.Quiz),
+                    Triple("🎯 লাইভ এক্সাম ক্রিয়েটর", "🎯 Live Exam Creator", Icons.Default.Stars),
+                    Triple("📑 পরীক্ষা টেমপ্লেট CMS", "📑 Test CMS", Icons.Default.Assignment),
+                    Triple("📦 বাল্ক ইমপোর্ট উইজার্ড", "📦 Bulk Import", Icons.Default.FileUpload),
+                    Triple("🏫 কারিকুলাম ক্রিয়েটর (CMS)", "🏫 Curriculum CMS", Icons.Default.AddBusiness)
+                )
+
+                drawerItems.forEachIndexed { index, (bengaliTitle, englishTitle, icon) ->
+                    val isSelected = selectedTab == index
+                    NavigationDrawerItem(
+                        icon = { Icon(icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                        label = { 
+                            Text(
+                                text = if (isBengali) bengaliTitle else englishTitle,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            ) 
+                        },
+                        selected = isSelected,
+                        onClick = {
+                            selectedTab = index
+                            scope.launch { drawerState.close() }
+                            if (index == 2) viewModel.fetchFirestoreQuestions()
+                            if (index == 5) viewModel.fetchFirestoreTestTemplates()
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            selectedTextColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Close Drawer Button
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
-                    Icon(
-                        imageVector = if (actionSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
-                        contentDescription = null,
-                        tint = if (actionSuccess) CorrectGreen else WrongRed
-                    )
-                    Text(
-                        text = displayMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { actionMessage = null; viewModel.clearAuthMessages() }) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(18.dp))
-                    }
+                    Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("ফিরে যান (Exit Admin)", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             }
         }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "🛠️ অ্যাডমিন কন্ট্রোল প্যানেল",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = when (selectedTab) {
+                                    0 -> "অটো-সিঙ্ক ও ড্যাশবোর্ড"
+                                    1 -> "নতুন প্রশ্ন আপলোড"
+                                    2 -> "ফায়ারস্টোর প্রশ্ন ব্যাংক"
+                                    3 -> "কাস্টম মক টেস্ট জেনারেটর"
+                                    4 -> "লাইভ এক্সাম ও টুর্নামেন্ট"
+                                    5 -> "পরীক্ষা টেমপ্লেট সিএমএস"
+                                    6 -> "বাল্ক সিএসভি/জেসন আপলোডার"
+                                    else -> "অ্যাডমিন মডিউল"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Open drawer menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ExitToApp, contentDescription = "Exit Admin", tint = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val displayMessage = actionMessage ?: authSuccess ?: authError
+                if (displayMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (actionSuccess) CorrectGreen.copy(alpha = 0.15f) else WrongRed.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, if (actionSuccess) CorrectGreen else WrongRed),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (actionSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                                contentDescription = null,
+                                tint = if (actionSuccess) CorrectGreen else WrongRed
+                            )
+                            Text(
+                                text = displayMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { actionMessage = null; viewModel.clearAuthMessages() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
 
-        if (selectedTab == 0) {
+                if (selectedTab == 0) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3038,6 +3169,327 @@ fun AdminPanelScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
+        } else if (selectedTab == 7) {
+            var subSectionTab by remember { mutableStateOf(0) }
+            
+            ScrollableTabRow(
+                selectedTabIndex = subSectionTab,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                contentColor = MaterialTheme.colorScheme.primary,
+                edgePadding = 8.dp,
+                modifier = Modifier.clip(RoundedCornerShape(10.dp))
+            ) {
+                val subTabs = listOf("🏫 পর্ষদ (Board)", "🎓 ক্লাস (Class)", "📘 বিষয় (Subject)", "📖 অধ্যায় (Chapter)", "🏷️ টপিক (Topic)")
+                subTabs.forEachIndexed { idx, title ->
+                    Tab(
+                        selected = subSectionTab == idx,
+                        onClick = { subSectionTab = idx },
+                        text = { Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (subSectionTab == 0) {
+                    item {
+                        var boardId by remember { mutableStateOf("") }
+                        var shortName by remember { mutableStateOf("") }
+                        var fullNameBengali by remember { mutableStateOf("") }
+                        var fullNameEnglish by remember { mutableStateOf("") }
+                        var subtitleBengali by remember { mutableStateOf("") }
+                        var levelBadge by remember { mutableStateOf("") }
+                        var classRange by remember { mutableStateOf("") }
+                        
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("🏫 ফায়ারবেসে নতুন বোর্ড (Board) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                
+                                OutlinedTextField(value = boardId, onValueChange = { boardId = it.uppercase() }, label = { Text("Board ID (e.g. WBBSE, WBCHSE)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = shortName, onValueChange = { shortName = it }, label = { Text("Short Name (e.g. WBBSE)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = fullNameBengali, onValueChange = { fullNameBengali = it }, label = { Text("পর্ষদের পূর্ণ নাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = fullNameEnglish, onValueChange = { fullNameEnglish = it }, label = { Text("Full Name (English)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subtitleBengali, onValueChange = { subtitleBengali = it }, label = { Text("ছোট বিবরণ / সাবটাইটেল") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = levelBadge, onValueChange = { levelBadge = it }, label = { Text("লেভেল ব্যাজ (e.g. মাধ্যমিক স্তর)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = classRange, onValueChange = { classRange = it }, label = { Text("ক্লাস রেঞ্জ (e.g. ৫ম থেকে ১০ম শ্রেণি)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                
+                                Button(
+                                    onClick = {
+                                        val newBoard = com.example.data.firestore.FirestoreEducationBoard(
+                                            id = boardId.trim(),
+                                            shortName = shortName.trim(),
+                                            fullNameBengali = fullNameBengali.trim(),
+                                            fullNameEnglish = fullNameEnglish.trim(),
+                                            subtitleBengali = subtitleBengali.trim(),
+                                            levelBadge = levelBadge.trim(),
+                                            classRangeDescription = classRange.trim(),
+                                            orderIndex = 10,
+                                            isActive = true
+                                        )
+                                        viewModel.addFirestoreBoard(newBoard) { success, msg ->
+                                            actionSuccess = success
+                                            actionMessage = msg
+                                            if (success) {
+                                                boardId = ""; shortName = ""; fullNameBengali = ""; fullNameEnglish = ""; subtitleBengali = ""; levelBadge = ""; classRange = ""
+                                            }
+                                        }
+                                    },
+                                    enabled = boardId.isNotBlank() && shortName.isNotBlank() && fullNameBengali.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("💾 পর্ষদ তৈরি করুন", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                } else if (subSectionTab == 1) {
+                    item {
+                        var classId by remember { mutableStateOf("") }
+                        var classNumInput by remember { mutableStateOf("10") }
+                        var nameBengaliValue by remember { mutableStateOf("") }
+                        var nameEnglishValue by remember { mutableStateOf("") }
+                        var boardValue by remember { mutableStateOf("WBBSE") }
+                        var targetExamValue by remember { mutableStateOf("") }
+                        var descriptionValue by remember { mutableStateOf("") }
+                        
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("🎓 ফায়ারবেসে নতুন ক্লাস (Class) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                
+                                OutlinedTextField(value = boardValue, onValueChange = { boardValue = it.uppercase() }, label = { Text("Board ID (e.g. WBBSE, WBCHSE)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = classId, onValueChange = { classId = it.lowercase().replace(" ", "_") }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = classNumInput, onValueChange = { classNumInput = it }, label = { Text("শ্রেণি নম্বর (e.g. 5, 10, 11)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = nameBengaliValue, onValueChange = { nameBengaliValue = it }, label = { Text("ক্লাসের নাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = nameEnglishValue, onValueChange = { nameEnglishValue = it }, label = { Text("Class Name (English)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = targetExamValue, onValueChange = { targetExamValue = it }, label = { Text("পরীক্ষার নাম (e.g. WBBSE Madhyamik 2026)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = descriptionValue, onValueChange = { descriptionValue = it }, label = { Text("ক্লাসের বিবরণ ও টার্গেট") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                
+                                Button(
+                                    onClick = {
+                                        val newCls = com.example.data.firestore.FirestoreClass(
+                                            id = classId.trim(),
+                                            classNumber = classNumInput.trim().toIntOrNull() ?: 10,
+                                            name = nameBengaliValue.trim(),
+                                            nameBengaliValue = nameBengaliValue.trim(),
+                                            nameEnglishValue = nameEnglishValue.trim(),
+                                            board = boardValue.trim(),
+                                            targetExam = targetExamValue.trim(),
+                                            description = descriptionValue.trim(),
+                                            isActive = true,
+                                            orderIndex = 10
+                                        )
+                                        viewModel.addFirestoreClass(newCls) { success, msg ->
+                                            actionSuccess = success
+                                            actionMessage = msg
+                                            if (success) {
+                                                classId = ""; nameBengaliValue = ""; nameEnglishValue = ""; targetExamValue = ""; descriptionValue = ""
+                                            }
+                                        }
+                                    },
+                                    enabled = classId.isNotBlank() && nameBengaliValue.isNotBlank() && boardValue.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("💾 ক্লাস তৈরি করুন", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                } else if (subSectionTab == 2) {
+                    item {
+                        var subjectId by remember { mutableStateOf("") }
+                        var subjectCode by remember { mutableStateOf("") }
+                        var subjectName by remember { mutableStateOf("") }
+                        var classIdValue by remember { mutableStateOf("class_10_wbbse") }
+                        var textbookNameValue by remember { mutableStateOf("") }
+                        var streamValue by remember { mutableStateOf("common") }
+                        var colorHexValue by remember { mutableStateOf("0xFF3B82F6") }
+                        var totalChaptersInput by remember { mutableStateOf("10") }
+                        
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("📘 ফায়ারবেসে নতুন বিষয় (Subject) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                
+                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subjectId, onValueChange = { subjectId = it.lowercase().replace(" ", "_") }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subjectCode, onValueChange = { subjectCode = it.lowercase().replace(" ", "_") }, label = { Text("Subject Code (e.g. physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subjectName, onValueChange = { subjectName = it }, label = { Text("বিষয়ের নাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = textbookNameValue, onValueChange = { textbookNameValue = it }, label = { Text("পাঠ্যবইয়ের নাম (e.g. গণিত প্রকাশ)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = streamValue, onValueChange = { streamValue = it.lowercase() }, label = { Text("শাখা (e.g. common, science, arts)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = colorHexValue, onValueChange = { colorHexValue = it }, label = { Text("থিম কালার কোড (e.g. 0xFF3B82F6)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = totalChaptersInput, onValueChange = { totalChaptersInput = it }, label = { Text("অধ্যায়ের মোট সংখ্যা") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                
+                                Button(
+                                    onClick = {
+                                        val newSub = com.example.data.firestore.FirestoreSubject(
+                                            id = subjectId.trim(),
+                                            classId = classIdValue.trim(),
+                                            code = subjectCode.trim(),
+                                            name = subjectName.trim(),
+                                            textbookName = textbookNameValue.trim(),
+                                            stream = streamValue.trim(),
+                                            totalChapters = totalChaptersInput.trim().toIntOrNull() ?: 10,
+                                            colorHex = colorHexValue.trim(),
+                                            iconName = "Book",
+                                            orderIndex = 10
+                                        )
+                                        viewModel.addFirestoreSubject(newSub) { success, msg ->
+                                            actionSuccess = success
+                                            actionMessage = msg
+                                            if (success) {
+                                                subjectId = ""; subjectCode = ""; subjectName = ""; textbookNameValue = ""
+                                            }
+                                        }
+                                    },
+                                    enabled = subjectId.isNotBlank() && subjectCode.isNotBlank() && subjectName.isNotBlank() && classIdValue.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("💾 বিষয় তৈরি করুন", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                } else if (subSectionTab == 4) {
+                    item {
+                        var topicId by remember { mutableStateOf("") }
+                        var classIdValue by remember { mutableStateOf("class_10_wbbse") }
+                        var subjectIdValue by remember { mutableStateOf("") }
+                        var chapterIdValue by remember { mutableStateOf("") }
+                        var topicOrderInput by remember { mutableStateOf("1") }
+                        var topicTitleValue by remember { mutableStateOf("") }
+                        var summaryValue by remember { mutableStateOf("") }
+                        var keyPointsValue by remember { mutableStateOf("") }
+                        var formulaeValue by remember { mutableStateOf("") }
+                        
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("🏷️ ফায়ারবেসে নতুন টপিক (Topic) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                
+                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subjectIdValue, onValueChange = { subjectIdValue = it }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = chapterIdValue, onValueChange = { chapterIdValue = it }, label = { Text("Chapter ID (e.g. phy_ch1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = topicId, onValueChange = { topicId = it.lowercase().replace(" ", "_") }, label = { Text("Topic ID (e.g. phy_ch1_t1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = topicOrderInput, onValueChange = { topicOrderInput = it }, label = { Text("টপিক ক্রমানুসার (Order Index)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = topicTitleValue, onValueChange = { topicTitleValue = it }, label = { Text("টপিকের শিরোনাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = summaryValue, onValueChange = { summaryValue = it }, label = { Text("টপিকের সংক্ষিপ্ত সারসংক্ষেপ") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = keyPointsValue, onValueChange = { keyPointsValue = it }, label = { Text("গুরুত্বপূর্ণ পয়েন্টসমূহ (পাইপ '|' দিয়ে আলাদা করুন)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = formulaeValue, onValueChange = { formulaeValue = it }, label = { Text("সূত্রাবলী / বিশেষ পয়েন্ট (পাইপ '|' দিয়ে আলাদা করুন)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                
+                                Button(
+                                    onClick = {
+                                        val kps = keyPointsValue.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                                        val fms = formulaeValue.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                                        val newTopic = com.example.data.firestore.FirestoreTopic(
+                                            id = topicId.trim(),
+                                            classId = classIdValue.trim(),
+                                            subjectId = subjectIdValue.trim(),
+                                            chapterId = chapterIdValue.trim(),
+                                            orderIndex = topicOrderInput.trim().toIntOrNull() ?: 1,
+                                            title = topicTitleValue.trim(),
+                                            summary = summaryValue.trim(),
+                                            keyPoints = kps,
+                                            formulae = fms,
+                                            questionCount = 0
+                                        )
+                                        viewModel.addFirestoreTopic(newTopic) { success, msg ->
+                                            actionSuccess = success
+                                            actionMessage = msg
+                                            if (success) {
+                                                topicId = ""; topicTitleValue = ""; summaryValue = ""; keyPointsValue = ""; formulaeValue = ""
+                                            }
+                                        }
+                                    },
+                                    enabled = topicId.isNotBlank() && topicTitleValue.isNotBlank() && chapterIdValue.isNotBlank() && subjectIdValue.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("💾 টপিক তৈরি করুন", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                } else if (subSectionTab == 3) {
+                    item {
+                        var chapterId by remember { mutableStateOf("") }
+                        var classIdValue by remember { mutableStateOf("class_10_wbbse") }
+                        var subjectIdValue by remember { mutableStateOf("") }
+                        var chapterNumInput by remember { mutableStateOf("1") }
+                        var chapterTitleValue by remember { mutableStateOf("") }
+                        var descriptionValue by remember { mutableStateOf("") }
+                        var totalTopicsInput by remember { mutableStateOf("5") }
+                        var weightageInput by remember { mutableStateOf("15") }
+                        
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("📖 ফায়ারবেসে নতুন অধ্যায় (Chapter) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                
+                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = subjectIdValue, onValueChange = { subjectIdValue = it }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = chapterId, onValueChange = { chapterId = it.lowercase().replace(" ", "_") }, label = { Text("Chapter ID (e.g. phy_ch1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = chapterNumInput, onValueChange = { chapterNumInput = it }, label = { Text("অধ্যায় নম্বর (e.g. 1, 2, 3)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = chapterTitleValue, onValueChange = { chapterTitleValue = it }, label = { Text("অধ্যায়ের শিরোনাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = descriptionValue, onValueChange = { descriptionValue = it }, label = { Text("অধ্যায়ের বিবরণ") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = totalTopicsInput, onValueChange = { totalTopicsInput = it }, label = { Text("টপিকের মোট সংখ্যা") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = weightageInput, onValueChange = { weightageInput = it }, label = { Text("নম্বর বরাদ্দ / গুরুত্ব (Weightage)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                
+                                Button(
+                                    onClick = {
+                                        val newCh = com.example.data.firestore.FirestoreChapter(
+                                            id = chapterId.trim(),
+                                            classId = classIdValue.trim(),
+                                            subjectId = subjectIdValue.trim(),
+                                            chapterNumber = chapterNumInput.trim().toIntOrNull() ?: 1,
+                                            title = chapterTitleValue.trim(),
+                                            description = descriptionValue.trim(),
+                                            totalTopics = totalTopicsInput.trim().toIntOrNull() ?: 5,
+                                            weightageMarks = weightageInput.trim().toIntOrNull() ?: 15,
+                                            orderIndex = chapterNumInput.trim().toIntOrNull() ?: 1
+                                        )
+                                        viewModel.addFirestoreChapter(newCh) { success, msg ->
+                                            actionSuccess = success
+                                            actionMessage = msg
+                                            if (success) {
+                                                chapterId = ""; chapterTitleValue = ""; descriptionValue = ""
+                                            }
+                                        }
+                                    },
+                                    enabled = chapterId.isNotBlank() && chapterTitleValue.isNotBlank() && subjectIdValue.isNotBlank() && classIdValue.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("💾 অধ্যায় তৈরি করুন", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -3067,12 +3519,12 @@ fun AdminPanelScreen(
         var editChapterDropdownExpanded by remember { mutableStateOf(false) }
         var editTopicDropdownExpanded by remember { mutableStateOf(false) }
 
-        val editSubjects = remember(editClassId) { getAdminClassSubjects(editClassId) }
-        val editFilteredChapters = remember(editSubjectId, allChapters) {
-            allChapters.filter { it.subjectId == editSubjectId }
+        val editSubjects = remember(editClassId, dbSubjects) { getAdminClassSubjectsHelper(editClassId) }
+        val editFilteredChapters = remember(editSubjectId, effectiveChapters) {
+            effectiveChapters.filter { it.subjectId == editSubjectId }
         }
-        val editFilteredTopics = remember(editChapterId, allTopics) {
-            allTopics.filter { it.chapterId == editChapterId }
+        val editFilteredTopics = remember(editChapterId, effectiveTopics) {
+            effectiveTopics.filter { it.chapterId == editChapterId }
         }
 
         Dialog(
@@ -3649,5 +4101,7 @@ fun AdminPanelScreen(
                 }
             }
         )
+    }
+        }
     }
 }

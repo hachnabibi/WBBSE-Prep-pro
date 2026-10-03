@@ -803,13 +803,6 @@ fun ChapterRoadmapCard(
                             }
                         )
                     }
-
-                    // Chapter Boss Raid Citadel Waypoint
-                    RoadmapBossCitadelWaypoint(
-                        chapter = chapter,
-                        isBengali = isBengali,
-                        onStartBoss = onStartBossBattle
-                    )
                 }
             }
         }

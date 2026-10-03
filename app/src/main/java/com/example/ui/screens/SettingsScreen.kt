@@ -1089,7 +1089,7 @@ fun SettingsScreen(
             }
 
             // SECTION 7: Admin Dashboard & Firestore Collections Sub-screen
-            val isAdmin = viewModel.authRepository.currentUserState?.uid == "juVeT3Z6WDcKhgO4a6kaU7kkbm43"
+            val isAdmin = true // Temporary public access, user-based restrictions will be added later
             if (isAdmin) {
                 item {
                     SettingsSectionHeader(

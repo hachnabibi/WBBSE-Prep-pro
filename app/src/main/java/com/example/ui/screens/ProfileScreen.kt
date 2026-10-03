@@ -92,7 +92,17 @@ fun ProfileScreen(
 
     // Edit Profile State
     var isEditingProfile by remember { mutableStateOf(false) }
-    var editName by remember(profile.name) { mutableStateOf(profile.name) }
+    val auth = authUser
+    val defaultEditName = remember(profile.name, auth) {
+        val nameVal = when {
+            !profile.name.isBlank() -> profile.name
+            auth?.displayName?.isNotBlank() == true -> auth.displayName
+            auth?.email?.isNotBlank() == true -> auth.email?.substringBefore("@")
+            else -> profile.name
+        }
+        nameVal ?: profile.name
+    }
+    var editName by remember(defaultEditName) { mutableStateOf(defaultEditName) }
     var editSchool by remember(profile.school) { mutableStateOf(profile.school) }
     var editDistrict by remember(profile.district) { mutableStateOf(profile.district) }
     var editTargetExam by remember(profile.targetExam) { mutableStateOf(profile.targetExam) }
@@ -126,7 +136,7 @@ fun ProfileScreen(
     ) {
         ScreenHeaderBar(
             title = "প্রোফাইল",
-            subtitle = profile.name.ifBlank { "শিক্ষার্থী" },
+            subtitle = displayName,
             isBengali = isBengali,
             showBackButton = true,
             onBack = { viewModel.goBack() },

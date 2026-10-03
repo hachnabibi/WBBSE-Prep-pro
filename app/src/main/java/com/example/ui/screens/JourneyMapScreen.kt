@@ -360,55 +360,24 @@ fun JourneyMapScreen(
                     }
                 } else {
                     chapters.forEach { chapter ->
-                        // 1. Chapter Header Card
-                        item {
-                            ChapterBannerCard(
-                                chapter = chapter,
-                                isBengali = isBengali,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-
-                        // Filter topics belonging to this chapter from the preloaded subjectTopics
                         val chapterTopics = subjectTopics.filter { it.chapterId == chapter.id }
-
-                        if (chapterTopics.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    Text(
-                                        text = if (isBengali) "এই অধ্যায়ে কোনো টপিক নেই।" else "No topics in this chapter.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        } else {
-                            // 2. Path Nodes for each Topic in this Chapter (List View)
-                            items(chapterTopics, key = { it.id }) { topic ->
-                                TopicNodeCard(
-                                    topic = topic,
-                                    isBengali = isBengali,
-                                    onOpenStudy = { onOpenTopicStudy(topic.id) },
-                                    onStartPractice = {
-                                        onStartAssessment(
-                                            AssessmentMode.PRACTICE,
-                                            topic.id,
-                                            "${topic.getTitle(true)} - অনুশীলন"
-                                        )
-                                    },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-                        }
-
-                        // Add a spacer between chapters
                         item {
-                            Spacer(modifier = Modifier.height(12.dp))
+                            val isExpanded = remember { mutableStateOf(true) }
+                            com.example.ui.components.ChapterRoadmapCard(
+                                chapter = chapter,
+                                topics = chapterTopics,
+                                subjectColorHex = currentSubject?.colorHex ?: 0xFF4F46E5,
+                                isBengali = isBengali,
+                                isExpanded = isExpanded.value,
+                                isLastInList = chapter == chapters.last(),
+                                onToggleExpand = { isExpanded.value = !isExpanded.value },
+                                onOpenStudy = onOpenTopicStudy,
+                                onStartTopicPractice = { topicId, title ->
+                                    onStartAssessment(AssessmentMode.PRACTICE, topicId, title)
+                                },
+                                onStartBossBattle = { },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
                         }
                     }
                 }

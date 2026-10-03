@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.StudentProfile
+import com.example.data.auth.AuthUserState
 import com.example.ui.theme.ExamGold
 import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.viewmodel.AppScreen
@@ -36,7 +37,8 @@ fun AppNavigationDrawerSheet(
     onNavigate: (AppScreen) -> Unit,
     onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier,
-    isAdmin: Boolean = false
+    isAdmin: Boolean = false,
+    authUserState: AuthUserState? = null
 ) {
     ModalDrawerSheet(
         modifier = modifier
@@ -85,14 +87,33 @@ fun AppNavigationDrawerSheet(
                         }
                     }
 
+                    val realName = when {
+                        !profile.name.isBlank() -> profile.name
+                        authUserState?.displayName?.isNotBlank() == true -> authUserState.displayName
+                        authUserState?.email?.isNotBlank() == true -> authUserState.email.substringBefore("@")
+                        else -> if (isBengali) "অভিলাষী শিক্ষার্থী" else "Aspirant"
+                    }
+
+                    val realDetails = when {
+                        authUserState?.isAnonymous == true -> {
+                            if (isBengali) "অতিথি শিক্ষার্থী" else "Guest Student"
+                        }
+                        !profile.school.isBlank() -> {
+                            "${profile.school} • ${profile.classLevel}"
+                        }
+                        else -> {
+                            if (isBengali) "অনবোর্ডিং সম্পূর্ণ করুন" else "Please Onboard"
+                        }
+                    }
+
                     Column {
                         Text(
-                            text = profile.name,
+                            text = realName,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = Color.White
                         )
                         Text(
-                            text = "${profile.school} • ${profile.classLevel}",
+                            text = realDetails,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )

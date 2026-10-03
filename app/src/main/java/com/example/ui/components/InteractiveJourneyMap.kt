@@ -150,7 +150,7 @@ fun InteractiveJourneyMap(
                         }
                     )
 
-                    // Connecting Trail Section towards next node or Boss Gate
+                    // Connecting Trail Section towards next node
                     if (index < topics.size - 1) {
                         val nextTopic = topics[index + 1]
                         val isPathActive = topic.isUnlocked && nextTopic.isUnlocked
@@ -163,23 +163,8 @@ fun InteractiveJourneyMap(
                             },
                             isActive = isPathActive
                         )
-                    } else {
-                        // Connector to Boss Citadel
-                        ConnectingTrailSegment(
-                            fromBias = horizontalBias,
-                            toBias = 0.5f,
-                            isActive = chapter.bossUnlocked
-                        )
                     }
                 }
-
-                // Terminus: Monumental Chapter Boss Battle Citadel Gate
-                BossCitadelGateNode(
-                    chapter = chapter,
-                    isBengali = isBengali,
-                    onLaunchBoss = onStartBossBattle,
-                    onCelebrateVictory = { showConfettiCelebration = true }
-                )
             }
         }
     }

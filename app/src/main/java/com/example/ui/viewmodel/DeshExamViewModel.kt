@@ -1554,6 +1554,203 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun addFirestoreBoard(board: com.example.data.firestore.FirestoreEducationBoard, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to Firestore
+                val cloudRes = firestoreService.saveBoard(board)
+                if (cloudRes.isSuccess) {
+                    // 2. Save to local Room database
+                    val localBoard = board.toEducationBoard()
+                    val boardEntity = com.example.data.local.BoardEntity(
+                        id = localBoard.id,
+                        shortName = localBoard.shortName,
+                        fullNameBengali = localBoard.fullNameBengali,
+                        fullNameEnglish = localBoard.fullNameEnglish,
+                        subtitleBengali = localBoard.subtitleBengali,
+                        levelBadge = localBoard.levelBadge,
+                        classRangeDescription = localBoard.classRangeDescription,
+                        iconName = localBoard.iconName,
+                        orderIndex = board.orderIndex
+                    )
+                    database.deshExamDao().insertBoard(boardEntity)
+                    
+                    // 3. Update static provider list
+                    com.example.data.model.AcademicClassProvider.addBoard(localBoard)
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "বোর্ড সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun addFirestoreClass(classItem: com.example.data.firestore.FirestoreClass, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to Firestore
+                val cloudRes = firestoreService.saveClass(classItem)
+                if (cloudRes.isSuccess) {
+                    // 2. Save to local Room
+                    val localClass = classItem.toAcademicClass()
+                    val classEntity = com.example.data.local.AcademicClassEntity(
+                        id = localClass.id,
+                        classNumber = localClass.classNumber,
+                        nameBengali = localClass.nameBengali,
+                        nameEnglish = localClass.nameEnglish,
+                        board = localClass.board,
+                        targetExam = localClass.targetExam,
+                        descriptionBengali = localClass.descriptionBengali,
+                        orderIndex = classItem.orderIndex
+                    )
+                    database.deshExamDao().insertClass(classEntity)
+                    
+                    // 3. Update static provider list
+                    com.example.data.model.AcademicClassProvider.addClass(localClass)
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "ক্লাস সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun addFirestoreSubject(subject: com.example.data.firestore.FirestoreSubject, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to Firestore
+                val cloudRes = firestoreService.saveSubject(subject)
+                if (cloudRes.isSuccess) {
+                    // 2. Save to local Room
+                    val subjectEntity = com.example.data.local.SubjectEntity(
+                        id = subject.id,
+                        code = subject.code,
+                        name = subject.name,
+                        textbookName = subject.textbookName,
+                        totalChapters = subject.totalChapters,
+                        completedChapters = 0,
+                        masteryPercentage = 0,
+                        colorHex = subject.parsedColorHex,
+                        classId = subject.classId,
+                        stream = subject.stream
+                    )
+                    database.deshExamDao().insertSubjects(listOf(subjectEntity))
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "বিষয় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun addFirestoreChapter(chapter: com.example.data.firestore.FirestoreChapter, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to Firestore
+                val cloudRes = firestoreService.saveChapter(chapter)
+                if (cloudRes.isSuccess) {
+                    // 2. Save to local Room
+                    val chapterEntity = com.example.data.local.ChapterEntity(
+                        id = chapter.id,
+                        subjectId = chapter.subjectId,
+                        chapterNumber = chapter.chapterNumber,
+                        title = chapter.title,
+                        description = chapter.description,
+                        totalTopics = chapter.totalTopics,
+                        completedTopics = 0,
+                        masteryPercentage = 0,
+                        bossUnlocked = false,
+                        bossCompleted = false,
+                        classId = chapter.classId,
+                        contentData = "",
+                        solutionData = ""
+                    )
+                    database.deshExamDao().insertChapters(listOf(chapterEntity))
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "অধ্যায় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun addFirestoreTopic(topic: com.example.data.firestore.FirestoreTopic, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to Firestore
+                val cloudRes = firestoreService.saveTopic(topic)
+                if (cloudRes.isSuccess) {
+                    // 2. Save to local Room
+                    val topicEntity = com.example.data.local.TopicEntity(
+                        id = topic.id,
+                        chapterId = topic.chapterId,
+                        subjectId = topic.subjectId,
+                        orderIndex = topic.orderIndex,
+                        title = topic.title,
+                        summary = topic.summary,
+                        keyPointsJson = topic.keyPoints.joinToString("|"),
+                        isUnlocked = true,
+                        masteryPercentage = 0,
+                        classId = topic.classId,
+                        contentData = "",
+                        solutionData = "",
+                        videoUrl = "",
+                        playlistJson = ""
+                    )
+                    database.deshExamDao().insertTopics(listOf(topicEntity))
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "টপিক সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
     fun toggleChapterCompletion(chapterId: String, currentStatus: Boolean, subjectId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {

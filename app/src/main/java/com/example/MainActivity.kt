@@ -120,7 +120,7 @@ fun DeshExamApp(
     val isBengali by viewModel.isBengali.collectAsStateWithLifecycle()
     val profile by viewModel.studentProfile.collectAsStateWithLifecycle()
     val authUserState by viewModel.authUserState.collectAsStateWithLifecycle()
-    val isAdmin = authUserState?.uid == "juVeT3Z6WDcKhgO4a6kaU7kkbm43"
+    val isAdmin = true // Temporary public access, user-based restrictions will be added later
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val recentlyViewed by viewModel.recentlyViewed.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
@@ -243,7 +243,8 @@ fun DeshExamApp(
                     isBengali = isBengali,
                     onNavigate = { screen -> viewModel.navigateTo(screen) },
                     onCloseDrawer = { coroutineScope.launch { drawerState.close() } },
-                    isAdmin = isAdmin
+                    isAdmin = isAdmin,
+                    authUserState = authUserState
                 )
             }
         ) {
@@ -349,7 +350,8 @@ fun DeshExamApp(
                             viewModel.completeOnboarding(name, classLevel, district, school, targetExam, stream, studyGoals)
                         },
                         onNavigateToAuth = { viewModel.navigateTo(AppScreen.AUTH) },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        authUserState = authUserState
                     )
                 }
                 AppScreen.HOME -> {

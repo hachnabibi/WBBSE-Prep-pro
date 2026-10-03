@@ -77,10 +77,22 @@ fun EditProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val isAuthLoading by viewModel.isAuthLoading.collectAsState()
+    val authUserState by viewModel.authUserState.collectAsState()
     val focusManager = LocalFocusManager.current
 
+    val auth = authUserState
+    val defaultEditName = remember(profile.name, auth) {
+        val nameVal = when {
+            !profile.name.isBlank() -> profile.name
+            auth?.displayName?.isNotBlank() == true -> auth.displayName
+            auth?.email?.isNotBlank() == true -> auth.email?.substringBefore("@")
+            else -> profile.name
+        }
+        nameVal ?: profile.name
+    }
+
     // Mutable states for basic info
-    var editName by remember(profile.name) { mutableStateOf(profile.name) }
+    var editName by remember(defaultEditName) { mutableStateOf(defaultEditName) }
     var editSchool by remember(profile.school) { mutableStateOf(profile.school) }
     var editDistrict by remember(profile.district) { mutableStateOf(profile.district) }
 

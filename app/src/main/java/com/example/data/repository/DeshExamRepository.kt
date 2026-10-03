@@ -26,8 +26,8 @@ import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 class DeshExamRepository(
-    private val dao: DeshExamDao,
-    private val context: android.content.Context? = null
+    val dao: DeshExamDao,
+    val context: android.content.Context? = null
 ) {
 
     // Test Scores & Endless Sets Persistence

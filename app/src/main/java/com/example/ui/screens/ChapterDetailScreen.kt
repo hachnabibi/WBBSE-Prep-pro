@@ -432,79 +432,7 @@ fun ChapterDetailScreen(
                     }
                 }
 
-                // Test Item 2: Boss Challenge
-                item {
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF2C2210) else Color(0xFFFFFBEB)
-                        ),
-                        border = BorderStroke(1.5.dp, ExamGold),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.EmojiEvents,
-                                        contentDescription = "Boss",
-                                        tint = ExamGold,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "অধ্যায় বস চ্যালেঞ্জ (Time Trial)",
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isDark) ExamGold else Color(0xFF92400E)
-                                    )
-                                }
-                                Text(
-                                    text = "সময় ভিত্তিক বিশেষ টেস্ট। ১০০% নির্ভুলতায় বোনাস XP অর্জন করো।",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
-                                        )
-                                    )
-                                    .clickable {
-                                        onStartAssessment(
-                                            AssessmentMode.BOSS_BATTLE,
-                                            chapter.id,
-                                            "🔥 অধ্যায় বস: ${chapter.titleBengali}"
-                                        )
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "বস চ্যালেঞ্জ শুরু",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }

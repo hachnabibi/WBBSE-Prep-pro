@@ -54,6 +54,9 @@ interface DeshExamDao {
     @Query("SELECT * FROM chapters WHERE id = :id LIMIT 1")
     suspend fun getChapterById(id: String): ChapterEntity?
 
+    @Query("SELECT * FROM chapters")
+    suspend fun getAllChaptersOnce(): List<ChapterEntity>
+
     @Query("SELECT * FROM topics WHERE chapterId = :chapterId ORDER BY orderIndex ASC")
     fun getTopicsForChapter(chapterId: String): Flow<List<TopicEntity>>
 

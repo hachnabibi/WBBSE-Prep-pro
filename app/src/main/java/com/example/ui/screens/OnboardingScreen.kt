@@ -65,13 +65,22 @@ fun OnboardingScreen(
     isLoadingDistricts: Boolean,
     onCompleteOnboarding: (name: String, classLevel: String, district: String, school: String, targetExam: String, stream: String, studyGoals: List<String>) -> Unit,
     onNavigateToAuth: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    authUserState: com.example.data.auth.AuthUserState? = null
 ) {
     // Navigation State
     var currentStep by rememberSaveable { mutableIntStateOf(1) }
 
     // Form State
-    var name by rememberSaveable { mutableStateOf(if (profile.name == "Sourav Das" || profile.name.isBlank()) "" else profile.name) }
+    val defaultOnboardingName = remember(profile.name, authUserState) {
+        when {
+            !profile.name.isBlank() -> profile.name
+            authUserState?.displayName?.isNotBlank() == true -> authUserState.displayName
+            authUserState?.email?.isNotBlank() == true -> authUserState.email.substringBefore("@")
+            else -> ""
+        }
+    }
+    var name by rememberSaveable(defaultOnboardingName) { mutableStateOf(defaultOnboardingName) }
     var selectedClassNumber by rememberSaveable { mutableIntStateOf(10) }
     var classLevel by rememberSaveable { mutableStateOf(profile.classLevel.ifBlank { "দশম শ্রেণি (মাধ্যমিক) - WBBSE" }) }
     var selectedStream by rememberSaveable { mutableStateOf(profile.stream.ifBlank { "all" }) }
