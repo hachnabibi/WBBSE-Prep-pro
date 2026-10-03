@@ -38,6 +38,7 @@ import com.example.data.local.SubjectEntity
 import com.example.data.local.TopicEntity
 import com.example.data.model.AcademicClass
 import com.example.data.model.AcademicClassProvider
+import com.example.data.model.EducationBoard
 import com.example.data.model.AssessmentMode
 import com.example.ui.theme.ExamGold
 import com.example.ui.theme.CorrectGreen
@@ -133,6 +134,9 @@ fun AdminPanelScreen(
     val authError by viewModel.authErrorMessage.collectAsState()
 
     val autoSyncStatus by viewModel.autoSyncStatus.collectAsState()
+
+    val liveBoards by viewModel.allBoards.collectAsState()
+    val liveClasses by viewModel.allClasses.collectAsState()
 
     val firestoreQuestionsList by viewModel.firestoreQuestions.collectAsState()
     val firestoreTestTemplatesList by viewModel.firestoreTestTemplates.collectAsState()
@@ -3269,9 +3273,52 @@ fun AdminPanelScreen(
                             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                                 Text("🎓 ফায়ারবেসে নতুন ক্লাস (Class) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                                 
-                                OutlinedTextField(value = boardValue, onValueChange = { boardValue = it.uppercase() }, label = { Text("Board ID (e.g. WBBSE, WBCHSE)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                var boardDropdownExpanded by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = boardValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("শিক্ষা পর্ষদ নির্বাচন করুন (Select Board)") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { boardDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Board")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { boardDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = boardDropdownExpanded,
+                                        onDismissRequest = { boardDropdownExpanded = false }
+                                    ) {
+                                        val boardsToShow = if (liveBoards.isNotEmpty()) liveBoards else com.example.data.model.AcademicClassProvider.ALL_BOARDS
+                                        boardsToShow.forEach { board ->
+                                            DropdownMenuItem(
+                                                text = { Text("${board.shortName} - ${board.fullNameBengali}") },
+                                                onClick = {
+                                                    boardValue = board.id
+                                                    boardDropdownExpanded = false
+                                                    val num = classNumInput.trim().toIntOrNull() ?: 10
+                                                    classId = if (num == 0) "class_kg_${board.id.lowercase()}" else "class_${num}_${board.id.lowercase()}"
+                                                    targetExamValue = "${board.id} Class $num"
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                                 OutlinedTextField(value = classId, onValueChange = { classId = it.lowercase().replace(" ", "_") }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = classNumInput, onValueChange = { classNumInput = it }, label = { Text("শ্রেণি নম্বর (e.g. 5, 10, 11)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(
+                                    value = classNumInput,
+                                    onValueChange = {
+                                        classNumInput = it
+                                        val num = it.trim().toIntOrNull() ?: 10
+                                        classId = if (num == 0) "class_kg_${boardValue.lowercase()}" else "class_${num}_${boardValue.lowercase()}"
+                                        targetExamValue = "${boardValue} Class $num"
+                                    },
+                                    label = { Text("শ্রেণি নম্বর (e.g. 5, 10, 11)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 OutlinedTextField(value = nameBengaliValue, onValueChange = { nameBengaliValue = it }, label = { Text("ক্লাসের নাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = nameEnglishValue, onValueChange = { nameEnglishValue = it }, label = { Text("Class Name (English)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = targetExamValue, onValueChange = { targetExamValue = it }, label = { Text("পরীক্ষার নাম (e.g. WBBSE Madhyamik 2026)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -3319,17 +3366,153 @@ fun AdminPanelScreen(
                         var colorHexValue by remember { mutableStateOf("0xFF3B82F6") }
                         var totalChaptersInput by remember { mutableStateOf("10") }
                         
+                        var editMode by remember { mutableStateOf(false) }
+                        var selectedSubjectToEdit by remember { mutableStateOf<com.example.data.local.SubjectEntity?>(null) }
+                        
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("📘 ফায়ারবেসে নতুন বিষয় (Subject) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                Text(
+                                    text = if (editMode) "📘 ফায়ারবেসে বিষয় (Subject) এডিট করুন" else "📘 ফায়ারবেসে নতুন বিষয় (Subject) যুক্ত করুন",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                                 
-                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = subjectId, onValueChange = { subjectId = it.lowercase().replace(" ", "_") }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = subjectCode, onValueChange = { subjectCode = it.lowercase().replace(" ", "_") }, label = { Text("Subject Code (e.g. physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = !editMode,
+                                        onClick = {
+                                            editMode = false
+                                            selectedSubjectToEdit = null
+                                            subjectId = ""
+                                            subjectCode = ""
+                                            subjectName = ""
+                                            textbookNameValue = ""
+                                            streamValue = "common"
+                                            colorHexValue = "0xFF3B82F6"
+                                            totalChaptersInput = "10"
+                                        },
+                                        label = { Text("➕ নতুন তৈরি করুন") }
+                                    )
+                                    FilterChip(
+                                        selected = editMode,
+                                        onClick = {
+                                            editMode = true
+                                        },
+                                        label = { Text("✏️ এডিট করুন") }
+                                    )
+                                }
+                                
+                                var classDropdownExpanded by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = classIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("শ্রেণি নির্বাচন করুন (Select Class)") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { classDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Class")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { classDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = classDropdownExpanded,
+                                        onDismissRequest = { classDropdownExpanded = false }
+                                    ) {
+                                        val classesToShow = if (liveClasses.isNotEmpty()) liveClasses else com.example.data.model.AcademicClassProvider.ALL_CLASSES
+                                        classesToShow.forEach { cls: com.example.data.model.AcademicClass ->
+                                            val displayName = cls.name
+                                            DropdownMenuItem(
+                                                text = { Text("$displayName (${cls.board})") },
+                                                onClick = {
+                                                    classIdValue = cls.id
+                                                    classDropdownExpanded = false
+                                                    val code = subjectCode.ifBlank { "subject" }
+                                                    subjectId = "${cls.id}_$code"
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                val availableSubsForClass = remember(classIdValue, dbSubjects) {
+                                    getAdminClassSubjectsHelper(classIdValue)
+                                }
+
+                                if (editMode) {
+                                    var editSubjectDropdownExpanded by remember { mutableStateOf(false) }
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        OutlinedTextField(
+                                            value = selectedSubjectToEdit?.name ?: "এডিটের জন্য বিষয় সিলেক্ট করুন",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("বিষয় নির্বাচন করুন (Select Subject to Edit)") },
+                                            trailingIcon = {
+                                                IconButton(onClick = { editSubjectDropdownExpanded = true }) {
+                                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().clickable { editSubjectDropdownExpanded = true }
+                                        )
+                                        DropdownMenu(
+                                            expanded = editSubjectDropdownExpanded,
+                                            onDismissRequest = { editSubjectDropdownExpanded = false }
+                                        ) {
+                                            if (availableSubsForClass.isEmpty()) {
+                                                DropdownMenuItem(
+                                                    text = { Text("কোন বিষয় খুঁজে পাওয়া যায়নি") },
+                                                    onClick = { editSubjectDropdownExpanded = false }
+                                                )
+                                            } else {
+                                                availableSubsForClass.forEach { sub ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("${sub.name} (${sub.code})") },
+                                                        onClick = {
+                                                            selectedSubjectToEdit = sub
+                                                            editSubjectDropdownExpanded = false
+                                                            subjectId = sub.id
+                                                            subjectCode = sub.code
+                                                            subjectName = sub.name
+                                                            textbookNameValue = sub.textbookName
+                                                            streamValue = sub.stream
+                                                            colorHexValue = "0x" + sub.colorHex.toString(16).uppercase()
+                                                            totalChaptersInput = sub.totalChapters.toString()
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                OutlinedTextField(
+                                    value = subjectId,
+                                    onValueChange = { if (!editMode) subjectId = it.lowercase().replace(" ", "_") },
+                                    readOnly = editMode,
+                                    label = { Text("Subject ID (e.g. class_10_physics)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = subjectCode,
+                                    onValueChange = {
+                                        if (!editMode) {
+                                            subjectCode = it.lowercase().replace(" ", "_")
+                                            subjectId = "${classIdValue}_${it.lowercase().replace(" ", "_")}"
+                                        }
+                                    },
+                                    readOnly = editMode,
+                                    label = { Text("Subject Code (e.g. physics)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 OutlinedTextField(value = subjectName, onValueChange = { subjectName = it }, label = { Text("বিষয়ের নাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = textbookNameValue, onValueChange = { textbookNameValue = it }, label = { Text("পাঠ্যবইয়ের নাম (e.g. গণিত প্রকাশ)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = streamValue, onValueChange = { streamValue = it.lowercase() }, label = { Text("শাখা (e.g. common, science, arts)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -3353,7 +3536,7 @@ fun AdminPanelScreen(
                                         viewModel.addFirestoreSubject(newSub) { success, msg ->
                                             actionSuccess = success
                                             actionMessage = msg
-                                            if (success) {
+                                            if (success && !editMode) {
                                                 subjectId = ""; subjectCode = ""; subjectName = ""; textbookNameValue = ""
                                             }
                                         }
@@ -3362,7 +3545,7 @@ fun AdminPanelScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("💾 বিষয় তৈরি করুন", fontWeight = FontWeight.Bold)
+                                    Text(text = if (editMode) "💾 বিষয় আপডেট করুন" else "💾 বিষয় তৈরি করুন", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -3379,19 +3562,237 @@ fun AdminPanelScreen(
                         var keyPointsValue by remember { mutableStateOf("") }
                         var formulaeValue by remember { mutableStateOf("") }
                         
+                        var editMode by remember { mutableStateOf(false) }
+                        var selectedTopicToEdit by remember { mutableStateOf<com.example.data.local.TopicEntity?>(null) }
+                        
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("🏷️ ফায়ারবেসে নতুন টপিক (Topic) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                Text(
+                                    text = if (editMode) "🏷️ ফায়ারবেসে টপিক (Topic) এডিট করুন" else "🏷️ ফায়ারবেসে নতুন টপিক (Topic) যুক্ত করুন",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                                 
-                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = subjectIdValue, onValueChange = { subjectIdValue = it }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = chapterIdValue, onValueChange = { chapterIdValue = it }, label = { Text("Chapter ID (e.g. phy_ch1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = topicId, onValueChange = { topicId = it.lowercase().replace(" ", "_") }, label = { Text("Topic ID (e.g. phy_ch1_t1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = topicOrderInput, onValueChange = { topicOrderInput = it }, label = { Text("টপিক ক্রমানুসার (Order Index)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = !editMode,
+                                        onClick = {
+                                            editMode = false
+                                            selectedTopicToEdit = null
+                                            topicId = ""
+                                            topicOrderInput = "1"
+                                            topicTitleValue = ""
+                                            summaryValue = ""
+                                            keyPointsValue = ""
+                                            formulaeValue = ""
+                                        },
+                                        label = { Text("➕ নতুন তৈরি করুন") }
+                                    )
+                                    FilterChip(
+                                        selected = editMode,
+                                        onClick = {
+                                            editMode = true
+                                        },
+                                        label = { Text("✏️ এডিট করুন") }
+                                    )
+                                }
+                                
+                                var classDropdownExpanded by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = classIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("শ্রেণি নির্বাচন করুন (Select Class)") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { classDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Class")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { classDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = classDropdownExpanded,
+                                        onDismissRequest = { classDropdownExpanded = false }
+                                    ) {
+                                        val classesToShow = if (liveClasses.isNotEmpty()) liveClasses else com.example.data.model.AcademicClassProvider.ALL_CLASSES
+                                        classesToShow.forEach { cls: com.example.data.model.AcademicClass ->
+                                            val displayName = cls.name
+                                            DropdownMenuItem(
+                                                text = { Text("$displayName (${cls.board})") },
+                                                onClick = {
+                                                    classIdValue = cls.id
+                                                    classDropdownExpanded = false
+                                                    subjectIdValue = "" // Reset subject on class change
+                                                    chapterIdValue = "" // Reset chapter
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                var subjectDropdownExpanded by remember { mutableStateOf(false) }
+                                val availableSubsForClass = remember(classIdValue, dbSubjects) {
+                                    getAdminClassSubjectsHelper(classIdValue)
+                                }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = subjectIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("বিষয় নির্বাচন করুন (Select Subject)") },
+                                        placeholder = { Text("প্রথমে শ্রেণি নির্বাচন করুন") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { subjectDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { if (classIdValue.isNotBlank()) subjectDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = subjectDropdownExpanded,
+                                        onDismissRequest = { subjectDropdownExpanded = false }
+                                    ) {
+                                        if (availableSubsForClass.isEmpty()) {
+                                            DropdownMenuItem(
+                                                text = { Text("কোন বিষয় খুঁজে পাওয়া যায়নি") },
+                                                onClick = { subjectDropdownExpanded = false }
+                                            )
+                                        } else {
+                                            availableSubsForClass.forEach { sub ->
+                                                DropdownMenuItem(
+                                                    text = { Text("${sub.name} (${sub.code})") },
+                                                    onClick = {
+                                                        subjectIdValue = sub.id
+                                                        subjectDropdownExpanded = false
+                                                        chapterIdValue = "" // Reset chapter on subject change
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                var chapterDropdownExpanded by remember { mutableStateOf(false) }
+                                val availableChaptersForSubject = remember(subjectIdValue, dbChapters) {
+                                    dbChapters.filter { it.subjectId == subjectIdValue || it.subjectId == subjectIdValue.substringAfterLast("_", "") }
+                                }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = chapterIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("অধ্যায় নির্বাচন করুন (Select Chapter)") },
+                                        placeholder = { Text("প্রথমে বিষয় নির্বাচন করুন") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { chapterDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Chapter")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { if (subjectIdValue.isNotBlank()) chapterDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = chapterDropdownExpanded,
+                                        onDismissRequest = { chapterDropdownExpanded = false }
+                                    ) {
+                                        if (availableChaptersForSubject.isEmpty()) {
+                                            DropdownMenuItem(
+                                                text = { Text("কোন অধ্যায় খুঁজে পাওয়া যায়নি") },
+                                                onClick = { chapterDropdownExpanded = false }
+                                            )
+                                        } else {
+                                            availableChaptersForSubject.forEach { ch ->
+                                                DropdownMenuItem(
+                                                    text = { Text("অধ্যায় ${ch.chapterNumber}: ${ch.title}") },
+                                                    onClick = {
+                                                        chapterIdValue = ch.id
+                                                        chapterDropdownExpanded = false
+                                                        val tpIdx = topicOrderInput.trim().toIntOrNull() ?: 1
+                                                        topicId = "${ch.id}_t$tpIdx"
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                val availableTopicsForChapter = remember(chapterIdValue, dbTopics) {
+                                    dbTopics.filter { it.chapterId == chapterIdValue }
+                                }
+
+                                if (editMode) {
+                                    var editTopicDropdownExpanded by remember { mutableStateOf(false) }
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        OutlinedTextField(
+                                            value = selectedTopicToEdit?.title ?: "এডিটের জন্য টপিক সিলেক্ট করুন",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("টপিক নির্বাচন করুন (Select Topic to Edit)") },
+                                            trailingIcon = {
+                                                IconButton(onClick = { editTopicDropdownExpanded = true }) {
+                                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Topic")
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().clickable { if (chapterIdValue.isNotBlank()) editTopicDropdownExpanded = true }
+                                        )
+                                        DropdownMenu(
+                                            expanded = editTopicDropdownExpanded,
+                                            onDismissRequest = { editTopicDropdownExpanded = false }
+                                        ) {
+                                            if (availableTopicsForChapter.isEmpty()) {
+                                                DropdownMenuItem(
+                                                    text = { Text("কোন টপিক খুঁজে পাওয়া যায়নি") },
+                                                    onClick = { editTopicDropdownExpanded = false }
+                                                )
+                                            } else {
+                                                availableTopicsForChapter.forEach { tp ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("টপিক ${tp.orderIndex}: ${tp.title}") },
+                                                        onClick = {
+                                                            selectedTopicToEdit = tp
+                                                            editTopicDropdownExpanded = false
+                                                            topicId = tp.id
+                                                            topicOrderInput = tp.orderIndex.toString()
+                                                            topicTitleValue = tp.title
+                                                            summaryValue = tp.summary
+                                                            keyPointsValue = tp.keyPointsJson.replace("|", " | ")
+                                                            formulaeValue = tp.solutionData ?: ""
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                OutlinedTextField(
+                                    value = topicId,
+                                    onValueChange = { if (!editMode) topicId = it.lowercase().replace(" ", "_") },
+                                    readOnly = editMode,
+                                    label = { Text("Topic ID (e.g. phy_ch1_t1)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = topicOrderInput,
+                                    onValueChange = {
+                                        if (!editMode) {
+                                            topicOrderInput = it
+                                            val idx = it.trim().toIntOrNull() ?: 1
+                                            topicId = "${chapterIdValue}_t$idx"
+                                        }
+                                    },
+                                    readOnly = editMode,
+                                    label = { Text("টপিক ক্রমানুসার (Order Index)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 OutlinedTextField(value = topicTitleValue, onValueChange = { topicTitleValue = it }, label = { Text("টপিকের শিরোনাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = summaryValue, onValueChange = { summaryValue = it }, label = { Text("টপিকের সংক্ষিপ্ত সারসংক্ষেপ") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = keyPointsValue, onValueChange = { keyPointsValue = it }, label = { Text("গুরুত্বপূর্ণ পয়েন্টসমূহ (পাইপ '|' দিয়ে আলাদা করুন)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -3416,7 +3817,7 @@ fun AdminPanelScreen(
                                         viewModel.addFirestoreTopic(newTopic) { success, msg ->
                                             actionSuccess = success
                                             actionMessage = msg
-                                            if (success) {
+                                            if (success && !editMode) {
                                                 topicId = ""; topicTitleValue = ""; summaryValue = ""; keyPointsValue = ""; formulaeValue = ""
                                             }
                                         }
@@ -3425,7 +3826,7 @@ fun AdminPanelScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("💾 টপিক তৈরি করুন", fontWeight = FontWeight.Bold)
+                                    Text(text = if (editMode) "💾 টপিক আপডেট করুন" else "💾 টপিক তৈরি করুন", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -3441,18 +3842,194 @@ fun AdminPanelScreen(
                         var totalTopicsInput by remember { mutableStateOf("5") }
                         var weightageInput by remember { mutableStateOf("15") }
                         
+                        var editMode by remember { mutableStateOf(false) }
+                        var selectedChapterToEdit by remember { mutableStateOf<com.example.data.local.ChapterEntity?>(null) }
+                        
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("📖 ফায়ারবেসে নতুন অধ্যায় (Chapter) যুক্ত করুন", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                Text(
+                                    text = if (editMode) "📖 ফায়ারবেসে অধ্যায় (Chapter) এডিট করুন" else "📖 ফায়ারবেসে নতুন অধ্যায় (Chapter) যুক্ত করুন",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                                 
-                                OutlinedTextField(value = classIdValue, onValueChange = { classIdValue = it }, label = { Text("Class ID (e.g. class_10_wbbse)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = subjectIdValue, onValueChange = { subjectIdValue = it }, label = { Text("Subject ID (e.g. class_10_physics)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = chapterId, onValueChange = { chapterId = it.lowercase().replace(" ", "_") }, label = { Text("Chapter ID (e.g. phy_ch1)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = chapterNumInput, onValueChange = { chapterNumInput = it }, label = { Text("অধ্যায় নম্বর (e.g. 1, 2, 3)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = !editMode,
+                                        onClick = {
+                                            editMode = false
+                                            selectedChapterToEdit = null
+                                            chapterId = ""
+                                            chapterNumInput = "1"
+                                            chapterTitleValue = ""
+                                            descriptionValue = ""
+                                            totalTopicsInput = "5"
+                                            weightageInput = "15"
+                                        },
+                                        label = { Text("➕ নতুন তৈরি করুন") }
+                                    )
+                                    FilterChip(
+                                        selected = editMode,
+                                        onClick = {
+                                            editMode = true
+                                        },
+                                        label = { Text("✏️ এডিট করুন") }
+                                    )
+                                }
+                                
+                                var classDropdownExpanded by remember { mutableStateOf(false) }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = classIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("শ্রেণি নির্বাচন করুন (Select Class)") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { classDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Class")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { classDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = classDropdownExpanded,
+                                        onDismissRequest = { classDropdownExpanded = false }
+                                    ) {
+                                        val classesToShow = if (liveClasses.isNotEmpty()) liveClasses else com.example.data.model.AcademicClassProvider.ALL_CLASSES
+                                        classesToShow.forEach { cls: com.example.data.model.AcademicClass ->
+                                            val displayName = cls.name
+                                            DropdownMenuItem(
+                                                text = { Text("$displayName (${cls.board})") },
+                                                onClick = {
+                                                    classIdValue = cls.id
+                                                    classDropdownExpanded = false
+                                                    subjectIdValue = "" // Reset subject on class change
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                var subjectDropdownExpanded by remember { mutableStateOf(false) }
+                                val availableSubsForClass = remember(classIdValue, dbSubjects) {
+                                    getAdminClassSubjectsHelper(classIdValue)
+                                }
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = subjectIdValue,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("বিষয় নির্বাচন করুন (Select Subject)") },
+                                        placeholder = { Text("প্রথমে শ্রেণি নির্বাচন করুন") },
+                                        trailingIcon = {
+                                            IconButton(onClick = { subjectDropdownExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Subject")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().clickable { if (classIdValue.isNotBlank()) subjectDropdownExpanded = true }
+                                    )
+                                    DropdownMenu(
+                                        expanded = subjectDropdownExpanded,
+                                        onDismissRequest = { subjectDropdownExpanded = false }
+                                    ) {
+                                        if (availableSubsForClass.isEmpty()) {
+                                            DropdownMenuItem(
+                                                text = { Text("কোন বিষয় খুঁজে পাওয়া যায়নি") },
+                                                onClick = { subjectDropdownExpanded = false }
+                                            )
+                                        } else {
+                                            availableSubsForClass.forEach { sub ->
+                                                DropdownMenuItem(
+                                                    text = { Text("${sub.name} (${sub.code})") },
+                                                    onClick = {
+                                                        subjectIdValue = sub.id
+                                                        subjectDropdownExpanded = false
+                                                        val chNum = chapterNumInput.trim().toIntOrNull() ?: 1
+                                                        chapterId = "${sub.code}_ch$chNum"
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                val availableChaptersForSubject = remember(subjectIdValue, dbChapters) {
+                                    dbChapters.filter { it.subjectId == subjectIdValue || it.subjectId == subjectIdValue.substringAfterLast("_", "") }
+                                }
+
+                                if (editMode) {
+                                    var editChapterDropdownExpanded by remember { mutableStateOf(false) }
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        OutlinedTextField(
+                                            value = selectedChapterToEdit?.title ?: "এডিটের জন্য অধ্যায় সিলেক্ট করুন",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("অধ্যায় নির্বাচন করুন (Select Chapter to Edit)") },
+                                            trailingIcon = {
+                                                IconButton(onClick = { editChapterDropdownExpanded = true }) {
+                                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Chapter")
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().clickable { if (subjectIdValue.isNotBlank()) editChapterDropdownExpanded = true }
+                                        )
+                                        DropdownMenu(
+                                            expanded = editChapterDropdownExpanded,
+                                            onDismissRequest = { editChapterDropdownExpanded = false }
+                                        ) {
+                                            if (availableChaptersForSubject.isEmpty()) {
+                                                DropdownMenuItem(
+                                                    text = { Text("কোন অধ্যায় খুঁজে পাওয়া যায়নি") },
+                                                    onClick = { editChapterDropdownExpanded = false }
+                                                )
+                                            } else {
+                                                availableChaptersForSubject.forEach { ch ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("অধ্যায় ${ch.chapterNumber}: ${ch.title}") },
+                                                        onClick = {
+                                                            selectedChapterToEdit = ch
+                                                            editChapterDropdownExpanded = false
+                                                            chapterId = ch.id
+                                                            chapterNumInput = ch.chapterNumber.toString()
+                                                            chapterTitleValue = ch.title
+                                                            descriptionValue = ch.description
+                                                            totalTopicsInput = ch.totalTopics.toString()
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                OutlinedTextField(
+                                    value = chapterId,
+                                    onValueChange = { if (!editMode) chapterId = it.lowercase().replace(" ", "_") },
+                                    readOnly = editMode,
+                                    label = { Text("Chapter ID (e.g. phy_ch1)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = chapterNumInput,
+                                    onValueChange = {
+                                        if (!editMode) {
+                                            chapterNumInput = it
+                                            val subCode = if (subjectIdValue.contains("_")) subjectIdValue.substringAfterLast("_") else subjectIdValue
+                                            val num = it.trim().toIntOrNull() ?: 1
+                                            chapterId = "${subCode}_ch$num"
+                                        }
+                                    },
+                                    readOnly = editMode,
+                                    label = { Text("অধ্যায় নম্বর (e.g. 1, 2, 3)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 OutlinedTextField(value = chapterTitleValue, onValueChange = { chapterTitleValue = it }, label = { Text("অধ্যায়ের শিরোনাম (বাংলা)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = descriptionValue, onValueChange = { descriptionValue = it }, label = { Text("অধ্যায়ের বিবরণ") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                 OutlinedTextField(value = totalTopicsInput, onValueChange = { totalTopicsInput = it }, label = { Text("টপিকের মোট সংখ্যা") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -3474,7 +4051,7 @@ fun AdminPanelScreen(
                                         viewModel.addFirestoreChapter(newCh) { success, msg ->
                                             actionSuccess = success
                                             actionMessage = msg
-                                            if (success) {
+                                            if (success && !editMode) {
                                                 chapterId = ""; chapterTitleValue = ""; descriptionValue = ""
                                             }
                                         }
@@ -3483,7 +4060,7 @@ fun AdminPanelScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Text("💾 অধ্যায় তৈরি করুন", fontWeight = FontWeight.Bold)
+                                    Text(text = if (editMode) "💾 অধ্যায় আপডেট করুন" else "💾 অধ্যায় তৈরি করুন", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
