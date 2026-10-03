@@ -42,9 +42,35 @@ import com.example.ui.theme.WrongRed
 import com.example.ui.viewmodel.DeshExamViewModel
 
 private fun getAdminClassSubjects(classId: String): List<SubjectEntity> {
-    return listOf(
-        SubjectEntity("${classId}_main", "main", "সকল বিষয় (Curriculum)", "All Subjects", 5, 0, 0, 0xFF3B82F6L, classId, "common")
-    )
+    return when {
+        classId.contains("wbchse") || classId.contains("class_11") || classId.contains("class_12") -> listOf(
+            SubjectEntity("${classId}_bengali", "bengali", "বাংলা (Bengali)", "Bengali", 10, 0, 0, 0xFFE11D48L, classId, "common"),
+            SubjectEntity("${classId}_english", "english", "ইংরেজি (English)", "English", 10, 0, 0, 0xFF2563EBL, classId, "common"),
+            SubjectEntity("${classId}_physics", "physics", "পদার্থবিদ্যা (Physics)", "Physics", 10, 0, 0, 0xFF7C3AEDL, classId, "science"),
+            SubjectEntity("${classId}_chemistry", "chemistry", "রসায়ন (Chemistry)", "Chemistry", 10, 0, 0, 0xFF059669L, classId, "science"),
+            SubjectEntity("${classId}_mathematics", "mathematics", "গণিত (Mathematics)", "Mathematics", 10, 0, 0, 0xFFD97706L, classId, "science"),
+            SubjectEntity("${classId}_biology", "biology", "জীববিজ্ঞান (Biological Science)", "Biology", 10, 0, 0, 0xFF16A34AL, classId, "science"),
+            SubjectEntity("${classId}_history", "history", "ইতিহাস (History)", "History", 10, 0, 0, 0xFFD97706L, classId, "arts"),
+            SubjectEntity("${classId}_geography", "geography", "ভূগোল (Geography)", "Geography", 10, 0, 0, 0xFF0284C7L, classId, "arts"),
+            SubjectEntity("${classId}_pol_science", "political_science", "রাষ্ট্রবিজ্ঞান (Political Science)", "Political Science", 10, 0, 0, 0xFF8B5CF6L, classId, "arts"),
+            SubjectEntity("${classId}_accountancy", "accountancy", "হিসাবশাস্ত্র (Accountancy)", "Accountancy", 10, 0, 0, 0xFF0D9488L, classId, "commerce")
+        )
+        classId.contains("wbbpe") -> listOf(
+            SubjectEntity("${classId}_bengali", "bengali", "আমার বই / পাতাবাহার (বাংলা)", "Bengali", 5, 0, 0, 0xFFE11D48L, classId, "common"),
+            SubjectEntity("${classId}_english", "english", "Butterfly / English", "English", 5, 0, 0, 0xFF2563EBL, classId, "common"),
+            SubjectEntity("${classId}_math", "mathematics", "আমার গণিত (Mathematics)", "Mathematics", 5, 0, 0, 0xFF059669L, classId, "common"),
+            SubjectEntity("${classId}_environment", "environment", "আমাদের পরিবেশ (Environment)", "Environment", 5, 0, 0, 0xFF16A34AL, classId, "common")
+        )
+        else -> listOf(
+            SubjectEntity("${classId}_bengali", "bengali", "প্রথম ভাষা বাংলা (Bengali)", "Bengali", 10, 0, 0, 0xFFE11D48L, classId, "common"),
+            SubjectEntity("${classId}_english", "english", "দ্বিতীয় ভাষা ইংরেজি (English)", "English", 10, 0, 0, 0xFF2563EBL, classId, "common"),
+            SubjectEntity("${classId}_mathematics", "mathematics", "গণিত (Mathematics)", "Mathematics", 10, 0, 0, 0xFF059669L, classId, "common"),
+            SubjectEntity("${classId}_physical_science", "physical_science", "ভৌত বিজ্ঞান (Physical Science)", "Physical Science", 10, 0, 0, 0xFF7C3AEDL, classId, "common"),
+            SubjectEntity("${classId}_life_science", "life_science", "জীবন বিজ্ঞান (Life Science)", "Life Science", 10, 0, 0, 0xFF16A34AL, classId, "common"),
+            SubjectEntity("${classId}_history", "history", "ইতিহাস (History)", "History", 10, 0, 0, 0xFFD97706L, classId, "common"),
+            SubjectEntity("${classId}_geography", "geography", "ভূগোল (Geography)", "Geography", 10, 0, 0, 0xFF0284C7L, classId, "common")
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,20 +188,42 @@ fun AdminPanelScreen(
     val sampleCsvTemplate = """উদ্ভিদের জল সংবহনকারী কলা কোনটি? | জাইলেম | ফ্লোয়েম | ক্যামবিয়াম | কর্টেক্স | 0 | জাইলেম কলার মাধ্যমে জল সংবহন হয়।
 কোষের শক্তিঘর বলা হয় কাকে? | গলগি বডি | মাইটোকন্ড্রিয়া | নিউক্লিয়াস | রাইবোজোম | 1 | মাইটোকন্ড্রিয়ায় ATP উৎপন্ন হয়।"""
 
-    val allClasses = remember { AcademicClassProvider.ALL_CLASSES }
-    var selectedClass by remember {
-        mutableStateOf(allClasses.firstOrNull { it.id == "class_10_wbbse" } ?: allClasses.first())
+    // 1. Board Selector
+    val allBoards = remember { com.example.data.model.AcademicClassProvider.ALL_BOARDS }
+    var selectedBoard by remember { mutableStateOf(allBoards.find { it.id == "WBBSE" } ?: allBoards.first()) }
+    var boardDropdownExpanded by remember { mutableStateOf(false) }
+
+    // 2. Class Selector (Filtered by Selected Board)
+    val allClasses = remember { com.example.data.model.AcademicClassProvider.ALL_CLASSES }
+    val classesForBoard = remember(selectedBoard, allClasses) {
+        allClasses.filter { it.board.equals(selectedBoard.id, ignoreCase = true) }
+    }
+    var selectedClass by remember(selectedBoard) {
+        mutableStateOf(classesForBoard.firstOrNull { it.id == "class_10_wbbse" } ?: classesForBoard.firstOrNull() ?: allClasses.first())
     }
     var classDropdownExpanded by remember { mutableStateOf(false) }
 
-    val allChapters by viewModel.chapters.collectAsState()
-    val allTopics by viewModel.topics.collectAsState()
+    // 3. SubClass / Stream Selector (Condition: Class 11, 12 or WBCHSE)
+    val hasStreams = remember(selectedClass) {
+        selectedClass.board.equals("WBCHSE", ignoreCase = true) || selectedClass.classNumber in 11..12
+    }
+    val allStreams = remember { com.example.data.model.AcademicStreams.LIST }
+    var selectedStream by remember(selectedClass) {
+        mutableStateOf(if (hasStreams) com.example.data.model.AcademicStreams.ALL else null)
+    }
+    var streamDropdownExpanded by remember { mutableStateOf(false) }
 
-    val classSubjects = remember(selectedClass) {
-        getAdminClassSubjects(selectedClass.id)
+    // 4. Subject Selector: Local / Asset Data -> Firestore Fallback
+    val classSubjects = remember(selectedClass, selectedStream) {
+        val baseSubs = getAdminClassSubjects(selectedClass.id)
+        if (selectedStream != null && selectedStream!!.id != "all") {
+            baseSubs.filter { it.stream == "common" || it.stream.equals(selectedStream!!.id, ignoreCase = true) }
+        } else {
+            baseSubs
+        }
     }
 
-    var selectedSubject by remember(selectedClass) {
+    var selectedSubject by remember(selectedClass, selectedStream) {
         mutableStateOf(classSubjects.first())
     }
 
@@ -183,8 +231,35 @@ fun AdminPanelScreen(
         viewModel.selectSubject(selectedSubject.id)
     }
 
-    val filteredChapters = remember(selectedSubject, selectedClass, allChapters) {
-        allChapters.filter { it.subjectId == selectedSubject.id }
+    val allChapters by viewModel.chapters.collectAsState()
+    val allTopics by viewModel.topics.collectAsState()
+
+    // 5. Chapter Selector: Local First -> Firestore Fallback
+    val filteredChapters = remember(selectedSubject, selectedClass, allChapters, firestoreQuestionsList) {
+        val localChs = allChapters.filter { it.subjectId == selectedSubject.id || it.subjectId == selectedSubject.code }
+        if (localChs.isNotEmpty()) {
+            localChs
+        } else {
+            // Local data unavailable -> Firestore fallback
+            val fsChIds = firestoreQuestionsList
+                .filter { (it.classId == selectedClass.id || it.classId.isEmpty()) && (it.subjectId == selectedSubject.id || it.subjectId == selectedSubject.code) && it.chapterId.isNotBlank() }
+                .map { it.chapterId }
+                .distinct()
+            fsChIds.mapIndexed { idx, chId ->
+                ChapterEntity(
+                    id = chId,
+                    subjectId = selectedSubject.id,
+                    chapterNumber = idx + 1,
+                    title = chId.replace("_", " ").replace("-", " ").uppercase(),
+                    description = "Firestore Chapter",
+                    totalTopics = 1,
+                    completedTopics = 0,
+                    bossUnlocked = true,
+                    bossCompleted = false,
+                    masteryPercentage = 0
+                )
+            }
+        }
     }
 
     var selectedChapter by remember(selectedSubject, selectedClass, filteredChapters) {
@@ -195,9 +270,34 @@ fun AdminPanelScreen(
         mutableStateOf(filteredChapters.firstOrNull())
     }
 
-    val filteredTopics = remember(selectedChapter, allTopics) {
-        if (selectedChapter != null) {
-            allTopics.filter { it.chapterId == selectedChapter!!.id }
+    // 6. Topic Selector: Local First -> Firestore Fallback
+    val filteredTopics = remember(selectedChapter, allTopics, firestoreQuestionsList) {
+        val chId = selectedChapter?.id ?: ""
+        if (chId.isNotBlank()) {
+            val localTps = allTopics.filter { it.chapterId == chId }
+            if (localTps.isNotEmpty()) {
+                localTps
+            } else {
+                // Local data unavailable -> Firestore fallback
+                val fsTpIds = firestoreQuestionsList
+                    .filter { it.chapterId == chId && it.topicId.isNotBlank() }
+                    .map { it.topicId }
+                    .distinct()
+                fsTpIds.mapIndexed { idx, tpId ->
+                    TopicEntity(
+                        id = tpId,
+                        chapterId = chId,
+                        subjectId = selectedSubject.id,
+                        orderIndex = idx + 1,
+                        title = tpId.replace("_", " ").replace("-", " ").uppercase(),
+                        summary = "Firestore Topic",
+                        keyPointsJson = "",
+                        isUnlocked = true,
+                        masteryPercentage = 0,
+                        questionCount = 10
+                    )
+                }
+            }
         } else {
             emptyList()
         }
@@ -539,7 +639,7 @@ fun AdminPanelScreen(
                         ) {
                             Icon(Icons.Default.CheckCircleOutline, contentDescription = null, tint = CorrectGreen)
                             Text(
-                                text = "প্রথমে শ্রেণি নির্বাচন করুন, তারপর বিষয়, অধ্যায় ও অপশন বেছে নিয়ে প্রশ্ন যোগ করুন।",
+                                text = "প্রথমে পর্ষদ/বোর্ড ও শ্রেণি নির্বাচন করুন, তারপর বিষয়, অধ্যায় ও অপশন বেছে নিয়ে প্রশ্ন যোগ করুন।",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -547,10 +647,55 @@ fun AdminPanelScreen(
                     }
                 }
 
+                // 1. Board Selector
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = boardDropdownExpanded,
+                        onExpandedChange = { boardDropdownExpanded = it },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = "${selectedBoard.shortName} — ${selectedBoard.classRangeDescription}",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("১. পর্ষদ / বোর্ড (Education Board)") },
+                            leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = ExamGold) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = boardDropdownExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = boardDropdownExpanded,
+                            onDismissRequest = { boardDropdownExpanded = false }
+                        ) {
+                            allBoards.forEach { board ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text("${board.shortName} (${board.fullNameBengali})", fontWeight = FontWeight.Bold)
+                                            Text("📌 শ্রেণি সীমা: ${board.classRangeDescription}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedBoard = board
+                                        val clsForB = allClasses.filter { it.board.equals(board.id, ignoreCase = true) }
+                                        selectedClass = clsForB.firstOrNull() ?: allClasses.first()
+                                        val subs = getAdminClassSubjects(selectedClass.id)
+                                        selectedSubject = subs.first()
+                                        boardDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 2. Class Selector
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "১. শ্রেণি নির্বাচন করুন:",
+                            text = "২. শ্রেণি নির্বাচন করুন:",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -559,7 +704,7 @@ fun AdminPanelScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            items(allClasses) { cls ->
+                            items(classesForBoard) { cls ->
                                 val isSelected = selectedClass.id == cls.id
                                 FilterChip(
                                     selected = isSelected,
@@ -592,7 +737,7 @@ fun AdminPanelScreen(
                                 value = "${selectedClass.name} (${selectedClass.board})",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("শ্রেণি ও বোর্ড") },
+                                label = { Text("শ্রেণি (Class)") },
                                 leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = ExamGold) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -603,7 +748,7 @@ fun AdminPanelScreen(
                                 expanded = classDropdownExpanded,
                                 onDismissRequest = { classDropdownExpanded = false }
                             ) {
-                                allClasses.forEach { cls ->
+                                classesForBoard.forEach { cls ->
                                     DropdownMenuItem(
                                         text = {
                                             Column {
@@ -624,6 +769,47 @@ fun AdminPanelScreen(
                     }
                 }
 
+                // 3. SubClass / Stream Selector (if applicable)
+                if (hasStreams) {
+                    item {
+                        ExposedDropdownMenuBox(
+                            expanded = streamDropdownExpanded,
+                            onExpandedChange = { streamDropdownExpanded = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = selectedStream?.name ?: "সকল বিভাগ (All Streams)",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("৩. বিভাগ / শাখা (Stream / SubClass)") },
+                                leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = ExamGold) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = streamDropdownExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = streamDropdownExpanded,
+                                onDismissRequest = { streamDropdownExpanded = false }
+                            ) {
+                                allStreams.forEach { st ->
+                                    DropdownMenuItem(
+                                        text = { Text(st.name, fontWeight = FontWeight.Bold) },
+                                        onClick = {
+                                            selectedStream = st
+                                            val subs = getAdminClassSubjects(selectedClass.id)
+                                            val filteredSubs = if (st.id != "all") subs.filter { it.stream == "common" || it.stream.equals(st.id, ignoreCase = true) } else subs
+                                            selectedSubject = filteredSubs.firstOrNull() ?: subs.first()
+                                            streamDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4. Subject Selector (Local First -> Firestore Fallback)
                 item {
                     ExposedDropdownMenuBox(
                         expanded = subjectDropdownExpanded,
@@ -634,7 +820,7 @@ fun AdminPanelScreen(
                             value = selectedSubject.name,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("২. বিষয় নির্বাচন করুন") },
+                            label = { Text("৪. বিষয় নির্বাচন করুন (Subject)") },
                             leadingIcon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = ExamGold) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = subjectDropdownExpanded) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -657,10 +843,6 @@ fun AdminPanelScreen(
                                     },
                                     onClick = {
                                         selectedSubject = subject
-                                        val chs = allChapters.filter { it.subjectId == subject.id }
-                                        selectedChapter = chs.firstOrNull()
-                                        val tps = if (selectedChapter != null) allTopics.filter { it.chapterId == selectedChapter!!.id } else emptyList()
-                                        selectedTopic = tps.firstOrNull()
                                         subjectDropdownExpanded = false
                                     }
                                 )
@@ -669,6 +851,7 @@ fun AdminPanelScreen(
                     }
                 }
 
+                // 5. Chapter Selector (Local First -> Firestore Fallback)
                 item {
                     ExposedDropdownMenuBox(
                         expanded = chapterDropdownExpanded,
@@ -676,10 +859,10 @@ fun AdminPanelScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
-                            value = selectedChapter?.let { "অধ্যায় ${it.chapterNumber}: ${it.title}" } ?: "কোনো অধ্যায় নেই",
+                            value = selectedChapter?.let { "অধ্যায় ${it.chapterNumber}: ${it.title}" } ?: "কোনো অধ্যায় পাওয়া যায়নি (লোকাল/ক্লাউড)",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("৩. অধ্যায় নির্বাচন করুন") },
+                            label = { Text("৫. অধ্যায় নির্বাচন করুন (Chapter)") },
                             leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null, tint = ExamGold) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapterDropdownExpanded) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),

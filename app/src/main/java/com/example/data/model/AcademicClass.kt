@@ -87,7 +87,7 @@ object AcademicClassProvider {
             fullNameEnglish = "West Bengal Board of Primary Education",
             subtitleBengali = "প্রাথমিক শিক্ষা পর্ষদ",
             levelBadge = "প্রাথমিক স্তর",
-            classRangeDescription = "প্রাক-প্রাথমিক (KG) ও ১ম থেকে ৪র্থ শ্রেণি",
+            classRangeDescription = "প্রাক-প্রাথমিক থেকে ৪র্থ শ্রেণি",
             iconName = "ChildCare"
         ),
         EducationBoard(
@@ -97,7 +97,7 @@ object AcademicClassProvider {
             fullNameEnglish = "West Bengal Board of Secondary Education",
             subtitleBengali = "মাধ্যমিক শিক্ষা পর্ষদ",
             levelBadge = "মাধ্যমিক স্তর",
-            classRangeDescription = "৫ম থেকে ১০ম শ্রেণি (Madhyamik)",
+            classRangeDescription = "৫ম থেকে ১০ম শ্রেণি",
             iconName = "MenuBook"
         ),
         EducationBoard(
@@ -107,7 +107,7 @@ object AcademicClassProvider {
             fullNameEnglish = "West Bengal Council of Higher Secondary Education",
             subtitleBengali = "উচ্চ মাধ্যমিক শিক্ষা সংসদ",
             levelBadge = "উচ্চ মাধ্যমিক স্তর",
-            classRangeDescription = "একাদশ ও দ্বাদশ শ্রেণি (Higher Secondary)",
+            classRangeDescription = "একাদশ ও দ্বাদশ শ্রেণি",
             iconName = "School"
         )
     )
