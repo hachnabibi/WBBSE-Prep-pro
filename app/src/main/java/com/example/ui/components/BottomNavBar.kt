@@ -38,7 +38,7 @@ sealed class NavItem(
     object Journey : NavItem(AppScreen.JOURNEY, "রোডম্যাপ", Icons.Default.Map)
     object Mock : NavItem(AppScreen.MOCK, "মক", Icons.Default.Quiz)
     object Video : NavItem(AppScreen.VIDEO_LESSON, "ভিডিও", Icons.Default.PlayCircle)
-    object Doubt : NavItem(AppScreen.DOUBT_SOLVER, "ডাউট", Icons.Default.QuestionAnswer)
+    object Doubt : NavItem(AppScreen.DOUBT_SOLVER, "ডাউট", Icons.Default.AutoAwesome)
     object Profile : NavItem(AppScreen.PROFILE, "প্রোফাইল", Icons.Default.Person)
 }
 

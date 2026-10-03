@@ -64,7 +64,8 @@ enum class AppScreen {
     CHAPTER_DETAIL,
     EDIT_PROFILE,
     INTERNET_ARCHIVE_SEARCH,
-    VIDEO_LESSON
+    VIDEO_LESSON,
+    MEMBERSHIP
 }
 
 data class AppSettings(
@@ -623,7 +624,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             AppScreen.CERTIFICATE, AppScreen.DOUBT_SOLVER, AppScreen.MULTIPLAYER_BATTLE,
             AppScreen.AUDIO_PODCASTS, AppScreen.STUDY_PLANNER, AppScreen.BOOKMARK_HUB, AppScreen.STUDY_SQUADS,
             AppScreen.PROGRESS_DASHBOARD, AppScreen.PDF_NOTES, AppScreen.PYQ_PDF_DOWNLOAD, AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD,
-            AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET,
+            AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET, AppScreen.MEMBERSHIP,
             AppScreen.SUBJECT_DETAIL -> {
                 _currentScreen.value = if (_previousScreen.value != AppScreen.SUBJECT_DETAIL && _previousScreen.value != AppScreen.HOME) _previousScreen.value else AppScreen.HOME
                 true

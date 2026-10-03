@@ -210,7 +210,7 @@ fun DeshExamApp(
         val coroutineScope = rememberCoroutineScope()
 
         val showTopHeader = !isFullScreenMode && currentScreen == AppScreen.HOME
-        val showBottomBar = !isFullScreenMode && currentScreen != AppScreen.EDIT_PROFILE && currentScreen != AppScreen.ADMIN_PANEL
+        val showBottomBar = !isFullScreenMode && currentScreen != AppScreen.EDIT_PROFILE && currentScreen != AppScreen.ADMIN_PANEL && currentScreen != AppScreen.MEMBERSHIP
 
         var isHeaderVisible by remember { mutableStateOf(true) }
 
@@ -640,6 +640,14 @@ fun DeshExamApp(
                         isBengali = isBengali,
                         onBack = { viewModel.goBack() },
                         modifier = screenModifier
+                    )
+                }
+                AppScreen.MEMBERSHIP -> {
+                    MembershipScreen(
+                        viewModel = viewModel,
+                        isBengali = isBengali,
+                        onBack = { viewModel.goBack() },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
                 AppScreen.WALLET -> {

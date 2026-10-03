@@ -414,8 +414,8 @@ fun AppNavigationDrawerSheet(
             )
 
             DrawerMenuItem(
-                icon = Icons.Default.CameraAlt,
-                label = "স্ন্যাপ ডাউট সলভার",
+                icon = Icons.Default.Forum,
+                label = "এআই ডাউট চ্যাট সলভার",
                 isSelected = currentScreen == AppScreen.DOUBT_SOLVER,
                 onClick = { onNavigate(AppScreen.DOUBT_SOLVER); onCloseDrawer() }
             )
@@ -528,6 +528,13 @@ fun AppNavigationDrawerSheet(
                 label = "আমার প্রোফাইল",
                 isSelected = currentScreen == AppScreen.PROFILE,
                 onClick = { onNavigate(AppScreen.PROFILE); onCloseDrawer() }
+            )
+
+            DrawerMenuItem(
+                icon = Icons.Default.WorkspacePremium,
+                label = "ভিআইপি মেম্বারশিপ",
+                isSelected = currentScreen == AppScreen.MEMBERSHIP,
+                onClick = { onNavigate(AppScreen.MEMBERSHIP); onCloseDrawer() }
             )
 
             DrawerMenuItem(
