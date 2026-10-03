@@ -444,9 +444,18 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             authRepository.authStateFlow.collect { user ->
                 if (user != null) {
-                    _isGuestUser.value = false
+                    _isGuestUser.value = user.isAnonymous
                     loadUserVideoProgress()
-                    _currentScreen.value = AppScreen.HOME
+                    val isCompleted = if (user.isAnonymous) {
+                        true // Guests don't need mandatory onboarding
+                    } else {
+                        prefs.getBoolean("onboarding_completed_${user.uid}", false)
+                    }
+                    if (isCompleted) {
+                        _currentScreen.value = AppScreen.HOME
+                    } else {
+                        _currentScreen.value = AppScreen.ONBOARDING
+                    }
                 }
             }
         }
@@ -816,6 +825,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             }
             val finalStream = if (resolvedClassId in listOf("class_11_wbchse", "class_12_wbchse")) stream else "all"
             repository.updateStudentProfile(name, school, district, targetExam, resolvedClassId, finalStream, studyGoals)
+            val uid = authUserState.value?.uid ?: "guest"
+            prefs.edit().putBoolean("onboarding_completed_$uid", true).apply()
             val newSubs = repository.getSubjectsForClassOnce(resolvedClassId)
             if (newSubs.isNotEmpty()) {
                 val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { com.example.util.StreamHelper.matchesStream(it.stream, finalStream) } ?: newSubs.first())
