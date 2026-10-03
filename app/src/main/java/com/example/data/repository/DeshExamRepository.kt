@@ -2352,7 +2352,10 @@ class DeshExamRepository(
             completedTopics = 0,
             bossUnlocked = false,
             bossCompleted = false,
-            masteryPercentage = 0
+            masteryPercentage = 0,
+            classId = fChapter.classId,
+            contentData = fChapter.contentData,
+            solutionData = fChapter.solutionData
         )
         dao.insertChapters(listOf(entity))
     }
@@ -2368,7 +2371,12 @@ class DeshExamRepository(
             keyPointsJson = fTopic.keyPoints.joinToString("|"),
             isUnlocked = fTopic.orderIndex == 1,
             masteryPercentage = 0,
-            questionCount = fTopic.questionCount
+            questionCount = fTopic.questionCount,
+            classId = fTopic.classId,
+            contentData = fTopic.contentData,
+            solutionData = fTopic.solutionData,
+            videoUrl = fTopic.videoUrl,
+            playlistJson = fTopic.playlistJson
         )
         dao.insertTopics(listOf(entity))
     }

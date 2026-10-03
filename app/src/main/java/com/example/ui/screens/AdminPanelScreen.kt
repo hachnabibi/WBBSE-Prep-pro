@@ -451,7 +451,8 @@ fun AdminPanelScreen(
                     Triple("🎯 লাইভ এক্সাম ক্রিয়েটর", "🎯 Live Exam Creator", Icons.Default.Stars),
                     Triple("📑 পরীক্ষা টেমপ্লেট CMS", "📑 Test CMS", Icons.Default.Assignment),
                     Triple("📦 বাল্ক ইমপোর্ট উইজার্ড", "📦 Bulk Import", Icons.Default.FileUpload),
-                    Triple("🏫 কারিকুলাম ক্রিয়েটর (CMS)", "🏫 Curriculum CMS", Icons.Default.AddBusiness)
+                    Triple("🏫 কারিকুলাম ক্রিয়েটর (CMS)", "🏫 Curriculum CMS", Icons.Default.AddBusiness),
+                    Triple("📖 অধ্যায় ও টপিক CRUD", "📖 Chapter & Topic CRUD", Icons.Default.FolderSpecial)
                 )
 
                 drawerItems.forEachIndexed { index, (bengaliTitle, englishTitle, icon) ->
@@ -4067,6 +4068,16 @@ fun AdminPanelScreen(
                     }
                 }
             }
+        } else if (selectedTab == 8) {
+            com.example.ui.screens.admin.AdminCurriculumCRUDTab(
+                viewModel = viewModel,
+                isBengali = isBengali,
+                onShowMessage = { msg, success ->
+                    actionSuccess = success
+                    actionMessage = msg
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 

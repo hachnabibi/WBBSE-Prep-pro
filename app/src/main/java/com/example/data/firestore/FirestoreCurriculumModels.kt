@@ -214,7 +214,9 @@ data class FirestoreChapter(
     val description: String = "",
     val totalTopics: Int = 0,
     val weightageMarks: Int = 15,
-    val orderIndex: Int = 0
+    val orderIndex: Int = 0,
+    val contentData: String? = null,
+    val solutionData: String? = null
 ) {
     val titleBengali: String get() = title
     val titleEnglish: String get() = title
@@ -235,7 +237,11 @@ data class FirestoreTopic(
     val summary: String = "",
     val keyPoints: List<String> = emptyList(),
     val formulae: List<String> = emptyList(),
-    val questionCount: Int = 0
+    val questionCount: Int = 0,
+    val contentData: String? = null,
+    val solutionData: String? = null,
+    val videoUrl: String? = null,
+    val playlistJson: String? = null
 ) {
     val titleBengali: String get() = title
     val titleEnglish: String get() = title

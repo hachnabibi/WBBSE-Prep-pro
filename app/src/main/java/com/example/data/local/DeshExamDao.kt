@@ -260,4 +260,10 @@ interface DeshExamDao {
 
     @Query("DELETE FROM academic_classes WHERE id = :id")
     suspend fun deleteClassById(id: String)
+
+    @Query("DELETE FROM chapters WHERE id = :id")
+    suspend fun deleteChapterById(id: String)
+
+    @Query("DELETE FROM topics WHERE id = :id")
+    suspend fun deleteTopicById(id: String)
 }

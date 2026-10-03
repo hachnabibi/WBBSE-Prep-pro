@@ -1689,8 +1689,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         bossUnlocked = false,
                         bossCompleted = false,
                         classId = chapter.classId,
-                        contentData = "",
-                        solutionData = ""
+                        contentData = chapter.contentData,
+                        solutionData = chapter.solutionData
                     )
                     database.deshExamDao().insertChapters(listOf(chapterEntity))
                     
@@ -1728,10 +1728,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         isUnlocked = true,
                         masteryPercentage = 0,
                         classId = topic.classId,
-                        contentData = "",
-                        solutionData = "",
-                        videoUrl = "",
-                        playlistJson = ""
+                        contentData = topic.contentData,
+                        solutionData = topic.solutionData ?: topic.formulae.joinToString("|"),
+                        videoUrl = topic.videoUrl,
+                        playlistJson = topic.playlistJson
                     )
                     database.deshExamDao().insertTopics(listOf(topicEntity))
                     
@@ -1741,6 +1741,50 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     withContext(Dispatchers.Main) {
                         onComplete(false, "ফায়ারবেসে সেভ করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteFirestoreChapter(chapterId: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cloudRes = firestoreService.deleteChapter(chapterId)
+                if (cloudRes.isSuccess) {
+                    database.deshExamDao().deleteChapterById(chapterId)
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "অধ্যায় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে ডিলিট করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেস থেকে ডিলিট করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteFirestoreTopic(topicId: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cloudRes = firestoreService.deleteTopic(topicId)
+                if (cloudRes.isSuccess) {
+                    database.deshExamDao().deleteTopicById(topicId)
+                    withContext(Dispatchers.Main) {
+                        onComplete(true, "টপিক সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে ডিলিট করা হয়েছে!")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "ফায়ারবেস থেকে ডিলিট করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
                     }
                 }
             } catch (e: Exception) {
