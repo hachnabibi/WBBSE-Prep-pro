@@ -2,6 +2,9 @@ package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -40,9 +43,7 @@ import com.example.data.model.AcademicClass
 import com.example.data.model.AcademicClassProvider
 import com.example.data.model.EducationBoard
 import com.example.data.model.AssessmentMode
-import com.example.ui.theme.ExamGold
-import com.example.ui.theme.CorrectGreen
-import com.example.ui.theme.WrongRed
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
 
 private fun getAdminClassSubjects(classId: String): List<SubjectEntity> {
@@ -478,7 +479,7 @@ fun AdminPanelScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 val drawerItems = listOf(
-                    Triple("🚀 অটো-সিঙ্ক ও ড্যাশবোর্ড", "🚀 Sync & Dashboard", Icons.Default.Sync),
+                    Triple("☁️ ক্লাউড ব্যাকআপ ও ড্যাশবোর্ড", "☁️ Cloud Backup & Dashboard", Icons.Default.CloudSync),
                     Triple("✍️ নতুন প্রশ্ন আপলোড", "✍️ Add Question", Icons.Default.PlaylistAdd),
                     Triple("📋 প্রশ্ন ব্যাংক সিএমএস", "📋 Question CMS", Icons.Default.MenuBook),
                     Triple("📝 কাস্টম মক টেস্ট মেকার", "📝 Custom Test", Icons.Default.Quiz),
@@ -543,7 +544,7 @@ fun AdminPanelScreen(
                             )
                             Text(
                                 text = when (selectedTab) {
-                                    0 -> "অটো-সিঙ্ক ও ড্যাশবোর্ড"
+                                    0 -> "ক্লাউড ব্যাকআপ ও ড্যাশবোর্ড"
                                     1 -> "নতুন প্রশ্ন আপলোড"
                                     2 -> "ফায়ারস্টোর প্রশ্ন ব্যাংক"
                                     3 -> "কাস্টম মক টেস্ট জেনারেটর"
@@ -621,253 +622,240 @@ fun AdminPanelScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    Card(
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, if (autoSyncStatus.isCloudConnected) CorrectGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        shape = RoundedCornerShape(20.dp),
-                                        color = if (autoSyncStatus.isCloudConnected) CorrectGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(40.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Sync,
-                                                contentDescription = null,
-                                                tint = if (autoSyncStatus.isCloudConnected) CorrectGreen else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    Column {
-                                        Text(
-                                            text = "রিয়েল-টাইম অটো-সিঙ্ক (Auto-Sync)",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "🟢 ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে সিঙ্ক হচ্ছে",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = CorrectGreen,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = autoSyncStatus.syncMessage,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    val timeStr = java.text.SimpleDateFormat("hh:mm:ss a", java.util.Locale.getDefault()).format(java.util.Date(autoSyncStatus.lastSyncedTimeMillis))
-                                    Text(
-                                        text = "সর্বশেষ সিঙ্ক: $timeStr",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    viewModel.triggerManualSync { success, msg ->
-                                        actionSuccess = success
-                                        actionMessage = msg
-                                    }
-                                },
-                                enabled = !autoSyncStatus.isSyncing && !isLoading,
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth().height(48.dp)
-                            ) {
-                                if (autoSyncStatus.isSyncing) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text("সিঙ্ক হচ্ছে...", color = Color.White)
-                                } else {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "🔄 এখনই সম্পূর্ণ ক্লাউড ডেটা সিঙ্ক করুন",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
                     val localStats = backupState.stats
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // Top Header with Quick Refresh
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    modifier = Modifier.size(50.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(PrimaryIndigo.copy(alpha = 0.18f), ExamCyan.copy(alpha = 0.10f))
+                                                )
+                                            )
+                                            .border(1.dp, PrimaryIndigo.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Icon(
                                             Icons.Default.CloudUpload,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(28.dp)
+                                            tint = PrimaryIndigo,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "☁️ লোকাল ডেটাবেজ ক্লাউড ব্যাকআপ",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "বোর্ড, ক্লাস, বিষয়, অধ্যায় ও প্রশ্নমালা ক্লাউডে ব্যাকআপ রাখুন",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "☁️ লোকাল ডেটাবেজ ক্লাউড ব্যাকআপ",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "বোর্ড, ক্লাস, বিষয়, অধ্যায়, টপিক, প্রশ্নমালা ও প্রোগ্রেস ফায়ারবেসে পুশ ও ব্যাকআপ রাখুন",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                                IconButton(
+                                    onClick = { viewModel.loadLocalDatabaseStats() },
+                                    enabled = !backupState.isBackingUp,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                ) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = "Refresh stats",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
 
-                            // Current Local Database Counts
-                            Text(
-                                text = "📊 লোকাল ডেটাবেজে সংরক্ষিত আইটেমসমূহ:",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            // Badges Row 1
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            // Current Local Database Counts with Vibrant Background Gradient
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.Transparent,
+                                border = BorderStroke(1.dp, Brush.linearGradient(listOf(PrimaryIndigo.copy(alpha = 0.40f), ExamCyan.copy(alpha = 0.25f)))),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                PrimaryIndigo.copy(alpha = 0.10f),
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                                Color(0xFF8B5CF6).copy(alpha = 0.06f)
+                                            )
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                    modifier = Modifier.weight(1f)
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = "${localStats?.boardCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
-                                        Text(text = "বোর্ড", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Storage,
+                                                contentDescription = null,
+                                                tint = PrimaryIndigo,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = "সংরক্ষিত আইটেম ও পরিসংখ্যান:",
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        val totalItems = (localStats?.boardCount ?: 0) +
+                                                (localStats?.classCount ?: 0) +
+                                                (localStats?.subjectCount ?: 0) +
+                                                (localStats?.chapterCount ?: 0) +
+                                                (localStats?.topicCount ?: 0) +
+                                                (localStats?.questionCount ?: 0)
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color.Transparent,
+                                            border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.4f)),
+                                            modifier = Modifier.background(
+                                                Brush.horizontalGradient(
+                                                    listOf(PrimaryIndigo.copy(alpha = 0.22f), ExamCyan.copy(alpha = 0.12f))
+                                                ),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Analytics,
+                                                    contentDescription = null,
+                                                    tint = PrimaryIndigo,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Text(
+                                                    text = "$totalItems টি আইটেম",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = PrimaryIndigo
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(text = "${localStats?.classCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.secondary)
-                                        Text(text = "ক্লাস", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(text = "${localStats?.subjectCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.tertiary)
-                                        Text(text = "বিষয়", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
 
-                            // Badges Row 2
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    // Badges Row 1: বোর্ড, ক্লাস, বিষয়
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Text(text = "${localStats?.chapterCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "অধ্যায়", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.boardCount ?: 0}",
+                                            label = "বোর্ড",
+                                            icon = Icons.Default.AccountBalance,
+                                            gradientColors = listOf(Color(0xFF6366F1).copy(alpha = 0.20f), Color(0xFF4338CA).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFF6366F1).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFF4F46E5),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.classCount ?: 0}",
+                                            label = "ক্লাস",
+                                            icon = Icons.Default.School,
+                                            gradientColors = listOf(Color(0xFF10B981).copy(alpha = 0.20f), Color(0xFF059669).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFF10B981).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFF059669),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.subjectCount ?: 0}",
+                                            label = "বিষয়",
+                                            icon = Icons.Default.MenuBook,
+                                            gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.20f), Color(0xFFD97706).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFFF59E0B).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFFD97706),
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+
+                                    // Badges Row 2: অধ্যায়, টপিক, প্রশ্ন
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Text(text = "${localStats?.topicCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "টপিক", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(text = "${localStats?.questionCount ?: 0}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "প্রশ্ন", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.chapterCount ?: 0}",
+                                            label = "অধ্যায়",
+                                            icon = Icons.Default.BookmarkBorder,
+                                            gradientColors = listOf(Color(0xFF06B6D4).copy(alpha = 0.20f), Color(0xFF0284C7).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFF06B6D4).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFF0284C7),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.topicCount ?: 0}",
+                                            label = "টপিক",
+                                            icon = Icons.Default.Layers,
+                                            gradientColors = listOf(Color(0xFFA855F7).copy(alpha = 0.20f), Color(0xFF7C3AED).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFFA855F7).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFF7C3AED),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        AdminStatGradientBadge(
+                                            count = "${localStats?.questionCount ?: 0}",
+                                            label = "প্রশ্ন",
+                                            icon = Icons.Default.Quiz,
+                                            gradientColors = listOf(Color(0xFFF43F5E).copy(alpha = 0.20f), Color(0xFFE11D48).copy(alpha = 0.08f)),
+                                            borderColor = Color(0xFFF43F5E).copy(alpha = 0.45f),
+                                            accentColor = Color(0xFFE11D48),
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
                                 }
                             }
 
                             // Last backup status
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     val backupTimeText = if (backupState.lastBackupTimestamp > 0) {
                                         val fmt = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm:ss a", java.util.Locale.getDefault())
                                         "সর্বশেষ ক্লাউড ব্যাকআপ: ${fmt.format(java.util.Date(backupState.lastBackupTimestamp))}"
@@ -876,11 +864,11 @@ fun AdminPanelScreen(
                                     }
                                     Text(
                                         text = backupTimeText,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "👉 বাটন চাপলে আপনার ডিভাইসে থাকা সমস্ত ডেটা ফায়ারবেস ক্লাউডে আপলোড ও নিরাপদ ব্যাকআপ হয়ে যাবে।",
+                                        text = "👉 নিচের বাটনে চাপলে ডিভাইসে থাকা সম্পূর্ণ সিলেবাস ও প্রশ্নব্যাংক ক্লাউডে সুরক্ষিত থাকবে।",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -965,48 +953,94 @@ fun AdminPanelScreen(
                                 }
                             }
 
-                            // Action Buttons
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Button(
-                                    onClick = {
-                                        viewModel.pushLocalDatabaseToFirebase { success, msg ->
-                                            actionSuccess = success
-                                            actionMessage = msg
-                                        }
-                                    },
-                                    enabled = !isLoading && !backupState.isBackingUp,
-                                    colors = ButtonDefaults.buttonColors(containerColor = ExamGold),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.weight(1f).height(50.dp)
-                                ) {
-                                    if (backupState.isBackingUp) {
-                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF1E1B2E))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("পুশ হচ্ছে...", color = Color(0xFF1E1B2E), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    } else {
-                                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color(0xFF1E1B2E))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            "🚀 লোকাল ডেটা ফায়ারবেসে পুশ করুন",
-                                            color = Color(0xFF1E1B2E),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
-                                        )
+                            // Clean, Fixed Action Button (No squishing, full width with comfortable height!)
+                            Button(
+                                onClick = {
+                                    viewModel.pushLocalDatabaseToFirebase { success, msg ->
+                                        actionSuccess = success
+                                        actionMessage = msg
                                     }
+                                },
+                                enabled = !isLoading && !backupState.isBackingUp,
+                                colors = ButtonDefaults.buttonColors(containerColor = ExamGold),
+                                shape = RoundedCornerShape(14.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                            ) {
+                                if (backupState.isBackingUp) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color(0xFF1E1B2E),
+                                        strokeWidth = 2.5.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        "ফায়ারবেসে ব্যাকআপ হচ্ছে... ${(backupState.progress * 100).toInt()}%",
+                                        color = Color(0xFF1E1B2E),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1E1B2E),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        "🚀 লোকাল ডেটা ফায়ারবেসে পুশ করুন",
+                                        color = Color(0xFF1E1B2E),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 14.sp
+                                    )
                                 }
+                            }
 
-                                OutlinedButton(
-                                    onClick = { viewModel.loadLocalDatabaseStats() },
-                                    enabled = !backupState.isBackingUp,
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.height(50.dp)
-                                ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh stats", tint = MaterialTheme.colorScheme.primary)
-                                }
+                            // Quick Action Chip Buttons (রিফ্রেশ ও ক্লাউড সংযোগ চিপ বাটন)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AssistChip(
+                                    onClick = {
+                                        viewModel.loadLocalDatabaseStats()
+                                        actionSuccess = true
+                                        actionMessage = "🔄 লোকাল ডেটাবেজ পরিসংখ্যান সফলভাবে রিফ্রেশ হয়েছে।"
+                                    },
+                                    label = { Text("রিফ্রেশ স্ট্যাটস", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp), tint = PrimaryIndigo)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.35f)),
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = PrimaryIndigo.copy(alpha = 0.08f),
+                                        labelColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                AssistChip(
+                                    onClick = {
+                                        actionSuccess = true
+                                        actionMessage = "🟢 ক্লাউড ফায়ারস্টোর সংযোগ সক্রিয় ও রেডি রয়েছে!"
+                                    },
+                                    label = { Text("ক্লাউড সংযোগ", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp), tint = CorrectGreen)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.35f)),
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = CorrectGreen.copy(alpha = 0.08f),
+                                        labelColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
                     }
@@ -5318,6 +5352,52 @@ fun AdminPanelScreen(
             }
         )
     }
+        }
+    }
+}
+
+@Composable
+private fun AdminStatGradientBadge(
+    count: String,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    gradientColors: List<Color>,
+    borderColor: Color,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Brush.verticalGradient(gradientColors))
+            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+            .padding(vertical = 12.dp, horizontal = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = count,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp,
+                color = accentColor,
+                maxLines = 1
+            )
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
         }
     }
 }

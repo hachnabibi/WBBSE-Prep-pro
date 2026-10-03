@@ -49,6 +49,7 @@ import com.example.data.model.getTextbook
 import com.example.data.model.getClassLevelName
 import com.example.ui.components.AdBannerCard
 import com.example.ui.components.BossBattleCard
+import com.example.ui.components.PerformanceSummaryCard
 import com.example.ui.components.StreakTrackerCard
 import com.example.ui.components.SubjectIconBadge
 import com.example.ui.theme.*
@@ -155,7 +156,21 @@ fun HomeScreen(
             )
         }
 
-        // 3. Daily Learning Streak Tracker
+        // 3. Performance Summary with Vico Charts (Weekly Learning Progress, Active Streaks, Total Points & Daily Usage Incentives)
+        item {
+            PerformanceSummaryCard(
+                profile = profile,
+                isBengali = isBengali,
+                onPracticeNow = {
+                    onStartAssessment(AssessmentMode.DAILY_10, null, null)
+                },
+                onViewFullAnalytics = {
+                    onNavigate(AppScreen.PROGRESS_DASHBOARD)
+                }
+            )
+        }
+
+        // 4. Daily Learning Streak Tracker
         item {
             StreakTrackerCard(
                 profile = profile,

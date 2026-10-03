@@ -203,13 +203,14 @@ fun DeshExamApp(
                 (currentScreen == AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD) ||
                 (currentScreen == AppScreen.PYQ_PDF_DOWNLOAD) ||
                 (currentScreen == AppScreen.TEXTBOOKS) ||
-                (currentScreen == AppScreen.INTERNET_ARCHIVE_SEARCH)
+                (currentScreen == AppScreen.INTERNET_ARCHIVE_SEARCH) ||
+                (currentScreen == AppScreen.ADMIN_PANEL)
 
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val coroutineScope = rememberCoroutineScope()
 
         val showTopHeader = !isFullScreenMode && currentScreen == AppScreen.HOME
-        val showBottomBar = !isFullScreenMode && currentScreen != AppScreen.EDIT_PROFILE
+        val showBottomBar = !isFullScreenMode && currentScreen != AppScreen.EDIT_PROFILE && currentScreen != AppScreen.ADMIN_PANEL
 
         var isHeaderVisible by remember { mutableStateOf(true) }
 
