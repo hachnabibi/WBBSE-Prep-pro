@@ -22,9 +22,11 @@ import com.example.data.repository.DeshExamRepository
         DailyQuestEntity::class,
         BookmarkEntity::class,
         RecentlyViewedEntity::class,
-        VideoProgressEntity::class
+        VideoProgressEntity::class,
+        BoardEntity::class,
+        AcademicClassEntity::class
     ],
-    version = 43,
+    version = 44,
     exportSchema = false
 )
 abstract class DeshExamDatabase : RoomDatabase() {
@@ -87,6 +89,71 @@ abstract class DeshExamDatabase : RoomDatabase() {
         suspend fun populateDataFromAssets(context: Context, dao: DeshExamDao, forceRefresh: Boolean = false) {
             val gson = com.google.gson.Gson()
             val assetManager = context.assets
+
+            // 0. Seed Education Boards & Academic Classes locally if empty
+            try {
+                val existingBoards = dao.getAllBoardsOnce()
+                if (existingBoards.isEmpty()) {
+                    val boardEntities = com.example.data.model.AcademicClassProvider.DEFAULT_BOARDS.mapIndexed { index, b ->
+                        BoardEntity(
+                            id = b.id,
+                            shortName = b.shortName,
+                            fullNameBengali = b.fullNameBengali,
+                            fullNameEnglish = b.fullNameEnglish,
+                            subtitleBengali = b.subtitleBengali,
+                            levelBadge = b.levelBadge,
+                            classRangeDescription = b.classRangeDescription,
+                            iconName = b.iconName,
+                            orderIndex = index
+                        )
+                    }
+                    dao.insertAllBoards(boardEntities)
+                } else {
+                    com.example.data.model.AcademicClassProvider.updateBoards(existingBoards.map { b ->
+                        com.example.data.model.EducationBoard(
+                            id = b.id,
+                            shortName = b.shortName,
+                            fullNameBengali = b.fullNameBengali,
+                            fullNameEnglish = b.fullNameEnglish,
+                            subtitleBengali = b.subtitleBengali,
+                            levelBadge = b.levelBadge,
+                            classRangeDescription = b.classRangeDescription,
+                            iconName = b.iconName
+                        )
+                    })
+                }
+
+                val existingClasses = dao.getAllClassesOnce()
+                if (existingClasses.isEmpty()) {
+                    val classEntities = com.example.data.model.AcademicClassProvider.DEFAULT_CLASSES.mapIndexed { index, c ->
+                        AcademicClassEntity(
+                            id = c.id,
+                            classNumber = c.classNumber,
+                            nameBengali = c.nameBengali,
+                            nameEnglish = c.nameEnglish,
+                            board = c.board,
+                            targetExam = c.targetExam,
+                            descriptionBengali = c.descriptionBengali,
+                            orderIndex = index
+                        )
+                    }
+                    dao.insertAllClasses(classEntities)
+                } else {
+                    com.example.data.model.AcademicClassProvider.updateClasses(existingClasses.map { c ->
+                        com.example.data.model.AcademicClass(
+                            id = c.id,
+                            classNumber = c.classNumber,
+                            nameBengali = c.nameBengali,
+                            nameEnglish = c.nameEnglish,
+                            board = c.board,
+                            targetExam = c.targetExam,
+                            descriptionBengali = c.descriptionBengali
+                        )
+                    })
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed seeding boards/classes: ${e.message}")
+            }
 
             suspend fun loadFromFolder(path: String) {
                 val files = try {

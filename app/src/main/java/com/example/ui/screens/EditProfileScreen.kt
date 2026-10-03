@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +26,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AcademicClass
@@ -81,8 +84,9 @@ fun EditProfileScreen(
     var editSchool by remember(profile.school) { mutableStateOf(profile.school) }
     var editDistrict by remember(profile.district) { mutableStateOf(profile.district) }
 
-    // All available classes from provider
-    val allClassesList = remember { AcademicClassProvider.ALL_CLASSES }
+    // All available classes & boards from provider (Realtime flow)
+    val allClassesList by AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
+    val allBoardsList by AcademicClassProvider.ALL_BOARDS_FLOW.collectAsState()
 
     // 1. Manage currently selected academic class object
     var selectedClass by remember(profile.classId) {
@@ -91,10 +95,10 @@ fun EditProfileScreen(
 
     // 2. Manage Board selection (Step 1: Board first)
     val initialBoard = remember(profile.classId) {
-        if (profile.classId.contains("wbchse", ignoreCase = true) || profile.classId in listOf("class_11_wbchse", "class_12_wbchse")) {
-            "WBCHSE"
-        } else {
-            "WBBSE"
+        when {
+            profile.classId.contains("wbchse", ignoreCase = true) || profile.classId in listOf("class_11_wbchse", "class_12_wbchse") -> "WBCHSE"
+            profile.classId.contains("wbbpe", ignoreCase = true) || profile.classId.startsWith("class_kg") || profile.classId in listOf("class_1_wbbpe", "class_2_wbbpe", "class_3_wbbpe", "class_4_wbbpe") -> "WBBPE"
+            else -> "WBBSE"
         }
     }
     var selectedBoard by remember { mutableStateOf(initialBoard) }
@@ -111,30 +115,32 @@ fun EditProfileScreen(
         mutableStateOf(initialStream)
     }
 
-    // Available Education Boards
-    val educationBoards = remember {
-        listOf(
+    // Available Education Boards (dynamically sourced from AcademicClassProvider)
+    val educationBoards = remember(allBoardsList) {
+        allBoardsList.map { board ->
+            val icon = when {
+                board.id == "WBBPE" || board.iconName == "ChildCare" -> Icons.Default.ChildCare
+                board.iconName == "School" || board.id.contains("HSE", ignoreCase = true) -> Icons.Default.School
+                else -> Icons.Default.MenuBook
+            }
+            val accentColor = when (board.id) {
+                "WBBPE" -> Color(0xFF059669)
+                "WBCHSE" -> Color(0xFF7C3AED)
+                "CBSE" -> Color(0xFFEA580C)
+                "ICSE" -> Color(0xFF0D9488)
+                else -> Color(0xFF2563EB)
+            }
             EducationBoardItem(
-                id = "WBBSE",
-                shortName = "WBBSE",
-                fullNameBengali = "পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ",
-                subtitleBengali = "মাধ্যমিক শিক্ষা পর্ষদ",
-                levelBadge = "মাধ্যমিক স্তর",
-                classRangeDescription = "৫ম থেকে ১০ম শ্রেণি (Madhyamik)",
-                icon = Icons.Default.MenuBook,
-                accentColor = Color(0xFF2563EB)
-            ),
-            EducationBoardItem(
-                id = "WBCHSE",
-                shortName = "WBCHSE",
-                fullNameBengali = "পশ্চিমবঙ্গ উচ্চমাধ্যমিক শিক্ষা সংসদ",
-                subtitleBengali = "উচ্চ মাধ্যমিক শিক্ষা সংসদ",
-                levelBadge = "উচ্চ মাধ্যমিক স্তর",
-                classRangeDescription = "একাদশ ও দ্বাদশ শ্রেণি (Higher Secondary)",
-                icon = Icons.Default.School,
-                accentColor = Color(0xFF7C3AED)
+                id = board.id,
+                shortName = board.shortName,
+                fullNameBengali = board.fullNameBengali,
+                subtitleBengali = board.subtitleBengali,
+                levelBadge = board.levelBadge,
+                classRangeDescription = board.classRangeDescription,
+                icon = icon,
+                accentColor = accentColor
             )
-        )
+        }
     }
 
     // Available Streams / Sub-classes for Class 11 and 12
@@ -279,21 +285,23 @@ fun EditProfileScreen(
                             )
                         }
 
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(
                                 text = editName.ifBlank { "শিক্ষার্থীর প্রোফাইল" },
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
 
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // Current Selection Capsule Badge
+                            // 1. Board Name • Class • District Chip Badge
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.3f))
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                                border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.35f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -304,22 +312,72 @@ fun EditProfileScreen(
                                         imageVector = Icons.Default.School,
                                         contentDescription = null,
                                         tint = PrimaryIndigo,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(13.dp)
                                     )
-                                    val streamText = if (hasSubClasses) {
-                                        when (selectedStream) {
-                                            "science" -> " • বিজ্ঞান (Science)"
-                                            "commerce" -> " • বাণিজ্য (Commerce)"
-                                            "arts" -> " • কলা (Arts)"
-                                            else -> ""
-                                        }
-                                    } else ""
+                                    val classShortName = AcademicClassProvider.getBengaliClassShortBadge(selectedClass.classNumber)
+                                    val distText = editDistrict.ifBlank { "জেলা" }
                                     Text(
-                                        text = "$selectedBoard • ${selectedClass.nameBengali}$streamText",
+                                        text = "$selectedBoard • $classShortName • $distText",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = PrimaryIndigo
+                                        color = PrimaryIndigo,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                            }
+
+                            // 2. Sub-Class / Stream Chip Badge
+                            val streamColor = if (hasSubClasses) {
+                                when (selectedStream) {
+                                    "science" -> Color(0xFF2563EB)
+                                    "commerce" -> Color(0xFF059669)
+                                    "arts" -> Color(0xFFD97706)
+                                    else -> PrimaryIndigo
+                                }
+                            } else Color(0xFF059669)
+
+                            val streamText = if (hasSubClasses) {
+                                when (selectedStream) {
+                                    "science" -> "🔬 বিজ্ঞান শাখা (Science)"
+                                    "commerce" -> "💼 বাণিজ্য শাখা (Commerce)"
+                                    "arts" -> "📚 কলা বিভাগ (Arts)"
+                                    else -> "সকল শাখা"
+                                }
+                            } else "📘 সাধারণ পাঠ্যক্রম (সব বিষয়)"
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = streamColor.copy(alpha = 0.12f),
+                                border = BorderStroke(0.8.dp, streamColor.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = streamText,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                    color = streamColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // 3. School Name right below
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = editSchool.ifBlank { "বিদ্যালয় নির্বাচন করুন" },
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -554,10 +612,10 @@ fun EditProfileScreen(
                                         // Auto-adjust class to match new board
                                         val newBoardClasses = allClassesList.filter { it.board.equals(board.id, ignoreCase = true) }
                                         if (newBoardClasses.none { it.id == selectedClass.id }) {
-                                            selectedClass = if (board.id == "WBCHSE") {
-                                                newBoardClasses.firstOrNull { it.classNumber == 11 } ?: newBoardClasses.first()
-                                            } else {
-                                                newBoardClasses.firstOrNull { it.classNumber == 10 } ?: newBoardClasses.first()
+                                            selectedClass = when (board.id) {
+                                                "WBCHSE" -> newBoardClasses.firstOrNull { it.classNumber == 11 } ?: newBoardClasses.first()
+                                                "WBBPE" -> newBoardClasses.firstOrNull { it.classNumber == 1 } ?: newBoardClasses.first()
+                                                else -> newBoardClasses.firstOrNull { it.classNumber == 10 } ?: newBoardClasses.first()
                                             }
                                         }
                                     }
@@ -637,10 +695,10 @@ fun EditProfileScreen(
                                             selectedBoard = board.id
                                             val newBoardClasses = allClassesList.filter { it.board.equals(board.id, ignoreCase = true) }
                                             if (newBoardClasses.none { it.id == selectedClass.id }) {
-                                                selectedClass = if (board.id == "WBCHSE") {
-                                                    newBoardClasses.firstOrNull { it.classNumber == 11 } ?: newBoardClasses.first()
-                                                } else {
-                                                    newBoardClasses.firstOrNull { it.classNumber == 10 } ?: newBoardClasses.first()
+                                                selectedClass = when (board.id) {
+                                                    "WBCHSE" -> newBoardClasses.firstOrNull { it.classNumber == 11 } ?: newBoardClasses.first()
+                                                    "WBBPE" -> newBoardClasses.firstOrNull { it.classNumber == 1 } ?: newBoardClasses.first()
+                                                    else -> newBoardClasses.firstOrNull { it.classNumber == 10 } ?: newBoardClasses.first()
                                                 }
                                             }
                                         }
@@ -708,16 +766,83 @@ fun EditProfileScreen(
                             }
                         }
 
+                        // Selected Class Chip Badge
+                        val selectedClassBadge = AcademicClassProvider.getBengaliClassShortBadge(selectedClass.classNumber)
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = ExamFlame.copy(alpha = 0.1f)
+                            color = ExamFlame.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, ExamFlame.copy(alpha = 0.35f))
                         ) {
-                            Text(
-                                text = "${selectedClass.classNumber}ম শ্রেণি",
+                            Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                                color = ExamFlame
-                            )
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (selectedClass.classNumber == 0) Icons.Default.ChildCare else Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = ExamFlame,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = selectedClassBadge,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                    color = ExamFlame
+                                )
+                            }
+                        }
+                    }
+
+                    // Quick Class Selection Chips Row
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "শ্রেণি বাছুন (Class Selection Chips):",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        androidx.compose.foundation.lazy.LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(filteredClasses) { cls ->
+                                val isClassSelected = selectedClass.id == cls.id
+                                val chipBadgeText = AcademicClassProvider.getBengaliClassShortBadge(cls.classNumber)
+                                FilterChip(
+                                    selected = isClassSelected,
+                                    onClick = { selectedClass = cls },
+                                    label = {
+                                        Text(
+                                            text = chipBadgeText,
+                                            fontWeight = if (isClassSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    leadingIcon = if (isClassSelected) {
+                                        {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    } else if (cls.classNumber == 0) {
+                                        {
+                                            Icon(
+                                                imageVector = Icons.Default.ChildCare,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    } else null,
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryIndigo,
+                                        selectedLabelColor = Color.White,
+                                        selectedLeadingIconColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.testTag("chip_class_${cls.id}")
+                                )
+                            }
                         }
                     }
 
@@ -760,7 +885,7 @@ fun EditProfileScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "${cls.classNumber}",
+                                        text = if (cls.classNumber == 0) "KG" else "${cls.classNumber}",
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                         color = if (isClassSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                     )
@@ -778,18 +903,23 @@ fun EditProfileScreen(
                                             ),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
-                                        if (cls.classNumber in listOf(10, 12)) {
-                                            Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = ExamGold.copy(alpha = 0.2f)
-                                            ) {
-                                                Text(
-                                                    text = if (cls.classNumber == 10) "বোর্ড পরীক্ষা" else "ফাইনাল",
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Black),
-                                                    color = PrimaryIndigo
-                                                )
-                                            }
+                                        val classBadgeInfo: Pair<String, Color> = when {
+                                            cls.classNumber == 0 -> Pair("প্রাক-প্রাথমিক (KG)", Color(0xFF059669))
+                                            cls.board == "WBBPE" -> Pair("প্রাথমিক স্তর", Color(0xFF059669))
+                                            cls.classNumber == 10 -> Pair("বোর্ড পরীক্ষা (Madhyamik)", ExamFlame)
+                                            cls.classNumber in 11..12 -> Pair(if (cls.classNumber == 11) "একাদশ শ্রেণি" else "ফাইনাল (HS)", Color(0xFF7C3AED))
+                                            else -> Pair("মাধ্যমিক স্তর", PrimaryIndigo)
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = classBadgeInfo.second.copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = classBadgeInfo.first,
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                                color = classBadgeInfo.second
+                                            )
                                         }
                                     }
 
@@ -858,8 +988,9 @@ fun EditProfileScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                val classShort = AcademicClassProvider.getBengaliClassShortBadge(selectedClass.classNumber)
                                 Text(
-                                    text = if (hasSubClasses) "${selectedClass.classNumber}ম শ্রেণির জন্য আপনার শাখা নির্বাচন করুন:" 
+                                    text = if (hasSubClasses) "$classShort-এর জন্য আপনার শাখা নির্বাচন করুন:" 
                                     else "এই শ্রেণির জন্য কোনো সাব-ক্লাস প্রযোজ্য নয়",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -867,28 +998,121 @@ fun EditProfileScreen(
                             }
                         }
 
+                        // Sub-class Badge (both when active and general)
                         if (hasSubClasses) {
+                            val streamBadgeBg = when (selectedStream) {
+                                "science" -> Color(0xFF2563EB)
+                                "commerce" -> Color(0xFF059669)
+                                "arts" -> Color(0xFFD97706)
+                                else -> PrimaryIndigo
+                            }
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFF059669).copy(alpha = 0.1f)
+                                color = streamBadgeBg.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, streamBadgeBg.copy(alpha = 0.35f))
                             ) {
-                                Text(
-                                    text = when (selectedStream) {
-                                        "science" -> "বিজ্ঞান"
-                                        "commerce" -> "বাণিজ্য"
-                                        "arts" -> "কলা"
-                                        else -> "সকল"
-                                    },
+                                Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                                    color = Color(0xFF059669)
-                                )
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    val streamIcon = when (selectedStream) {
+                                        "science" -> Icons.Default.Science
+                                        "commerce" -> Icons.Default.AccountBalanceWallet
+                                        "arts" -> Icons.Default.AutoStories
+                                        else -> Icons.Default.Apps
+                                    }
+                                    Icon(
+                                        imageVector = streamIcon,
+                                        contentDescription = null,
+                                        tint = streamBadgeBg,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = when (selectedStream) {
+                                            "science" -> "বিজ্ঞান"
+                                            "commerce" -> "বাণিজ্য"
+                                            "arts" -> "কলা"
+                                            else -> "সকল"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                        color = streamBadgeBg
+                                    )
+                                }
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFF059669).copy(alpha = 0.1f),
+                                border = BorderStroke(1.dp, Color(0xFF059669).copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF059669),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = "সাধারণ পাঠ্যক্রম",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF059669)
+                                    )
+                                }
                             }
                         }
                     }
 
                     // If the selected class has sub-classes (streams for Class 11 and 12)
                     if (hasSubClasses) {
+                        // Quick Stream Selection Chips Row
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "শাখা বাছুন",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                streamOptions.forEach { streamItem ->
+                                    val isStreamSelected = selectedStream == streamItem.id
+                                    FilterChip(
+                                        selected = isStreamSelected,
+                                        onClick = { selectedStream = streamItem.id },
+                                        label = {
+                                            Text(
+                                                text = streamItem.tagLabel,
+                                                fontWeight = if (isStreamSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 11.sp
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = streamItem.icon,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = streamItem.accentColor,
+                                            selectedLabelColor = Color.White,
+                                            selectedLeadingIconColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("chip_stream_${streamItem.id}")
+                                    )
+                                }
+                            }
+                        }
+
                         Text(
                             text = "আপনার নির্বাচিত শাখা অনুযায়ী বিষয়ের তালিকা, সিলেবাস ও মক টেস্ট ফিল্টার হবে:",
                             style = MaterialTheme.typography.bodySmall,

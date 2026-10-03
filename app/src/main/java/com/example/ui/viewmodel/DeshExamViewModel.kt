@@ -10,10 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.auth.AuthResult
 import com.example.data.auth.AuthUserState
 import com.example.data.auth.FirebaseAuthRepository
-import com.example.data.firestore.FirestoreQuestion
-import com.example.data.firestore.FirestoreService
-import com.example.data.firestore.FirestoreTestTemplate
-import com.example.data.firestore.FirestoreVideoProgress
+import com.example.data.firestore.*
 import com.example.data.local.*
 import com.example.data.model.*
 import com.example.data.repository.DeshExamRepository
@@ -390,6 +387,45 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 _allPyqQuestions.value = PyqRepository.loadAllPyqQuestions(application)
             } catch (e: Exception) {
                 Log.w("DeshExamViewModel", "Failed to load pyq: ${e.message}")
+            }
+        }
+
+        // Local-First loader & Realtime sync for Education Boards & Academic Classes
+        // 1. Prothom local data request korbe, na pele tabei Firebase Firestore-e request pathie execute korbe
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.loadBoardsAndClassesLocalFirst(firestoreService)
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Local-first boards/classes load error: ${e.message}")
+            }
+        }
+
+        // 2. Realtime listener: Firebase-e notun board/class add hole ta songe songe app-e dekhabe
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.getBoardsRealtime().collect { fbBoards ->
+                    if (fbBoards.isNotEmpty()) {
+                        val boards = fbBoards.map { it.toEducationBoard() }
+                        repository.insertBoardsFromRemote(boards)
+                        AcademicClassProvider.updateBoards(boards)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Realtime boards listen error: ${e.message}")
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.getClassesRealtime().collect { fbClasses ->
+                    if (fbClasses.isNotEmpty()) {
+                        val classes = fbClasses.map { it.toAcademicClass() }
+                        repository.insertClassesFromRemote(classes)
+                        AcademicClassProvider.updateClasses(classes)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Realtime classes listen error: ${e.message}")
             }
         }
 
@@ -1376,6 +1412,159 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             loadUserVideoProgress()
             onComplete(true, "সম্পূর্ণ ডেটা ও ভিডিও প্রগ্রেস সিঙ্ক সম্পন্ন হয়েছে")
+        }
+    }
+
+    // =========================================================================
+    // BOARD & CLASS MANAGEMENT (ADMIN + LOCAL-FIRST + FIREBASE REALTIME)
+    // =========================================================================
+
+    val allBoards: StateFlow<List<EducationBoard>> = AcademicClassProvider.ALL_BOARDS_FLOW
+    val allClasses: StateFlow<List<AcademicClass>> = AcademicClassProvider.ALL_CLASSES_FLOW
+
+    fun addOrUpdateBoard(board: EducationBoard, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to local Room & in-memory provider immediately
+                repository.saveBoard(board)
+                AcademicClassProvider.addBoard(board)
+
+                // 2. Save to Firebase Firestore
+                val fbBoard = board.toFirestore()
+                val fbRes = firestoreService.saveBoard(fbBoard)
+
+                withContext(Dispatchers.Main) {
+                    if (fbRes.isSuccess) {
+                        onComplete(true, "বোর্ড '${board.shortName}' সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে সংরক্ষিত হয়েছে")
+                    } else {
+                        onComplete(true, "বোর্ড '${board.shortName}' লোকাল ডেটাবেজে যুক্ত হয়েছে (ক্লাউড ব্যাকআপ পেন্ডিং)")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteBoard(boardId: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Delete from Firebase Firestore
+                firestoreService.deleteBoard(boardId)
+                // 2. Delete from local Room & memory
+                repository.deleteBoard(boardId)
+                AcademicClassProvider.deleteBoard(boardId)
+
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "বোর্ড সফলভাবে ডিলিট করা হয়েছে")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun addOrUpdateClass(academicClass: AcademicClass, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Save to local Room & memory immediately
+                repository.saveClass(academicClass)
+                AcademicClassProvider.addClass(academicClass)
+
+                // 2. Save to Firebase Firestore
+                val fbClass = academicClass.toFirestore()
+                val fbRes = firestoreService.saveClass(fbClass)
+
+                withContext(Dispatchers.Main) {
+                    if (fbRes.isSuccess) {
+                        onComplete(true, "ক্লাস '${academicClass.nameBengali}' সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে সংরক্ষিত হয়েছে")
+                    } else {
+                        onComplete(true, "ক্লাস '${academicClass.nameBengali}' লোকাল ডেটাবেজে যুক্ত হয়েছে (ক্লাউড ব্যাকআপ পেন্ডিং)")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteClass(classId: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Delete from Firebase Firestore
+                firestoreService.deleteClass(classId)
+                // 2. Delete from local Room & memory
+                repository.deleteClass(classId)
+                AcademicClassProvider.deleteClass(classId)
+
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "ক্লাস সফলভাবে ডিলিট করা হয়েছে")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun syncDefaultBoardsAndClassesToFirebase(onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                var boardSuccess = 0
+                var classSuccess = 0
+
+                AcademicClassProvider.DEFAULT_BOARDS.forEachIndexed { idx, board ->
+                    val res = firestoreService.saveBoard(board.toFirestore(idx))
+                    if (res.isSuccess) boardSuccess++
+                    repository.saveBoard(board)
+                }
+
+                AcademicClassProvider.DEFAULT_CLASSES.forEachIndexed { idx, cls ->
+                    val res = firestoreService.saveClass(cls.toFirestore(idx))
+                    if (res.isSuccess) classSuccess++
+                    repository.saveClass(cls)
+                }
+
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "$boardSuccess টি বোর্ড ও $classSuccess টি ক্লাস সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে সিঙ্ক সম্পন্ন হয়েছে!")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "সিঙ্ক ত্রুটি: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun toggleChapterCompletion(chapterId: String, currentStatus: Boolean, subjectId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val newStatus = !currentStatus
+                val mastery = if (newStatus) 100 else 0
+                // 1. Update chapter in local database
+                database.deshExamDao().setChapterCompletedStatus(chapterId, newStatus, mastery)
+
+                // 2. Fetch all chapters for this subject and count completed
+                val chapters = database.deshExamDao().getChaptersForSubjectOnce(subjectId)
+                val completedCount = chapters.count { it.bossCompleted || it.masteryPercentage >= 100 }
+                val totalChapters = chapters.size
+
+                val subjectMastery = if (totalChapters > 0) (completedCount * 100) / totalChapters else 0
+
+                // 3. Update subject in local database
+                database.deshExamDao().updateSubjectProgress(subjectId, completedCount, subjectMastery)
+
+                Log.d("DeshExamViewModel", "Toggled chapter $chapterId completion to $newStatus. Subject $subjectId: $completedCount/$totalChapters completed ($subjectMastery%)")
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error toggling chapter completion: ${e.message}")
+            }
         }
     }
 }

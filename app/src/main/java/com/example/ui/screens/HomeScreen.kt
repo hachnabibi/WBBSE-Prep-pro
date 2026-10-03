@@ -573,55 +573,7 @@ fun HomeScreen(
             )
         }
 
-        // Gamified Boss Battle Challenge
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "⚔️ গ্যামিফায়েড বস চ্যালেঞ্জ",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    TextButton(
-                        onClick = { onNavigate(AppScreen.BATTLE) },
-                        modifier = Modifier.testTag("view_all_boss_battles_btn")
-                    ) {
-                        Text(
-                            text = "অ্যারেনা দেখুন",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
 
-                val firstActiveSub = subjects.firstOrNull()
-                val bossSubName = firstActiveSub?.nameBengali ?: if (isBengali) "অধ্যায়" else "Chapter"
-                val bossTargetChapterId = firstActiveSub?.id?.let { "${it}_ch1" } ?: "ch1"
-
-                BossBattleCard(
-                    bossName = "$bossSubName দানব বস (Tier 3)",
-                    chapterTitle = "$bossSubName • প্রাথমিক মূল্যায়ন ও রিভিশন",
-                    bossMaxHp = 1000,
-                    bossCurrentHp = 1000,
-                    playerMaxHp = 100,
-                    playerCurrentHp = 100,
-                    questionsCount = 8,
-                    questionsCompleted = 0,
-                    isBengali = isBengali,
-                    isDefeated = false,
-                    onStartBattle = {
-                        onStartAssessment(
-                            AssessmentMode.BOSS_BATTLE,
-                            bossTargetChapterId,
-                            "🔥 অধ্যায় বস ব্যাটল: $bossSubName"
-                        )
-                    }
-                )
-            }
-        }
 
         // 4. Subjects & Journey Progression
         // Search Bar for Subjects

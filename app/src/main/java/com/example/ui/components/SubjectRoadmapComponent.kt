@@ -97,7 +97,7 @@ fun SubjectRoadmapComponent(
         if (recommendedPractices.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -139,6 +139,7 @@ fun SubjectRoadmapComponent(
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(recommendedPractices) { session ->
@@ -166,11 +167,13 @@ fun SubjectRoadmapComponent(
             Text(
                 text = "অধ্যায় ও টপিক মাইলস্টোন",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val filters = listOf(
@@ -208,7 +211,9 @@ fun SubjectRoadmapComponent(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
                 Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text(
@@ -220,7 +225,9 @@ fun SubjectRoadmapComponent(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 filteredChapters.forEachIndexed { index, chapter ->

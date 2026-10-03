@@ -9,6 +9,11 @@ import com.example.data.local.QuestionEntity
 import com.example.data.local.SubjectEntity
 import com.example.data.local.TopicEntity
 import com.example.data.local.UserProgressEntity
+import com.example.data.local.toModel
+import com.example.data.local.toEntity
+import com.example.data.firestore.toEducationBoard
+import com.example.data.firestore.toAcademicClass
+import android.util.Log
 import com.example.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -435,6 +440,213 @@ class DeshExamRepository(
         dao.getSubjectsForClassOnce(classId)
 
     suspend fun getSubjectById(subjectId: String): SubjectEntity? = dao.getSubjectById(subjectId)
+
+    // =========================================================================
+    // EDUCATION BOARDS & ACADEMIC CLASSES (Local-first, Room + Memory)
+    // =========================================================================
+
+    fun getAllBoardsFlow(): Flow<List<EducationBoard>> = dao.getAllBoardsFlow().map { list ->
+        if (list.isEmpty()) {
+            AcademicClassProvider.DEFAULT_BOARDS
+        } else {
+            list.map { b ->
+                EducationBoard(
+                    id = b.id,
+                    shortName = b.shortName,
+                    fullNameBengali = b.fullNameBengali,
+                    fullNameEnglish = b.fullNameEnglish,
+                    subtitleBengali = b.subtitleBengali,
+                    levelBadge = b.levelBadge,
+                    classRangeDescription = b.classRangeDescription,
+                    iconName = b.iconName
+                )
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    suspend fun getAllBoardsOnce(): List<EducationBoard> = withContext(Dispatchers.IO) {
+        val list = dao.getAllBoardsOnce()
+        if (list.isEmpty()) {
+            AcademicClassProvider.DEFAULT_BOARDS
+        } else {
+            list.map { b ->
+                EducationBoard(
+                    id = b.id,
+                    shortName = b.shortName,
+                    fullNameBengali = b.fullNameBengali,
+                    fullNameEnglish = b.fullNameEnglish,
+                    subtitleBengali = b.subtitleBengali,
+                    levelBadge = b.levelBadge,
+                    classRangeDescription = b.classRangeDescription,
+                    iconName = b.iconName
+                )
+            }
+        }
+    }
+
+    suspend fun saveBoard(board: EducationBoard) = withContext(Dispatchers.IO) {
+        val entity = com.example.data.local.BoardEntity(
+            id = board.id,
+            shortName = board.shortName,
+            fullNameBengali = board.fullNameBengali,
+            fullNameEnglish = board.fullNameEnglish,
+            subtitleBengali = board.subtitleBengali,
+            levelBadge = board.levelBadge,
+            classRangeDescription = board.classRangeDescription,
+            iconName = board.iconName
+        )
+        dao.insertBoard(entity)
+        AcademicClassProvider.addBoard(board)
+    }
+
+    suspend fun deleteBoard(boardId: String) = withContext(Dispatchers.IO) {
+        dao.deleteBoardById(boardId)
+        AcademicClassProvider.deleteBoard(boardId)
+    }
+
+    fun getAllClassesFlow(): Flow<List<AcademicClass>> = dao.getAllClassesFlow().map { list ->
+        if (list.isEmpty()) {
+            AcademicClassProvider.DEFAULT_CLASSES
+        } else {
+            list.map { c ->
+                AcademicClass(
+                    id = c.id,
+                    classNumber = c.classNumber,
+                    nameBengali = c.nameBengali,
+                    nameEnglish = c.nameEnglish,
+                    board = c.board,
+                    targetExam = c.targetExam,
+                    descriptionBengali = c.descriptionBengali
+                )
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    suspend fun getAllClassesOnce(): List<AcademicClass> = withContext(Dispatchers.IO) {
+        val list = dao.getAllClassesOnce()
+        if (list.isEmpty()) {
+            AcademicClassProvider.DEFAULT_CLASSES
+        } else {
+            list.map { c ->
+                AcademicClass(
+                    id = c.id,
+                    classNumber = c.classNumber,
+                    nameBengali = c.nameBengali,
+                    nameEnglish = c.nameEnglish,
+                    board = c.board,
+                    targetExam = c.targetExam,
+                    descriptionBengali = c.descriptionBengali
+                )
+            }
+        }
+    }
+
+    suspend fun saveClass(academicClass: AcademicClass) = withContext(Dispatchers.IO) {
+        val entity = com.example.data.local.AcademicClassEntity(
+            id = academicClass.id,
+            classNumber = academicClass.classNumber,
+            nameBengali = academicClass.nameBengali,
+            nameEnglish = academicClass.nameEnglish,
+            board = academicClass.board,
+            targetExam = academicClass.targetExam,
+            descriptionBengali = academicClass.descriptionBengali
+        )
+        dao.insertClass(entity)
+        AcademicClassProvider.addClass(academicClass)
+    }
+
+    suspend fun deleteClass(classId: String) = withContext(Dispatchers.IO) {
+        dao.deleteClassById(classId)
+        AcademicClassProvider.deleteClass(classId)
+    }
+
+    suspend fun insertBoardsFromRemote(boards: List<EducationBoard>) = withContext(Dispatchers.IO) {
+        if (boards.isNotEmpty()) {
+            val entities = boards.mapIndexed { index, b -> b.toEntity(index) }
+            dao.insertAllBoards(entities)
+            AcademicClassProvider.updateBoards(boards)
+        }
+    }
+
+    suspend fun insertClassesFromRemote(classes: List<AcademicClass>) = withContext(Dispatchers.IO) {
+        if (classes.isNotEmpty()) {
+            val entities = classes.mapIndexed { index, c -> c.toEntity(index) }
+            dao.insertAllClasses(entities)
+            AcademicClassProvider.updateClasses(classes)
+        }
+    }
+
+    /**
+     * Local-First loader for Education Boards & Academic Classes:
+     * 1. Prothom local data (Room database) request korbe.
+     * 2. Local database-e data thakle ta songe songe memory provider-e update kore use hobe.
+     * 3. Local database khali thakle (data na pele) tabei Firebase Firestore-e request pathabe.
+     * 4. Firebase theke data pele ta execute hobe (Local Room database-e save hobe ebong UI-te update hobe).
+     * 5. Ekdom prothom bar Firebase-eo data na thakle default boards & classes die initialize hobe.
+     */
+    suspend fun loadBoardsAndClassesLocalFirst(firestoreService: com.example.data.firestore.FirestoreService): Pair<List<EducationBoard>, List<AcademicClass>> = withContext(Dispatchers.IO) {
+        try {
+            // Step 1: Prothom local database request kora
+            val localBoards = dao.getAllBoardsOnce()
+            val localClasses = dao.getAllClassesOnce()
+
+            if (localBoards.isNotEmpty() && localClasses.isNotEmpty()) {
+                val boards = localBoards.map { it.toModel() }
+                val classes = localClasses.map { it.toModel() }
+                AcademicClassProvider.updateBoards(boards)
+                AcademicClassProvider.updateClasses(classes)
+                Log.d("DeshExamRepo", "Local-first success: Loaded ${boards.size} boards & ${classes.size} classes from local database")
+                return@withContext Pair(boards, classes)
+            }
+
+            // Step 2: Local data na pele tabei Firebase Firestore-e request kora
+            Log.d("DeshExamRepo", "Local boards/classes not found in local database. Requesting from Firebase Firestore...")
+            val fbBoardsRes = firestoreService.getAllBoards()
+            val fbClassesRes = firestoreService.getAllClasses()
+
+            val remoteBoards = fbBoardsRes.getOrNull().orEmpty()
+            val remoteClasses = fbClassesRes.getOrNull().orEmpty()
+
+            val finalBoards: List<EducationBoard>
+            val finalClasses: List<AcademicClass>
+
+            if (remoteBoards.isNotEmpty() || remoteClasses.isNotEmpty()) {
+                finalBoards = if (remoteBoards.isNotEmpty()) {
+                    remoteBoards.map { it.toEducationBoard() }
+                } else {
+                    AcademicClassProvider.DEFAULT_BOARDS
+                }
+                finalClasses = if (remoteClasses.isNotEmpty()) {
+                    remoteClasses.map { it.toAcademicClass() }
+                } else {
+                    AcademicClassProvider.DEFAULT_CLASSES
+                }
+                Log.d("DeshExamRepo", "Firebase response received. Executing local database persistence...")
+            } else {
+                // If neither local nor Firebase has custom records yet, seed defaults
+                finalBoards = AcademicClassProvider.DEFAULT_BOARDS
+                finalClasses = AcademicClassProvider.DEFAULT_CLASSES
+                Log.d("DeshExamRepo", "No data in Firebase either. Executing default West Bengal boards & classes setup...")
+            }
+
+            // Step 3: Execute (Local Room-e save kora ebong provider update kora)
+            val boardEntities = finalBoards.mapIndexed { idx, b -> b.toEntity(idx) }
+            val classEntities = finalClasses.mapIndexed { idx, c -> c.toEntity(idx) }
+            dao.insertAllBoards(boardEntities)
+            dao.insertAllClasses(classEntities)
+            AcademicClassProvider.updateBoards(finalBoards)
+            AcademicClassProvider.updateClasses(finalClasses)
+
+            return@withContext Pair(finalBoards, finalClasses)
+        } catch (e: Exception) {
+            Log.e("DeshExamRepo", "Error in loadBoardsAndClassesLocalFirst: ${e.message}", e)
+            val boards = AcademicClassProvider.DEFAULT_BOARDS
+            val classes = AcademicClassProvider.DEFAULT_CLASSES
+            AcademicClassProvider.updateBoards(boards)
+            AcademicClassProvider.updateClasses(classes)
+            return@withContext Pair(boards, classes)
+        }
+    }
 
     suspend fun ensureSubjectContentSeeded(subjectId: String) {
         val existing = dao.getChaptersForSubjectOnce(subjectId)
@@ -1027,6 +1239,11 @@ class DeshExamRepository(
         val resolvedClassId = if (classId.isNotBlank()) classId else if (targetExam.isNotBlank()) {
             val lower = targetExam.lowercase()
             when {
+                lower.contains("class 1") || lower.contains("প্রথম") || lower.contains("class_1") -> "class_1_wbbpe"
+                lower.contains("class 2") || lower.contains("দ্বিতীয়") || lower.contains("class_2") -> "class_2_wbbpe"
+                lower.contains("class 3") || lower.contains("তৃতীয়") || lower.contains("class_3") -> "class_3_wbbpe"
+                lower.contains("class 4") || lower.contains("চতুর্থ") || lower.contains("class_4") -> "class_4_wbbpe"
+                lower.contains("kg") || lower.contains("প্রাক-প্রাথমিক") || lower.contains("pre-primary") -> "class_kg_wbbpe"
                 lower.contains("class 5") || lower.contains("পঞ্চম") || lower.contains("class_5") -> "class_5_wbbse"
                 lower.contains("class 6") || lower.contains("ষষ্ঠ") || lower.contains("class_6") -> "class_6_wbbse"
                 lower.contains("class 7") || lower.contains("সপ্তম") || lower.contains("class_7") -> "class_7_wbbse"

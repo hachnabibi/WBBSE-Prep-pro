@@ -137,6 +137,12 @@ interface DeshExamDao {
     @Query("UPDATE chapters SET bossCompleted = 1, masteryPercentage = 100 WHERE id = :chapterId")
     suspend fun markChapterBossCompleted(chapterId: String)
 
+    @Query("UPDATE chapters SET bossCompleted = :isCompleted, masteryPercentage = :mastery WHERE id = :chapterId")
+    suspend fun setChapterCompletedStatus(chapterId: String, isCompleted: Boolean, mastery: Int)
+
+    @Query("UPDATE subjects SET completedChapters = :completed, masteryPercentage = :mastery WHERE id = :subjectId")
+    suspend fun updateSubjectProgress(subjectId: String, completed: Int, mastery: Int)
+
     @Query("UPDATE chapters SET completedTopics = :completedTopics, masteryPercentage = :mastery WHERE id = :chapterId")
     suspend fun updateChapterProgress(chapterId: String, completedTopics: Int, mastery: Int)
 
@@ -207,4 +213,48 @@ interface DeshExamDao {
 
     @Query("SELECT * FROM video_progress ORDER BY lastWatchedTimestamp DESC")
     suspend fun getAllVideoProgressOnce(): List<VideoProgressEntity>
+
+    // Education Boards Local Persistence
+    @Query("SELECT * FROM education_boards ORDER BY orderIndex ASC")
+    fun getAllBoardsFlow(): Flow<List<BoardEntity>>
+
+    @Query("SELECT * FROM education_boards ORDER BY orderIndex ASC")
+    suspend fun getAllBoardsOnce(): List<BoardEntity>
+
+    @Query("SELECT * FROM education_boards WHERE id = :id LIMIT 1")
+    suspend fun getBoardById(id: String): BoardEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBoard(board: BoardEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllBoards(boards: List<BoardEntity>)
+
+    @Query("DELETE FROM education_boards WHERE id = :id")
+    suspend fun deleteBoardById(id: String)
+
+    // Academic Classes Local Persistence
+    @Query("SELECT * FROM academic_classes ORDER BY classNumber ASC")
+    fun getAllClassesFlow(): Flow<List<AcademicClassEntity>>
+
+    @Query("SELECT * FROM academic_classes ORDER BY classNumber ASC")
+    suspend fun getAllClassesOnce(): List<AcademicClassEntity>
+
+    @Query("SELECT * FROM academic_classes WHERE board = :board ORDER BY classNumber ASC")
+    fun getClassesForBoardFlow(board: String): Flow<List<AcademicClassEntity>>
+
+    @Query("SELECT * FROM academic_classes WHERE board = :board ORDER BY classNumber ASC")
+    suspend fun getClassesForBoardOnce(board: String): List<AcademicClassEntity>
+
+    @Query("SELECT * FROM academic_classes WHERE id = :id LIMIT 1")
+    suspend fun getClassById(id: String): AcademicClassEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertClass(academicClass: AcademicClassEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllClasses(classes: List<AcademicClassEntity>)
+
+    @Query("DELETE FROM academic_classes WHERE id = :id")
+    suspend fun deleteClassById(id: String)
 }

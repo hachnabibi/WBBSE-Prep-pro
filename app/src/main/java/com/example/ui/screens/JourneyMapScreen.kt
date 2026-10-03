@@ -206,7 +206,9 @@ fun JourneyMapScreen(
         // View Mode Switcher Header
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -310,7 +312,8 @@ fun JourneyMapScreen(
                     currentChapter?.let { ch ->
                         ChapterBannerCard(
                             chapter = ch,
-                            isBengali = isBengali
+                            isBengali = isBengali,
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
@@ -332,53 +335,81 @@ fun JourneyMapScreen(
                                     currentChapter.id,
                                     "🔥 অধ্যায় বস ব্যাটল: ${currentChapter.getTitle(true)}"
                                 )
-                            }
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
             }
 
             JourneyViewMode.LIST -> {
-                // Chapter Header Card
-                item {
-                    currentChapter?.let { ch ->
-                        ChapterBannerCard(
-                            chapter = ch,
-                            isBengali = isBengali
-                        )
-                    }
-                }
-
-                // Path Nodes for each Topic (List View)
-                items(topics) { topic ->
-                    TopicNodeCard(
-                        topic = topic,
-                        isBengali = isBengali,
-                        onOpenStudy = { onOpenTopicStudy(topic.id) },
-                        onStartPractice = {
-                            onStartAssessment(
-                                AssessmentMode.PRACTICE,
-                                topic.id,
-                                "${topic.getTitle(true)} - অনুশীলন"
+                if (chapters.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (isBengali) "কোনো অধ্যায় খুঁজে পাওয়া যায়নি।" else "No chapters found.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    )
-                }
+                    }
+                } else {
+                    chapters.forEach { chapter ->
+                        // 1. Chapter Header Card
+                        item {
+                            ChapterBannerCard(
+                                chapter = chapter,
+                                isBengali = isBengali,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
 
-                // Final Chapter Boss Battle Citadel
-                item {
-                    currentChapter?.let { ch ->
-                        BossBattleCitadelCard(
-                            chapter = ch,
-                            isBengali = isBengali,
-                            onStartBossBattle = {
-                                onStartAssessment(
-                                    AssessmentMode.BOSS_BATTLE,
-                                    ch.id,
-                                    "🔥 অধ্যায় বস ব্যাটল: ${ch.getTitle(true)}"
+                        // Filter topics belonging to this chapter from the preloaded subjectTopics
+                        val chapterTopics = subjectTopics.filter { it.chapterId == chapter.id }
+
+                        if (chapterTopics.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Text(
+                                        text = if (isBengali) "এই অধ্যায়ে কোনো টপিক নেই।" else "No topics in this chapter.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            // 2. Path Nodes for each Topic in this Chapter (List View)
+                            items(chapterTopics, key = { it.id }) { topic ->
+                                TopicNodeCard(
+                                    topic = topic,
+                                    isBengali = isBengali,
+                                    onOpenStudy = { onOpenTopicStudy(topic.id) },
+                                    onStartPractice = {
+                                        onStartAssessment(
+                                            AssessmentMode.PRACTICE,
+                                            topic.id,
+                                            "${topic.getTitle(true)} - অনুশীলন"
+                                        )
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
-                        )
+                        }
+
+                        // Add a spacer between chapters
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
             }

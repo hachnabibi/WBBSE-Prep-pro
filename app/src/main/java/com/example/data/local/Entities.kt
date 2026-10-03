@@ -191,3 +191,73 @@ data class VideoProgressEntity(
     val lastWatchedTimestamp: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "education_boards")
+data class BoardEntity(
+    @PrimaryKey val id: String,
+    val shortName: String,
+    val fullNameBengali: String,
+    val fullNameEnglish: String = fullNameBengali,
+    val subtitleBengali: String = "",
+    val levelBadge: String = "",
+    val classRangeDescription: String = "",
+    val iconName: String = "MenuBook",
+    val orderIndex: Int = 0
+)
+
+@Entity(tableName = "academic_classes")
+data class AcademicClassEntity(
+    @PrimaryKey val id: String,
+    val classNumber: Int,
+    val nameBengali: String,
+    val nameEnglish: String = nameBengali,
+    val board: String = "WBBSE",
+    val targetExam: String = "",
+    val descriptionBengali: String = "",
+    val orderIndex: Int = 0
+)
+
+fun BoardEntity.toModel(): com.example.data.model.EducationBoard = com.example.data.model.EducationBoard(
+    id = id,
+    shortName = shortName,
+    fullNameBengali = fullNameBengali,
+    fullNameEnglish = fullNameEnglish,
+    subtitleBengali = subtitleBengali,
+    levelBadge = levelBadge,
+    classRangeDescription = classRangeDescription,
+    iconName = iconName
+)
+
+fun com.example.data.model.EducationBoard.toEntity(orderIndex: Int = 0): BoardEntity = BoardEntity(
+    id = id,
+    shortName = shortName,
+    fullNameBengali = fullNameBengali,
+    fullNameEnglish = fullNameEnglish,
+    subtitleBengali = subtitleBengali,
+    levelBadge = levelBadge,
+    classRangeDescription = classRangeDescription,
+    iconName = iconName,
+    orderIndex = orderIndex
+)
+
+fun AcademicClassEntity.toModel(): com.example.data.model.AcademicClass = com.example.data.model.AcademicClass(
+    id = id,
+    classNumber = classNumber,
+    nameBengali = nameBengali,
+    nameEnglish = nameEnglish,
+    board = board,
+    targetExam = targetExam,
+    descriptionBengali = descriptionBengali
+)
+
+fun com.example.data.model.AcademicClass.toEntity(orderIndex: Int = 0): AcademicClassEntity = AcademicClassEntity(
+    id = id,
+    classNumber = classNumber,
+    nameBengali = nameBengali,
+    nameEnglish = nameEnglish,
+    board = board,
+    targetExam = targetExam,
+    descriptionBengali = descriptionBengali,
+    orderIndex = orderIndex
+)
+
+

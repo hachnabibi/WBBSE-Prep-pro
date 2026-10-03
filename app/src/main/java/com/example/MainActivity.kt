@@ -552,6 +552,7 @@ fun DeshExamApp(
                 }
                 AppScreen.PROGRESS_DASHBOARD -> {
                     ProgressDashboardScreen(
+                        viewModel = viewModel,
                         isBengali = isBengali,
                         onBack = { viewModel.goBack() },
                         modifier = Modifier.fillMaxSize()

@@ -71,22 +71,93 @@ data class FirestoreFullSyllabusMock(
 }
 
 /**
+ * Board representation in Firestore (e.g. WBBPE, WBBSE, WBCHSE, CBSE).
+ */
+data class FirestoreEducationBoard(
+    val id: String = "",
+    val shortName: String = "",
+    val fullNameBengali: String = "",
+    val fullNameEnglish: String = "",
+    val subtitleBengali: String = "",
+    val levelBadge: String = "",
+    val classRangeDescription: String = "",
+    val iconName: String = "MenuBook",
+    val orderIndex: Int = 0,
+    val isActive: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+/**
  * Class representation in Firestore (e.g. WBBSE Class 10 / Madhyamik).
  */
 data class FirestoreClass(
     val id: String = "class_10_wbbse",
-    val name: String = "দশম শ্রেণী (মাধ্যমিক)",
+    val classNumber: Int = 10,
+    val name: String = "দশম শ্রেণি",
+    val nameBengaliValue: String = "",
+    val nameEnglishValue: String = "",
     val board: String = "WBBSE",
+    val targetExam: String = "WBBSE Madhyamik 2026",
     val targetYear: String = "2026",
     val description: String = "পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ দশম শ্রেণীর সম্পূর্ণ সিলেবাস ও প্রশ্নব্যাংক",
     val totalSubjects: Int = 7,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val orderIndex: Int = 0
 ) {
-    val nameBengali: String get() = name
-    val nameEnglish: String get() = name
+    val nameBengali: String get() = nameBengaliValue.ifBlank { name }
+    val nameEnglish: String get() = nameEnglishValue.ifBlank { name }
     val descriptionBengali: String get() = description
     val descriptionEnglish: String get() = description
 }
+
+fun FirestoreEducationBoard.toEducationBoard(): com.example.data.model.EducationBoard = com.example.data.model.EducationBoard(
+    id = id,
+    shortName = shortName.ifBlank { id },
+    fullNameBengali = fullNameBengali.ifBlank { shortName },
+    fullNameEnglish = fullNameEnglish.ifBlank { shortName },
+    subtitleBengali = subtitleBengali,
+    levelBadge = levelBadge,
+    classRangeDescription = classRangeDescription,
+    iconName = iconName.ifBlank { "MenuBook" }
+)
+
+fun com.example.data.model.EducationBoard.toFirestore(orderIndex: Int = 0): FirestoreEducationBoard = FirestoreEducationBoard(
+    id = id,
+    shortName = shortName,
+    fullNameBengali = fullNameBengali,
+    fullNameEnglish = fullNameEnglish,
+    subtitleBengali = subtitleBengali,
+    levelBadge = levelBadge,
+    classRangeDescription = classRangeDescription,
+    iconName = iconName,
+    orderIndex = orderIndex,
+    isActive = true
+)
+
+fun FirestoreClass.toAcademicClass(): com.example.data.model.AcademicClass = com.example.data.model.AcademicClass(
+    id = id,
+    classNumber = classNumber,
+    nameBengali = nameBengali.ifBlank { name },
+    nameEnglish = nameEnglish.ifBlank { name },
+    board = board,
+    targetExam = targetExam.ifBlank { "$board $name" },
+    descriptionBengali = descriptionBengali.ifBlank { description }
+)
+
+fun com.example.data.model.AcademicClass.toFirestore(orderIndex: Int = 0): FirestoreClass = FirestoreClass(
+    id = id,
+    classNumber = classNumber,
+    name = nameBengali,
+    nameBengaliValue = nameBengali,
+    nameEnglishValue = nameEnglish,
+    board = board,
+    targetExam = targetExam,
+    targetYear = "2026",
+    description = descriptionBengali,
+    totalSubjects = 7,
+    isActive = true,
+    orderIndex = orderIndex
+)
 
 /**
  * Subject representation in Firestore.

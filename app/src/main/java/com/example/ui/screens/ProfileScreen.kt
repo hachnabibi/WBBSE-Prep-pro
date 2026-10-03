@@ -1722,10 +1722,14 @@ fun ProfileScreen(
                             }
                         }
 
-                        val allClassesList = remember { com.example.data.model.AcademicClassProvider.ALL_CLASSES }
+                        val allClassesList by com.example.data.model.AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
                         var boardTab by remember(profile.classId) {
                             mutableStateOf(
-                                if (profile.classId.contains("wbchse", ignoreCase = true) || profile.classId in listOf("class_11_wbchse", "class_12_wbchse")) "WBCHSE" else "WBBSE"
+                                when {
+                                    profile.classId.contains("wbchse", ignoreCase = true) || profile.classId in listOf("class_11_wbchse", "class_12_wbchse") -> "WBCHSE"
+                                    profile.classId.contains("wbbpe", ignoreCase = true) || profile.classId.startsWith("class_kg") || profile.classId in listOf("class_1_wbbpe", "class_2_wbbpe", "class_3_wbbpe", "class_4_wbbpe") -> "WBBPE"
+                                    else -> "WBBSE"
+                                }
                             )
                         }
 
@@ -1740,20 +1744,18 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf(
-                                    "WBBSE" to "WBBSE (৫ম - ১০ম শ্রেণি)",
-                                    "WBCHSE" to "WBCHSE (১১শ -১২শ শ্রেণি)"
-                                ).forEach { (bId, bTitle) ->
-                                    val isBSelected = boardTab == bId
+                                val allBoards by com.example.data.model.AcademicClassProvider.ALL_BOARDS_FLOW.collectAsState()
+                                allBoards.forEach { b ->
+                                    val isBSelected = boardTab == b.id
                                     Surface(
                                         onClick = {
-                                            boardTab = bId
-                                            val bClasses = allClassesList.filter { it.board.equals(bId, ignoreCase = true) }
+                                            boardTab = b.id
+                                            val bClasses = allClassesList.filter { it.board.equals(b.id, ignoreCase = true) }
                                             if (bClasses.none { it.id == profile.classId }) {
-                                                val targetCls = if (bId == "WBCHSE") {
-                                                    bClasses.firstOrNull { it.classNumber == 11 } ?: bClasses.first()
-                                                } else {
-                                                    bClasses.firstOrNull { it.classNumber == 10 } ?: bClasses.first()
+                                                val targetCls = when (b.id) {
+                                                    "WBCHSE" -> bClasses.firstOrNull { it.classNumber == 11 } ?: bClasses.first()
+                                                    "WBBPE" -> bClasses.firstOrNull { it.classNumber == 1 } ?: bClasses.first()
+                                                    else -> bClasses.firstOrNull { it.classNumber == 10 } ?: bClasses.first()
                                                 }
                                                 viewModel.switchActiveExamClass(targetCls.id)
                                             }
@@ -1763,7 +1765,7 @@ fun ProfileScreen(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text(
-                                            text = bTitle,
+                                            text = "${b.shortName} (${b.levelBadge})",
                                             modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                             color = if (isBSelected) Color.White else MaterialTheme.colorScheme.onSurface,
@@ -1824,7 +1826,7 @@ fun ProfileScreen(
                                                     )
                                                 }
                                                 Text(
-                                                    text = "Class ${cls.classNumber}",
+                                                    text = if (cls.classNumber == 0) "KG" else "Class ${cls.classNumber}",
                                                     style = MaterialTheme.typography.labelMedium.copy(
                                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium
                                                     ),
@@ -2192,7 +2194,7 @@ fun ProfileScreen(
                             }
 
                             var targetExamExpanded by remember { mutableStateOf(false) }
-                            val allClassesList = remember { com.example.data.model.AcademicClassProvider.ALL_CLASSES }
+                            val allClassesList by com.example.data.model.AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
 
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
@@ -2210,7 +2212,7 @@ fun ProfileScreen(
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = { editTargetExam = cls.targetExam },
-                                            label = { Text("${cls.classNumber}ম শ্রেণি", fontSize = 12.sp) }
+                                            label = { Text(com.example.data.model.AcademicClassProvider.getBengaliClassShortBadge(cls.classNumber), fontSize = 12.sp) }
                                         )
                                     }
                                 }

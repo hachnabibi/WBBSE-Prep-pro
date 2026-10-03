@@ -51,6 +51,7 @@ class FirestoreService(
         private const val TAG = "FirestoreService"
 
         // Hierarchy Collections
+        private const val COLLECTION_BOARDS = "education_boards"
         private const val COLLECTION_CLASSES = "classes"
         private const val COLLECTION_SUBJECTS = "subjects"
         private const val COLLECTION_CHAPTERS = "chapters"
@@ -112,7 +113,89 @@ class FirestoreService(
     }
 
     // =========================================================================
-    // 1. CLASS (শ্রেণী) MANAGEMENT
+    // 0. EDUCATION BOARD (শিক্ষা বোর্ড) MANAGEMENT & REALTIME
+    // =========================================================================
+
+    suspend fun saveBoard(board: FirestoreEducationBoard): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection(COLLECTION_BOARDS)
+                .document(board.id)
+                .set(board, SetOptions.merge())
+                .await()
+            Log.d(TAG, "Saved board: ${board.id}")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving board: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteBoard(boardId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection(COLLECTION_BOARDS)
+                .document(boardId)
+                .delete()
+                .await()
+            Log.d(TAG, "Deleted board: $boardId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting board: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllBoards(): Result<List<FirestoreEducationBoard>> = withContext(Dispatchers.IO) {
+        try {
+            val snapshot = firestore.collection(COLLECTION_BOARDS)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreEducationBoard::class.java) }
+                .filter { it.isActive }
+                .sortedBy { it.orderIndex }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting boards: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getBoardById(boardId: String): Result<FirestoreEducationBoard?> = withContext(Dispatchers.IO) {
+        try {
+            val doc = firestore.collection(COLLECTION_BOARDS)
+                .document(boardId)
+                .get()
+                .await()
+            Result.success(doc.toObject(FirestoreEducationBoard::class.java))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting board by id: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    fun getBoardsRealtime(): Flow<List<FirestoreEducationBoard>> = callbackFlow {
+        if (!isAvailable) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection(COLLECTION_BOARDS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Listen to boards failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(FirestoreEducationBoard::class.java) }
+                        .filter { it.isActive }
+                        .sortedBy { it.orderIndex }
+                    trySend(list)
+                }
+            }
+        awaitClose { listener.remove() }
+    }.flowOn(Dispatchers.IO)
+
+    // =========================================================================
+    // 1. CLASS (শ্রেণী) MANAGEMENT & REALTIME
     // =========================================================================
 
     suspend fun saveClass(classItem: FirestoreClass): Result<Unit> = withContext(Dispatchers.IO) {
@@ -129,19 +212,69 @@ class FirestoreService(
         }
     }
 
+    suspend fun deleteClass(classId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection(COLLECTION_CLASSES)
+                .document(classId)
+                .delete()
+                .await()
+            Log.d(TAG, "Deleted class: $classId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting class: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun getAllClasses(): Result<List<FirestoreClass>> = withContext(Dispatchers.IO) {
         try {
             val snapshot = firestore.collection(COLLECTION_CLASSES)
-                .whereEqualTo("active", true)
                 .get()
                 .await()
             val list = snapshot.documents.mapNotNull { it.toObject(FirestoreClass::class.java) }
+                .filter { it.isActive }
+                .sortedBy { it.classNumber }
             Result.success(list)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting classes: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }
+
+    suspend fun getClassById(classId: String): Result<FirestoreClass?> = withContext(Dispatchers.IO) {
+        try {
+            val doc = firestore.collection(COLLECTION_CLASSES)
+                .document(classId)
+                .get()
+                .await()
+            Result.success(doc.toObject(FirestoreClass::class.java))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting class by id: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    fun getClassesRealtime(): Flow<List<FirestoreClass>> = callbackFlow {
+        if (!isAvailable) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection(COLLECTION_CLASSES)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Listen to classes failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(FirestoreClass::class.java) }
+                        .filter { it.isActive }
+                        .sortedBy { it.classNumber }
+                    trySend(list)
+                }
+            }
+        awaitClose { listener.remove() }
+    }.flowOn(Dispatchers.IO)
 
     // =========================================================================
     // 2. SUBJECT (বিষয়) MANAGEMENT

@@ -342,7 +342,7 @@ fun Step2Class(
     
     Spacer(modifier = Modifier.height(32.dp))
     
-    val allClasses = remember { AcademicClassProvider.ALL_CLASSES }
+    val allClasses by AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
     
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -356,7 +356,7 @@ fun Step2Class(
             val isSelected = selectedClassNumber == cls.classNumber
             
             SelectableOptionCard(
-                text = "${cls.classNumber}ম শ্রেণি",
+                text = cls.nameBengali.ifBlank { AcademicClassProvider.getBengaliClassShortBadge(cls.classNumber) },
                 isSelected = isSelected,
                 onClick = {
                     val stream = if (cls.classNumber in 11..12) "science" else "all"
