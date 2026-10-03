@@ -68,6 +68,8 @@ class FirestoreService(
         // Student Data Collections
         private const val COLLECTION_USERS = "users"
         private const val COLLECTION_TOPIC_PROGRESS = "topic_progress"
+        private const val COLLECTION_CHAPTER_PROGRESS = "chapter_progress"
+        private const val COLLECTION_SUBJECT_PROGRESS = "subject_progress"
         private const val COLLECTION_VIDEO_PROGRESS = "video_progress"
         private const val COLLECTION_LEADERBOARD = "leaderboard"
         private const val COLLECTION_DISTRICTS = "districts"
@@ -780,6 +782,76 @@ class FirestoreService(
             Result.success(list)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting all video progress: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    // =========================================================================
+    // 8.2 CHAPTER & SUBJECT REALTIME PROGRESS (মাল্টি-ডিভাইস সিঙ্ক ও ব্যাকআপ)
+    // =========================================================================
+
+    suspend fun saveChapterProgress(userId: String, progress: FirestoreChapterProgress): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank() || progress.chapterId.isBlank()) return@withContext Result.success(Unit)
+            firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_CHAPTER_PROGRESS)
+                .document(progress.chapterId)
+                .set(progress, SetOptions.merge())
+                .await()
+            Log.d(TAG, "Saved chapter progress for ${progress.chapterId}: completed=${progress.isCompleted}")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving chapter progress: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllChapterProgress(userId: String): Result<List<FirestoreChapterProgress>> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank()) return@withContext Result.success(emptyList())
+            val snapshot = firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_CHAPTER_PROGRESS)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreChapterProgress::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting all chapter progress: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun saveSubjectProgress(userId: String, progress: FirestoreSubjectProgress): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank() || progress.subjectId.isBlank()) return@withContext Result.success(Unit)
+            firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_SUBJECT_PROGRESS)
+                .document(progress.subjectId)
+                .set(progress, SetOptions.merge())
+                .await()
+            Log.d(TAG, "Saved subject progress for ${progress.subjectId}: ${progress.completedChapters}/${progress.totalChapters}")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving subject progress: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllSubjectProgress(userId: String): Result<List<FirestoreSubjectProgress>> = withContext(Dispatchers.IO) {
+        try {
+            if (userId.isBlank()) return@withContext Result.success(emptyList())
+            val snapshot = firestore.collection(COLLECTION_USERS)
+                .document(userId)
+                .collection(COLLECTION_SUBJECT_PROGRESS)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreSubjectProgress::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting all subject progress: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }

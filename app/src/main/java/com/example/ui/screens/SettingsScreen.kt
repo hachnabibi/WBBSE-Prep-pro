@@ -1188,6 +1188,31 @@ fun SettingsScreen(
                                 }
                             }
 
+                            var isBackingUpInSettings by remember { mutableStateOf(false) }
+
+                            OutlinedButton(
+                                onClick = {
+                                    isBackingUpInSettings = true
+                                    viewModel.pushLocalDatabaseToFirebase { success, msg ->
+                                        isBackingUpInSettings = false
+                                        snackbarMessage = msg
+                                    }
+                                },
+                                enabled = !isBackingUpInSettings,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (isBackingUpInSettings) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("ফায়ারবেসে ব্যাকআপ হচ্ছে...", fontSize = 12.sp)
+                                } else {
+                                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("☁️ লোকাল ডেটা ফায়ারবেসে ব্যাকআপ রাখুন", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
                             Button(
                                 onClick = {
                                     viewModel.navigateTo(com.example.ui.viewmodel.AppScreen.ADMIN_PANEL)

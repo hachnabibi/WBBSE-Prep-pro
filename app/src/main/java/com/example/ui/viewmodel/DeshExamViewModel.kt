@@ -22,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class AppScreen {
@@ -110,12 +111,35 @@ data class AutoSyncStatus(
     val syncMessage: String = "অটো-সিঙ্ক সক্রিয় (ক্লাউড ও লোকাল ডেটাবেজ যুক্ত)"
 )
 
+data class CloudBackupState(
+    val isBackingUp: Boolean = false,
+    val step: String = "",
+    val progress: Float = 0f,
+    val error: String? = null,
+    val lastBackupTimestamp: Long = 0L,
+    val summary: String? = null,
+    val stats: LocalDatabaseStats? = null
+)
+
+data class LocalDatabaseStats(
+    val boardCount: Int = 0,
+    val classCount: Int = 0,
+    val subjectCount: Int = 0,
+    val chapterCount: Int = 0,
+    val topicCount: Int = 0,
+    val questionCount: Int = 0,
+    val videoProgressCount: Int = 0
+)
+
 class DeshExamViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = DeshExamDatabase.getDatabase(application, viewModelScope)
     val repository = DeshExamRepository(database.deshExamDao(), application)
     val authRepository = FirebaseAuthRepository()
     val firestoreService = FirestoreService()
+
+    private val _cloudBackupState = MutableStateFlow(CloudBackupState())
+    val cloudBackupState: StateFlow<CloudBackupState> = _cloudBackupState.asStateFlow()
 
     val authUserState: StateFlow<AuthUserState?> = authRepository.authStateFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), authRepository.currentUserState)
@@ -372,6 +396,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private var timerJob: Job? = null
 
     init {
+        // Load initial local database statistics for cloud backup dashboard
+        loadLocalDatabaseStats()
+
         // Sync & update database from assets so that any subject/chapter/question changes reflect immediately
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -429,6 +456,19 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // 3. Realtime Leaderboard listener from Firebase Firestore
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.getRealtimeTopStudents(30).collect { topStudents ->
+                    if (topStudents.isNotEmpty()) {
+                        _liveLeaderboard.value = topStudents
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Realtime leaderboard listen error: ${e.message}")
+            }
+        }
+
         // Initialize theme
         try {
             val savedDarkMode = prefs.getBoolean("pref_dark_mode", false)
@@ -446,6 +486,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 if (user != null) {
                     _isGuestUser.value = user.isAnonymous
                     loadUserVideoProgress()
+                    if (!user.isAnonymous) {
+                        restoreUserProgressFromCloud(user.uid)
+                    }
                     val isCompleted = if (user.isAnonymous) {
                         true // Guests don't need mandatory onboarding
                     } else {
@@ -826,6 +869,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             val finalStream = if (resolvedClassId in listOf("class_11_wbchse", "class_12_wbchse")) stream else "all"
             repository.updateStudentProfile(name, school, district, targetExam, resolvedClassId, finalStream, studyGoals)
             val uid = authUserState.value?.uid ?: "guest"
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val updatedProf = studentProfile.value
+                    firestoreService.saveStudentProfile(uid, updatedProf)
+                } catch (_: Exception) {}
+            }
             prefs.edit().putBoolean("onboarding_completed_$uid", true).apply()
             val newSubs = repository.getSubjectsForClassOnce(resolvedClassId)
             if (newSubs.isNotEmpty()) {
@@ -1130,6 +1179,50 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             _latestResult.value = result
             _assessmentState.value = AssessmentUiState()
             _currentScreen.value = AppScreen.RESULT
+
+            // Automatic Real-time Firestore Sync (Test Result, User Progress & Real-time Leaderboard)
+            val userId = authUserState.value?.uid ?: "guest_user"
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    // 1. Save Test Result in Firestore
+                    firestoreService.saveTestResult(userId, result)
+
+                    // 2. Save Updated Student Profile & Stats in Firestore
+                    val currentProf = studentProfile.value
+                    firestoreService.saveStudentProfile(userId, currentProf)
+
+                    // 3. Update Real-time Leaderboard Entry in Firestore
+                    firestoreService.updateLeaderboardEntry(
+                        userId = userId,
+                        name = currentProf.name,
+                        school = currentProf.school,
+                        district = currentProf.district,
+                        xp = currentProf.currentXp,
+                        accuracy = currentProf.overallAccuracy,
+                        streak = currentProf.currentStreak
+                    )
+
+                    // 4. Save Topic Mastery in Firestore if topic practice
+                    if (!session.topicId.isNullOrBlank()) {
+                        firestoreService.saveTopicMastery(
+                            FirestoreTopicMastery(
+                                topicId = session.topicId ?: "",
+                                userId = userId,
+                                classId = currentProf.classId.ifBlank { "class_10_wbbse" },
+                                subjectId = session.subjectId ?: "",
+                                chapterId = session.chapterId ?: "",
+                                masteryPercentage = result.accuracyPercentage,
+                                totalQuestionsAttempted = result.totalQuestions,
+                                correctQuestionsCount = result.correctCount,
+                                isCompleted = result.accuracyPercentage >= 70,
+                                lastPracticedTimestamp = System.currentTimeMillis()
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.w("DeshExamViewModel", "Automatic Firestore sync error: ${e.message}")
+                }
+            }
         }
     }
 
@@ -1218,8 +1311,266 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun fetchFirestoreQuestions(limit: String = "1000", classId: String? = null) {}
     fun fetchFirestoreTestTemplates(limit: String = "100", classId: String? = null) {}
 
+    fun loadLocalDatabaseStats() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val dao = database.deshExamDao()
+                val boards = dao.getAllBoardsOnce()
+                val classes = dao.getAllClassesOnce()
+                val subjects = dao.getAllSubjectsOnce()
+                val chapters = dao.getAllChaptersOnce()
+                val topics = dao.getAllTopicsOnce()
+                val questions = dao.getAllQuestions()
+                val videos = dao.getAllVideoProgressOnce()
+
+                val stats = LocalDatabaseStats(
+                    boardCount = if (boards.isNotEmpty()) boards.size else AcademicClassProvider.ALL_BOARDS.size,
+                    classCount = if (classes.isNotEmpty()) classes.size else AcademicClassProvider.ALL_CLASSES.size,
+                    subjectCount = subjects.size,
+                    chapterCount = chapters.size,
+                    topicCount = topics.size,
+                    questionCount = questions.size,
+                    videoProgressCount = videos.size
+                )
+                _cloudBackupState.update { it.copy(stats = stats) }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error loading stats: ${e.message}", e)
+            }
+        }
+    }
+
+    fun pushLocalDatabaseToFirebase(
+        onProgress: (String, Float) -> Unit = { _, _ -> },
+        onComplete: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        if (_cloudBackupState.value.isBackingUp) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _cloudBackupState.update {
+                it.copy(
+                    isBackingUp = true,
+                    step = "লোকাল ডেটা সংগ্রহ করা হচ্ছে...",
+                    progress = 0.05f,
+                    error = null,
+                    summary = null
+                )
+            }
+            withContext(Dispatchers.Main) {
+                onProgress("লোকাল ডেটা সংগ্রহ করা হচ্ছে...", 0.05f)
+            }
+
+            try {
+                val dao = database.deshExamDao()
+
+                // 1. Boards & Classes (0.05 -> 0.20)
+                _cloudBackupState.update { it.copy(step = "🏫 বোর্ড ও শ্রেণি ব্যাকআপ হচ্ছে...", progress = 0.10f) }
+                withContext(Dispatchers.Main) { onProgress("🏫 বোর্ড ও শ্রেণি ব্যাকআপ হচ্ছে...", 0.10f) }
+
+                val localBoards = dao.getAllBoardsOnce()
+                val boardsToPush = if (localBoards.isNotEmpty()) {
+                    localBoards.mapIndexed { idx, b -> b.toModel().toFirestore(idx) }
+                } else {
+                    AcademicClassProvider.ALL_BOARDS.mapIndexed { idx, b -> b.toFirestore(idx) }
+                }
+                var bSuccess = 0
+                for (fb in boardsToPush) {
+                    if (firestoreService.saveBoard(fb).isSuccess) bSuccess++
+                }
+
+                val localClasses = dao.getAllClassesOnce()
+                val classesToPush = if (localClasses.isNotEmpty()) {
+                    localClasses.mapIndexed { idx, c -> c.toModel().toFirestore(idx) }
+                } else {
+                    AcademicClassProvider.ALL_CLASSES.mapIndexed { idx, c -> c.toFirestore(idx) }
+                }
+                var cSuccess = 0
+                for (fc in classesToPush) {
+                    if (firestoreService.saveClass(fc).isSuccess) cSuccess++
+                }
+
+                // 2. Subjects (0.20 -> 0.35)
+                _cloudBackupState.update { it.copy(step = "📘 বিষয়সমূহ (Subjects) ক্লাউডে পাঠানো হচ্ছে...", progress = 0.25f) }
+                withContext(Dispatchers.Main) { onProgress("📘 বিষয়সমূহ (Subjects) ক্লাউডে পাঠানো হচ্ছে...", 0.25f) }
+
+                val localSubjects = dao.getAllSubjectsOnce()
+                var sSuccess = 0
+                localSubjects.forEachIndexed { idx, sub ->
+                    val fSub = FirestoreSubject(
+                        id = sub.id,
+                        classId = sub.classId.ifBlank { "class_10_wbbse" },
+                        code = sub.code,
+                        name = sub.name,
+                        textbookName = sub.textbookName,
+                        stream = sub.stream.ifBlank { "common" },
+                        totalChapters = sub.totalChapters,
+                        colorHex = sub.colorHex,
+                        iconName = "Book",
+                        orderIndex = idx
+                    )
+                    if (firestoreService.saveSubject(fSub).isSuccess) sSuccess++
+                }
+
+                // 3. Chapters (0.35 -> 0.55)
+                _cloudBackupState.update { it.copy(step = "📖 অধ্যায়সমূহ (Chapters) ক্লাউডে পাঠানো হচ্ছে...", progress = 0.40f) }
+                withContext(Dispatchers.Main) { onProgress("📖 অধ্যায়সমূহ (Chapters) ক্লাউডে পাঠানো হচ্ছে...", 0.40f) }
+
+                val localChapters = dao.getAllChaptersOnce()
+                var chSuccess = 0
+                for (ch in localChapters) {
+                    val fCh = FirestoreChapter(
+                        id = ch.id,
+                        classId = ch.classId.ifBlank { "class_10_wbbse" },
+                        subjectId = ch.subjectId,
+                        chapterNumber = ch.chapterNumber,
+                        title = ch.title,
+                        description = ch.description,
+                        totalTopics = ch.totalTopics,
+                        weightageMarks = 15,
+                        orderIndex = ch.chapterNumber,
+                        contentData = ch.contentData,
+                        solutionData = ch.solutionData
+                    )
+                    if (firestoreService.saveChapter(fCh).isSuccess) chSuccess++
+                }
+
+                // 4. Topics (0.55 -> 0.75)
+                _cloudBackupState.update { it.copy(step = "🏷️ টপিকসমূহ (Topics) ক্লাউডে পাঠানো হচ্ছে...", progress = 0.60f) }
+                withContext(Dispatchers.Main) { onProgress("🏷️ টপিকসমূহ (Topics) ক্লাউডে পাঠানো হচ্ছে...", 0.60f) }
+
+                val localTopics = dao.getAllTopicsOnce()
+                var tpSuccess = 0
+                for (tp in localTopics) {
+                    val kps = if (tp.keyPointsJson.isNotBlank()) {
+                        tp.keyPointsJson.split("|", "#").map { it.trim() }.filter { it.isNotEmpty() }
+                    } else emptyList()
+
+                    val fTopic = FirestoreTopic(
+                        id = tp.id,
+                        classId = tp.classId.ifBlank { "class_10_wbbse" },
+                        subjectId = tp.subjectId,
+                        chapterId = tp.chapterId,
+                        orderIndex = tp.orderIndex,
+                        title = tp.title,
+                        summary = tp.summary,
+                        keyPoints = kps,
+                        formulae = emptyList(),
+                        questionCount = tp.questionCount,
+                        contentData = tp.contentData,
+                        solutionData = tp.solutionData,
+                        videoUrl = tp.videoUrl,
+                        playlistJson = tp.playlistJson
+                    )
+                    if (firestoreService.saveTopic(fTopic).isSuccess) tpSuccess++
+                }
+
+                // 5. Questions Batch (0.75 -> 0.90)
+                _cloudBackupState.update { it.copy(step = "❓ প্রশ্ন ব্যাংক (Questions) ক্লাউডে পাঠানো হচ্ছে...", progress = 0.80f) }
+                withContext(Dispatchers.Main) { onProgress("❓ প্রশ্ন ব্যাংক (Questions) ক্লাউডে পাঠানো হচ্ছে...", 0.80f) }
+
+                val localQuestions = dao.getAllQuestions()
+                val fQuestionsList = localQuestions.map { q ->
+                    val optionsList: List<String> = when {
+                        q.optionsJson.isBlank() -> emptyList()
+                        q.optionsJson.startsWith("[") -> try {
+                            val arr = org.json.JSONArray(q.optionsJson)
+                            val list = mutableListOf<String>()
+                            for (i in 0 until arr.length()) list.add(arr.getString(i))
+                            list
+                        } catch (_: Exception) {
+                            q.optionsJson.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                        }
+                        q.optionsJson.contains("|") -> q.optionsJson.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                        else -> listOf(q.optionsJson)
+                    }
+                    val tagsList = (q.tagsJson.split("|", "#", ",") + listOfNotNull(q.pyqYear.ifBlank { null }))
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+
+                    FirestoreQuestion(
+                        id = q.id,
+                        classId = q.classId.ifBlank { "class_10_wbbse" },
+                        subjectId = q.subjectId,
+                        chapterId = q.chapterId,
+                        topicId = q.topicId,
+                        type = q.type.ifBlank { "MCQ" },
+                        difficulty = q.difficulty.ifBlank { "MEDIUM" },
+                        question = q.question,
+                        options = optionsList,
+                        correctOptionIndex = q.correctOptionIndex,
+                        correctAnswerText = q.correctAnswerText.ifBlank { optionsList.getOrNull(q.correctOptionIndex) ?: "" },
+                        explanation = q.explanation,
+                        marks = if (q.marks > 0) q.marks else 1,
+                        tags = tagsList
+                    )
+                }
+                val qBatchRes = firestoreService.saveQuestionsBatch(fQuestionsList)
+                val qSavedCount = qBatchRes.getOrDefault(fQuestionsList.size)
+
+                // 6. User Profile & Video Progress (0.90 -> 1.0)
+                _cloudBackupState.update { it.copy(step = "👤 ইউজার প্রোফাইল ও ভিডিও প্রগ্রেস ব্যাকআপ হচ্ছে...", progress = 0.95f) }
+                withContext(Dispatchers.Main) { onProgress("👤 ইউজার প্রোফাইল ও ভিডিও প্রগ্রেস ব্যাকআপ হচ্ছে...", 0.95f) }
+
+                val userId = authUserState.value?.uid ?: "guest_user"
+                val currentProf = studentProfile.value
+                firestoreService.saveStudentProfile(userId, currentProf)
+
+                val localVideos = dao.getAllVideoProgressOnce()
+                for (vp in localVideos) {
+                    val fVp = FirestoreVideoProgress(
+                        videoId = vp.videoId,
+                        topicId = vp.topicId,
+                        lessonTitle = vp.title,
+                        videoUrl = "",
+                        lastPositionMs = vp.positionMs,
+                        durationMs = vp.durationMs,
+                        playbackSpeed = vp.playbackSpeed,
+                        isCompleted = vp.isCompleted,
+                        percentage = if (vp.durationMs > 0) (vp.positionMs.toFloat() / vp.durationMs.toFloat() * 100f).coerceIn(0f, 100f) else 0f,
+                        updatedAt = vp.lastWatchedTimestamp
+                    )
+                    firestoreService.saveVideoProgress(userId, fVp)
+                }
+
+                val summaryMsg = "✅ ক্লাউড ব্যাকআপ সফল!\n$bSuccess টি বোর্ড, $cSuccess টি ক্লাস, $sSuccess টি বিষয়, $chSuccess টি অধ্যায়, $tpSuccess টি টপিক এবং $qSavedCount টি প্রশ্ন ফায়ারবেস ক্লাউডে পুশ ও ব্যাকআপ রাখা হয়েছে।"
+
+                _cloudBackupState.update {
+                    it.copy(
+                        isBackingUp = false,
+                        step = "সম্পন্ন",
+                        progress = 1.0f,
+                        lastBackupTimestamp = System.currentTimeMillis(),
+                        summary = summaryMsg,
+                        error = null
+                    )
+                }
+                loadLocalDatabaseStats()
+
+                withContext(Dispatchers.Main) {
+                    onProgress("সম্পন্ন", 1.0f)
+                    onComplete(true, summaryMsg)
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Cloud backup failed: ${e.message}", e)
+                val errMsg = "ব্যাকআপ ব্যর্থ হয়েছে: ${e.localizedMessage ?: e.message}"
+                _cloudBackupState.update {
+                    it.copy(
+                        isBackingUp = false,
+                        error = errMsg,
+                        step = "ত্রুটি"
+                    )
+                }
+                withContext(Dispatchers.Main) {
+                    onComplete(false, errMsg)
+                }
+            }
+        }
+    }
+
     fun syncCurriculumToFirestore(onProgress: (String) -> Unit = {}, onComplete: (Boolean, String) -> Unit = { _, _ -> }) {
-        viewModelScope.launch { onComplete(true, "সিঙ্ক সম্পন্ন হয়েছে") }
+        pushLocalDatabaseToFirebase(
+            onProgress = { step, _ -> onProgress(step) },
+            onComplete = onComplete
+        )
     }
 
     fun addQuestionToFirestore(
@@ -1363,6 +1714,311 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun importBulkCurriculum(
+        rawInput: String,
+        classId: String,
+        subjectId: String,
+        onComplete: (Boolean, String, Int, Int) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            var chaptersImported = 0
+            var topicsImported = 0
+            val trimmed = rawInput.trim()
+            val isJson = trimmed.startsWith("[") || trimmed.startsWith("{")
+            
+            try {
+                if (isJson) {
+                    val jsonArray = if (trimmed.startsWith("[")) {
+                        org.json.JSONArray(trimmed)
+                    } else {
+                        org.json.JSONObject(trimmed).optJSONArray("chapters") ?: org.json.JSONArray()
+                    }
+                    
+                    for (i in 0 until jsonArray.length()) {
+                        val chObj = jsonArray.getJSONObject(i)
+                        val chNum = chObj.optInt("chapterNumber", i + 1)
+                        val chTitle = chObj.optString("title", "অধ্যায় $chNum").trim()
+                        val chDesc = chObj.optString("description", "").trim()
+                        val chContent = chObj.optString("contentData", "").trim()
+                        val chSolution = chObj.optString("solutionData", "").trim()
+                        
+                        val chId = "${subjectId}_ch$chNum"
+                        
+                        // 1. Create and Save Chapter
+                        val fChapter = com.example.data.firestore.FirestoreChapter(
+                            id = chId,
+                            classId = classId,
+                            subjectId = subjectId,
+                            chapterNumber = chNum,
+                            title = chTitle,
+                            description = chDesc,
+                            totalTopics = 0,
+                            weightageMarks = 15,
+                            orderIndex = chNum,
+                            contentData = chContent.ifBlank { null },
+                            solutionData = chSolution.ifBlank { null }
+                        )
+                        
+                        val saveChRes = firestoreService.saveChapter(fChapter)
+                        if (saveChRes.isSuccess) {
+                            val chapterEntity = com.example.data.local.ChapterEntity(
+                                id = chId,
+                                subjectId = subjectId,
+                                chapterNumber = chNum,
+                                title = chTitle,
+                                description = chDesc,
+                                totalTopics = 0,
+                                completedTopics = 0,
+                                masteryPercentage = 0,
+                                bossUnlocked = false,
+                                bossCompleted = false,
+                                classId = classId,
+                                contentData = fChapter.contentData,
+                                solutionData = fChapter.solutionData
+                            )
+                            database.deshExamDao().insertChapters(listOf(chapterEntity))
+                            chaptersImported++
+                        }
+                        
+                        // 2. Parse and Save Topics
+                        val topicsArr = chObj.optJSONArray("topics")
+                        if (topicsArr != null) {
+                            for (j in 0 until topicsArr.length()) {
+                                val tpObj = topicsArr.getJSONObject(j)
+                                val tpOrder = tpObj.optInt("orderIndex", j + 1)
+                                val tpTitle = tpObj.optString("title", "টপিক $tpOrder").trim()
+                                val tpSummary = tpObj.optString("summary", "").trim()
+                                val tpContent = tpObj.optString("contentData", "").trim()
+                                val tpVideo = tpObj.optString("videoUrl", "").trim()
+                                val tpPlaylist = tpObj.optString("playlistJson", "").trim()
+                                
+                                val keyPointsList = mutableListOf<String>()
+                                val kpsArr = tpObj.optJSONArray("keyPoints")
+                                if (kpsArr != null) {
+                                    for (k in 0 until kpsArr.length()) {
+                                        keyPointsList.add(kpsArr.getString(k))
+                                    }
+                                } else {
+                                    val kpsStr = tpObj.optString("keyPoints", "")
+                                    if (kpsStr.isNotBlank()) {
+                                        keyPointsList.addAll(kpsStr.split("|", "#").map { it.trim() }.filter { it.isNotEmpty() })
+                                    }
+                                }
+                                
+                                val formulaeList = mutableListOf<String>()
+                                val fmsArr = tpObj.optJSONArray("formulae")
+                                if (fmsArr != null) {
+                                    for (k in 0 until fmsArr.length()) {
+                                        formulaeList.add(fmsArr.getString(k))
+                                    }
+                                } else {
+                                    val fmsStr = tpObj.optString("formulae", "")
+                                    if (fmsStr.isNotBlank()) {
+                                        formulaeList.addAll(fmsStr.split("|", "#").map { it.trim() }.filter { it.isNotEmpty() })
+                                    }
+                                }
+                                
+                                val tpId = "${chId}_t$tpOrder"
+                                val fTopic = com.example.data.firestore.FirestoreTopic(
+                                    id = tpId,
+                                    classId = classId,
+                                    subjectId = subjectId,
+                                    chapterId = chId,
+                                    orderIndex = tpOrder,
+                                    title = tpTitle,
+                                    summary = tpSummary,
+                                    keyPoints = keyPointsList,
+                                    formulae = formulaeList,
+                                    questionCount = 0,
+                                    contentData = tpContent.ifBlank { null },
+                                    solutionData = formulaeList.joinToString("|").ifBlank { null },
+                                    videoUrl = tpVideo.ifBlank { null },
+                                    playlistJson = tpPlaylist.ifBlank { null }
+                                )
+                                
+                                val saveTpRes = firestoreService.saveTopic(fTopic)
+                                if (saveTpRes.isSuccess) {
+                                    val topicEntity = com.example.data.local.TopicEntity(
+                                        id = tpId,
+                                        chapterId = chId,
+                                        subjectId = subjectId,
+                                        orderIndex = tpOrder,
+                                        title = tpTitle,
+                                        summary = tpSummary,
+                                        keyPointsJson = keyPointsList.joinToString("|"),
+                                        isUnlocked = tpOrder == 1,
+                                        masteryPercentage = 0,
+                                        questionCount = 0,
+                                        classId = classId,
+                                        contentData = fTopic.contentData,
+                                        solutionData = fTopic.solutionData,
+                                        videoUrl = fTopic.videoUrl,
+                                        playlistJson = fTopic.playlistJson
+                                    )
+                                    database.deshExamDao().insertTopics(listOf(topicEntity))
+                                    topicsImported++
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // CSV / Pipe format
+                    val lines = trimmed.split("\n")
+                    val isPipe = trimmed.contains("|")
+                    
+                    val chMap = mutableMapOf<Int, Pair<String, String>>()
+                    val tpList = mutableListOf<CsvTopicRow>()
+                    
+                    for (line in lines) {
+                        val cleanLine = line.trim()
+                        if (cleanLine.isBlank() || cleanLine.startsWith("chapterNumber")) continue
+                        
+                        val cols = if (isPipe) {
+                            cleanLine.split("|").map { it.trim() }
+                        } else {
+                            cleanLine.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)".toRegex()).map { 
+                                it.trim().removeSurrounding("\"")
+                            }
+                        }
+                        
+                        if (cols.size < 5) continue
+                        
+                        val chNum = cols.getOrNull(0)?.toIntOrNull() ?: 1
+                        val chTitle = cols.getOrNull(1) ?: "অধ্যায় $chNum"
+                        val chDesc = cols.getOrNull(2) ?: ""
+                        val tpOrder = cols.getOrNull(3)?.toIntOrNull() ?: 1
+                        val tpTitle = cols.getOrNull(4) ?: "টপিক $tpOrder"
+                        val tpSummary = cols.getOrNull(5) ?: ""
+                        val tpKeyPoints = cols.getOrNull(6) ?: ""
+                        val tpFormulae = cols.getOrNull(7) ?: ""
+                        val tpContent = cols.getOrNull(8) ?: ""
+                        val tpVideo = cols.getOrNull(9) ?: ""
+                        
+                        chMap[chNum] = Pair(chTitle, chDesc)
+                        tpList.add(
+                            CsvTopicRow(
+                                chNum = chNum,
+                                tpOrder = tpOrder,
+                                title = tpTitle,
+                                summary = tpSummary,
+                                keyPoints = tpKeyPoints,
+                                formulae = tpFormulae,
+                                content = tpContent,
+                                videoUrl = tpVideo
+                            )
+                        )
+                    }
+                    
+                    val chIdMap = mutableMapOf<Int, String>()
+                    for ((chNum, pair) in chMap) {
+                        val chId = "${subjectId}_ch$chNum"
+                        chIdMap[chNum] = chId
+                        
+                        val fChapter = com.example.data.firestore.FirestoreChapter(
+                            id = chId,
+                            classId = classId,
+                            subjectId = subjectId,
+                            chapterNumber = chNum,
+                            title = pair.first,
+                            description = pair.second,
+                            totalTopics = 0,
+                            weightageMarks = 15,
+                            orderIndex = chNum
+                        )
+                        val saveChRes = firestoreService.saveChapter(fChapter)
+                        if (saveChRes.isSuccess) {
+                            val chapterEntity = com.example.data.local.ChapterEntity(
+                                id = chId,
+                                subjectId = subjectId,
+                                chapterNumber = chNum,
+                                title = pair.first,
+                                description = pair.second,
+                                totalTopics = 0,
+                                completedTopics = 0,
+                                masteryPercentage = 0,
+                                bossUnlocked = false,
+                                bossCompleted = false,
+                                classId = classId,
+                                contentData = null,
+                                solutionData = null
+                            )
+                            database.deshExamDao().insertChapters(listOf(chapterEntity))
+                            chaptersImported++
+                        }
+                    }
+                    
+                    for (tpRow in tpList) {
+                        val chId = chIdMap[tpRow.chNum] ?: "${subjectId}_ch${tpRow.chNum}"
+                        val tpId = "${chId}_t${tpRow.tpOrder}"
+                        
+                        val kps = tpRow.keyPoints.split("#", "|").map { it.trim() }.filter { it.isNotEmpty() }
+                        val fms = tpRow.formulae.split("#", "|").map { it.trim() }.filter { it.isNotEmpty() }
+                        
+                        val fTopic = com.example.data.firestore.FirestoreTopic(
+                            id = tpId,
+                            classId = classId,
+                            subjectId = subjectId,
+                            chapterId = chId,
+                            orderIndex = tpRow.tpOrder,
+                            title = tpRow.title,
+                            summary = tpRow.summary,
+                            keyPoints = kps,
+                            formulae = fms,
+                            questionCount = 0,
+                            contentData = tpRow.content.ifBlank { null },
+                            solutionData = fms.joinToString("|").ifBlank { null },
+                            videoUrl = tpRow.videoUrl.ifBlank { null },
+                            playlistJson = null
+                        )
+                        
+                        val saveTpRes = firestoreService.saveTopic(fTopic)
+                        if (saveTpRes.isSuccess) {
+                            val topicEntity = com.example.data.local.TopicEntity(
+                                id = tpId,
+                                chapterId = chId,
+                                subjectId = subjectId,
+                                orderIndex = tpRow.tpOrder,
+                                title = tpRow.title,
+                                summary = tpRow.summary,
+                                keyPointsJson = kps.joinToString("|"),
+                                isUnlocked = tpRow.tpOrder == 1,
+                                masteryPercentage = 0,
+                                questionCount = 0,
+                                classId = classId,
+                                contentData = fTopic.contentData,
+                                solutionData = fTopic.solutionData,
+                                videoUrl = fTopic.videoUrl,
+                                playlistJson = null
+                            )
+                            database.deshExamDao().insertTopics(listOf(topicEntity))
+                            topicsImported++
+                        }
+                    }
+                }
+                
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "কারিকুলাম ব্যাচ ইম্পোর্ট সফল হয়েছে! মোট $chaptersImported টি অধ্যায় এবং $topicsImported টি টপিক যুক্ত হয়েছে।", chaptersImported, topicsImported)
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Curriculum import failed: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ইম্পোর্ট ব্যর্থ হয়েছে: ${e.localizedMessage}", 0, 0)
+                }
+            }
+        }
+    }
+
+    private data class CsvTopicRow(
+        val chNum: Int,
+        val tpOrder: Int,
+        val title: String,
+        val summary: String,
+        val keyPoints: String,
+        val formulae: String,
+        val content: String,
+        val videoUrl: String
+    )
+
     fun saveVideoPlaybackProgress(
         videoId: String,
         topicId: String = "",
@@ -1420,10 +2076,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun syncAllDataWithFirebase(onProgress: (String) -> Unit = {}, onComplete: (Boolean, String) -> Unit = { _, _ -> }) {
-        viewModelScope.launch {
-            loadUserVideoProgress()
-            onComplete(true, "সম্পূর্ণ ডেটা ও ভিডিও প্রগ্রেস সিঙ্ক সম্পন্ন হয়েছে")
-        }
+        pushLocalDatabaseToFirebase(
+            onProgress = { step, _ -> onProgress(step) },
+            onComplete = onComplete
+        )
     }
 
     // =========================================================================
@@ -1814,8 +2470,62 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 database.deshExamDao().updateSubjectProgress(subjectId, completedCount, subjectMastery)
 
                 Log.d("DeshExamViewModel", "Toggled chapter $chapterId completion to $newStatus. Subject $subjectId: $completedCount/$totalChapters completed ($subjectMastery%)")
+
+                // 4. Automatic Real-time Firestore Cloud Sync for Chapter & Subject
+                val userId = authUserState.value?.uid ?: "guest_user"
+                val targetChapter = chapters.find { it.id == chapterId }
+                firestoreService.saveChapterProgress(
+                    userId = userId,
+                    progress = com.example.data.firestore.FirestoreChapterProgress(
+                        chapterId = chapterId,
+                        subjectId = subjectId,
+                        isCompleted = newStatus,
+                        masteryPercentage = mastery,
+                        completedTopics = if (newStatus) (targetChapter?.totalTopics ?: 0) else 0,
+                        totalTopics = targetChapter?.totalTopics ?: 0,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                firestoreService.saveSubjectProgress(
+                    userId = userId,
+                    progress = com.example.data.firestore.FirestoreSubjectProgress(
+                        subjectId = subjectId,
+                        completedChapters = completedCount,
+                        totalChapters = totalChapters,
+                        masteryPercentage = subjectMastery,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
             } catch (e: Exception) {
                 Log.e("DeshExamViewModel", "Error toggling chapter completion: ${e.message}")
+            }
+        }
+    }
+
+    fun restoreUserProgressFromCloud(userId: String) {
+        if (userId.isBlank() || userId == "guest_user") return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Restore Chapter Progress
+                val chRes = firestoreService.getAllChapterProgress(userId)
+                chRes.onSuccess { chList ->
+                    for (ch in chList) {
+                        database.deshExamDao().setChapterCompletedStatus(ch.chapterId, ch.isCompleted, ch.masteryPercentage)
+                    }
+                }
+
+                // 2. Restore Subject Progress
+                val subRes = firestoreService.getAllSubjectProgress(userId)
+                subRes.onSuccess { subList ->
+                    for (sub in subList) {
+                        database.deshExamDao().updateSubjectProgress(sub.subjectId, sub.completedChapters, sub.masteryPercentage)
+                    }
+                }
+
+                // 3. Restore Video Progress
+                loadUserVideoProgress()
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Failed to restore user progress from cloud: ${e.message}")
             }
         }
     }

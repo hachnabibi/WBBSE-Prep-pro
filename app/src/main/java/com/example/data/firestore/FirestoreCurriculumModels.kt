@@ -382,3 +382,27 @@ data class FirestoreVideoProgress(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+/**
+ * Student's Chapter Progress in Firestore for multi-device sync.
+ */
+data class FirestoreChapterProgress(
+    val chapterId: String = "",
+    val subjectId: String = "",
+    val isCompleted: Boolean = false,
+    val masteryPercentage: Int = 0,
+    val completedTopics: Int = 0,
+    val totalTopics: Int = 0,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Student's Subject Progress in Firestore for multi-device sync.
+ */
+data class FirestoreSubjectProgress(
+    val subjectId: String = "",
+    val completedChapters: Int = 0,
+    val totalChapters: Int = 0,
+    val masteryPercentage: Int = 0,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+

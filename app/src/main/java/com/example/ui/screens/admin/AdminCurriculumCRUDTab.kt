@@ -26,6 +26,7 @@ import com.example.data.local.TopicEntity
 import com.example.data.model.AcademicClass
 import com.example.data.model.EducationBoard
 import com.example.ui.theme.CorrectGreen
+import com.example.ui.theme.ExamGold
 import com.example.ui.theme.WrongRed
 import com.example.ui.viewmodel.DeshExamViewModel
 
@@ -74,6 +75,29 @@ fun AdminCurriculumCRUDTab(
     var editingTopic by remember { mutableStateOf<TopicEntity?>(null) }
     var deletingChapter by remember { mutableStateOf<ChapterEntity?>(null) }
     var deletingTopic by remember { mutableStateOf<TopicEntity?>(null) }
+    var showBatchUploadDialog by remember { mutableStateOf(false) }
+    var batchImportText by remember { mutableStateOf("") }
+
+    val sampleCurriculumJson = """[
+  {
+    "chapterNumber": 1,
+    "title": "বল ও গতি",
+    "description": "গতির সমীকরণ ও বলের ধারণা",
+    "topics": [
+      {
+        "orderIndex": 1,
+        "title": "গতির প্রথম সমীকরণ",
+        "summary": "v = u + at সমীকরণ",
+        "keyPoints": ["v = অন্তিম বেগ", "u = প্রাথমিক বেগ"],
+        "formulae": ["v = u + at"],
+        "contentData": "গতির প্রথম সমীকরণটি হলো..."
+      }
+    ]
+  }
+]"""
+
+    val sampleCurriculumCsv = """chapterNumber | title | description | orderIndex | topicTitle | summary | keyPoints | formulae | contentData | videoUrl
+1 | বল ও গতি | গতির সমীকরণ ও বলের ধারণা | 1 | গতির প্রথম সমীকরণ | v = u + at সমীকরণ | v = অন্তিম বেগ # u = প্রাথমিক বেগ | v = u + at | গতির প্রথম সমীকরণটি হলো... | """
 
     // Form fields - Chapter
     var formChId by remember { mutableStateOf("") }
@@ -237,6 +261,70 @@ fun AdminCurriculumCRUDTab(
                                 }
                             )
                         }
+                    }
+                }
+
+                // Batch Upload Button for Selected Subject
+                OutlinedButton(
+                    onClick = {
+                        batchImportText = ""
+                        showBatchUploadDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                ) {
+                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (isBengali) "📥 অধ্যায় ও টপিক ব্যাচ আপলোড (CSV / JSON)" else "📥 Batch Upload Chapters & Topics (CSV/JSON)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+
+                // Cloud Backup & Push Button
+                var isPushingToCloud by remember { mutableStateOf(false) }
+
+                Button(
+                    onClick = {
+                        isPushingToCloud = true
+                        viewModel.pushLocalDatabaseToFirebase { success, msg ->
+                            isPushingToCloud = false
+                            onShowMessage(msg, success)
+                            if (success) refreshTrigger++
+                        }
+                    },
+                    enabled = !isPushingToCloud,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ExamGold,
+                        contentColor = Color(0xFF1E1B2E)
+                    )
+                ) {
+                    if (isPushingToCloud) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color(0xFF1E1B2E))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (isBengali) "ফায়ারবেসে পুশ হচ্ছে..." else "Pushing to Firebase...",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF1E1B2E)
+                        )
+                    } else {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E1B2E))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (isBengali) "☁️ সম্পূর্ণ লোকাল ডেটা ফায়ারবেসে ব্যাকআপ রাখুন (Push)" else "☁️ Backup Local Data to Firebase (Push)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF1E1B2E)
+                        )
                     }
                 }
             }
@@ -758,6 +846,143 @@ fun AdminCurriculumCRUDTab(
             },
             dismissButton = {
                 TextButton(onClick = { deletingTopic = null }) { Text("বাতিল করুন") }
+            }
+        )
+    }
+
+    // 5. BATCH UPLOAD DIALOG (CSV / JSON)
+    if (showBatchUploadDialog) {
+        val isJson = batchImportText.trim().startsWith("[") || batchImportText.trim().startsWith("{")
+        val (parsedChCount, parsedTpCount) = remember(batchImportText) {
+            if (batchImportText.isBlank()) {
+                0 to 0
+            } else if (isJson) {
+                try {
+                    val arr = if (batchImportText.trim().startsWith("[")) {
+                        org.json.JSONArray(batchImportText.trim())
+                    } else {
+                        org.json.JSONObject(batchImportText.trim()).optJSONArray("chapters") ?: org.json.JSONArray()
+                    }
+                    var tpCount = 0
+                    for (i in 0 until arr.length()) {
+                        val tArr = arr.optJSONObject(i)?.optJSONArray("topics")
+                        tpCount += tArr?.length() ?: 0
+                    }
+                    arr.length() to tpCount
+                } catch (_: Exception) { 0 to 0 }
+            } else {
+                val lines = batchImportText.trim().split("\n").filter { 
+                    val s = it.trim()
+                    s.isNotBlank() && !s.startsWith("chapterNumber") && (s.contains("|") || s.contains(","))
+                }
+                val chSet = mutableSetOf<String>()
+                for (l in lines) {
+                    val c = if (l.contains("|")) l.split("|") else l.split(",")
+                    if (c.isNotEmpty()) chSet.add(c[0].trim())
+                }
+                chSet.size to lines.size
+            }
+        }
+        var isUploading by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isUploading) showBatchUploadDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("📥 ব্যাচ আপলোড (CSV / JSON)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "বিষয়: ${availableSubjects.find { it.id == subjectIdValue }?.name ?: subjectIdValue}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { batchImportText = sampleCurriculumJson },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("📄 নমুনা JSON", fontSize = 11.sp, maxLines = 1)
+                        }
+                        OutlinedButton(
+                            onClick = { batchImportText = sampleCurriculumCsv },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("📋 নমুনা CSV", fontSize = 11.sp, maxLines = 1)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = batchImportText,
+                        onValueChange = { batchImportText = it },
+                        placeholder = { Text("এখানে JSON অ্যারে বা CSV/Pipe লাইন পেস্ট করুন...") },
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                    )
+
+                    if (batchImportText.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (parsedChCount > 0 || parsedTpCount > 0) CorrectGreen.copy(alpha = 0.15f) else WrongRed.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, if (parsedChCount > 0 || parsedTpCount > 0) CorrectGreen.copy(alpha = 0.4f) else WrongRed.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (parsedChCount > 0 || parsedTpCount > 0)
+                                    "✓ শনাক্ত হয়েছে: $parsedChCount টি অধ্যায় ও $parsedTpCount টি টপিক"
+                                else
+                                    "⚠️ কোনো সঠিক অধ্যায়/টপিক পাওয়া যায়নি।",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (parsedChCount > 0 || parsedTpCount > 0) CorrectGreen else WrongRed,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isUploading = true
+                        viewModel.importBulkCurriculum(
+                            rawInput = batchImportText,
+                            classId = classIdValue,
+                            subjectId = subjectIdValue
+                        ) { success, msg, chs, tps ->
+                            isUploading = false
+                            onShowMessage(msg, success)
+                            if (success) {
+                                showBatchUploadDialog = false
+                                refreshTrigger++
+                            }
+                        }
+                    },
+                    enabled = !isUploading && batchImportText.isNotBlank() && subjectIdValue.isNotBlank()
+                ) {
+                    if (isUploading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                        Spacer(Modifier.width(6.dp))
+                        Text("আপলোড হচ্ছে...", fontSize = 12.sp)
+                    } else {
+                        Text("🚀 আপলোড করুন", fontSize = 12.sp)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showBatchUploadDialog = false },
+                    enabled = !isUploading
+                ) {
+                    Text("বাতিল")
+                }
             }
         )
     }
