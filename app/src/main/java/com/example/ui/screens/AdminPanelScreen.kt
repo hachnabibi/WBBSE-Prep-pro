@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.screens.admin.AdminBoardClassTab
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -111,7 +110,7 @@ fun AdminPanelScreen(
     var deletingQuestion by remember { mutableStateOf<com.example.data.firestore.FirestoreQuestion?>(null) }
     var deletingTestTemplate by remember { mutableStateOf<com.example.data.firestore.FirestoreTestTemplate?>(null) }
 
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Sync Seeder, 1 = Boards & Classes, 2 = Add Question, 3 = Question CMS, 4 = Custom Test, 5 = Structured, 6 = Test CMS, 7 = Bulk Import
+    var selectedTab by remember { mutableStateOf(0) } // 0 = Sync Seeder, 1 = Add Question, 2 = Question CMS, 3 = Custom Test, 4 = Structured, 5 = Test CMS, 6 = Bulk Import
 
     var customTestTitle by remember { mutableStateOf("গণিত স্পেশাল মক টেস্ট") }
     var customTestId by remember { mutableStateOf("math_test_01") }
@@ -161,8 +160,8 @@ fun AdminPanelScreen(
     val sampleCsvTemplate = """উদ্ভিদের জল সংবহনকারী কলা কোনটি? | জাইলেম | ফ্লোয়েম | ক্যামবিয়াম | কর্টেক্স | 0 | জাইলেম কলার মাধ্যমে জল সংবহন হয়।
 কোষের শক্তিঘর বলা হয় কাকে? | গলগি বডি | মাইটোকন্ড্রিয়া | নিউক্লিয়াস | রাইবোজোম | 1 | মাইটোকন্ড্রিয়ায় ATP উৎপন্ন হয়।"""
 
-    // 1. Academic Classes (Realtime collection)
-    val allClasses by viewModel.allClasses.collectAsState()
+    // 1. Academic Classes (Class 5 to 12)
+    val allClasses = remember { AcademicClassProvider.ALL_CLASSES }
     var selectedClass by remember {
         mutableStateOf(allClasses.firstOrNull { it.id == "class_10_wbbse" } ?: allClasses.first())
     }
@@ -318,9 +317,11 @@ fun AdminPanelScreen(
         )
     }
 
+    // আপনার মূল কলামে statusBarsPadding() যুক্ত করুন
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding() // <--- এটি মোবাইলের স্ট্যাটাস বারের জন্য ওপর থেকে জায়গা ছেড়ে দেবে
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -333,7 +334,6 @@ fun AdminPanelScreen(
         ) {
             val tabs = listOf(
                 "🚀 সিঙ্ক" to "🚀 Sync",
-                "🏫 বোর্ড ও ক্লাস" to "🏫 Boards & Classes",
                 "✍️ প্রশ্ন যোগ" to "✍️ Add Question",
                 "📋 প্রশ্ন CMS" to "📋 Question CMS",
                 "📝 কাস্টম টেস্ট" to "📝 Custom Test",
@@ -347,8 +347,8 @@ fun AdminPanelScreen(
                     selected = isSelected,
                     onClick = {
                         selectedTab = index
-                        if (index == 3) viewModel.fetchFirestoreQuestions()
-                        if (index == 6) viewModel.fetchFirestoreTestTemplates()
+                        if (index == 2) viewModel.fetchFirestoreQuestions()
+                        if (index == 5) viewModel.fetchFirestoreTestTemplates()
                     },
                     text = {
                         Text(
@@ -575,20 +575,7 @@ fun AdminPanelScreen(
                     }
                 }
             } else if (selectedTab == 1) {
-                // Tab 1: Education Boards & Academic Classes Manager (Admin, Local-First, Realtime Cloud)
-                AdminBoardClassTab(
-                    viewModel = viewModel,
-                    isBengali = isBengali,
-                    onShowMessage = { msg, success ->
-                        actionMessage = msg
-                        actionSuccess = success
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            } else if (selectedTab == 2) {
-                // Tab 2: Choice-based Question Entry (With Class Selector: Class 5 to 12)
+                // Tab 1: Choice-based Question Entry (With Class Selector: Class 5 to 12)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1144,8 +1131,8 @@ fun AdminPanelScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
-            } else if (selectedTab == 3) {
-                // Tab 3: Question CMS Manager (Full Add, Edit, Delete, Filter)
+            } else if (selectedTab == 2) {
+                // Tab 2: Question CMS Manager (Full Add, Edit, Delete, Filter)
                 val allSubjectOption = remember(selectedClass.id) {
                     SubjectEntity(
                         id = "ALL",
@@ -1596,8 +1583,8 @@ fun AdminPanelScreen(
                         }
                     }
                 }
-            } else if (selectedTab == 4) {
-                // Tab 4: Custom Test & Question Builder
+            } else if (selectedTab == 3) {
+                // Tab 3: Custom Test & Question Builder
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1947,8 +1934,8 @@ fun AdminPanelScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
-            } else if (selectedTab == 5) {
-                // Tab 5: Structured Test Creator (Chapter Assessment, Subject Mastery Quiz, Full Syllabus Mock)
+            } else if (selectedTab == 4) {
+                // Tab 4: Structured Test Creator (Chapter Assessment, Subject Mastery Quiz, Full Syllabus Mock)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2271,8 +2258,8 @@ fun AdminPanelScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
-            } else if (selectedTab == 6) {
-                // Tab 6: Test Template CMS Manager (View & Delete Tests)
+            } else if (selectedTab == 5) {
+                // Tab 5: Test Template CMS Manager (View & Delete Tests)
                 LaunchedEffect(Unit) {
                     viewModel.fetchFirestoreTestTemplates()
                 }
@@ -2499,8 +2486,8 @@ fun AdminPanelScreen(
                         }
                     }
                 }
-            } else if (selectedTab == 7) {
-                // Tab 7: Bulk Test / Question Import
+            } else if (selectedTab == 6) {
+                // Tab 6: Bulk Test / Question Import
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
