@@ -1634,53 +1634,89 @@ class DeshExamRepository(
             }
             AssessmentMode.MOCK_TEST -> {
                 if (!targetId.isNullOrBlank()) {
-                    // 1. Direct test template tag match
-                    val testQs = dao.getAllQuestions().filter { 
-                        (it.pyqYear == "TEST_$targetId" || it.pyqYear.startsWith("TEST_${targetId}_") || it.id.contains(targetId) || it.tagsJson.contains(targetId)) &&
-                        (it.classId == resolvedClassId || it.classId.isBlank())
-                    }
-                    if (testQs.isNotEmpty()) {
-                        testQs.take(30)
-                    } else {
-                        // 2. Check if targetId matches a subject ID or subject code
-                        val targetSubject = dao.getSubjectById(targetId)
-                        val matchingSubjectId = targetSubject?.id ?: targetId
-                        val subQs = dao.getQuestionsForSubjectAndClass(resolvedClassId, matchingSubjectId, 30).ifEmpty {
-                            dao.getQuestionsForSubject(matchingSubjectId, 30)
-                        }.filter { it.subjectId == matchingSubjectId || (targetSubject != null && it.subjectId == targetSubject.id) }
-
-                        if (subQs.isNotEmpty()) {
-                            subQs
-                        } else if (targetSubject != null) {
-                            // Synthesize subject-isolated mock test questions
-                            val chs = dao.getChaptersForSubjectOnce(matchingSubjectId)
-                            val generated = chs.mapIndexed { idx, ch ->
+                    // 0. Check Firestore Test Template first
+                    var firestoreTemplateQs: List<QuestionEntity> = emptyList()
+                    try {
+                        val fs = com.example.data.firestore.FirestoreService()
+                        val testTemplateResult = fs.getTestById(targetId)
+                        val testTemplate = testTemplateResult.getOrNull()
+                        if (testTemplate != null && testTemplate.questions.isNotEmpty()) {
+                            firestoreTemplateQs = testTemplate.questions.mapIndexed { idx, fq ->
                                 QuestionEntity(
-                                    id = "${matchingSubjectId}_mock_q${idx + 1}",
-                                    topicId = "${ch.id}_top1",
-                                    chapterId = ch.id,
-                                    subjectId = matchingSubjectId,
-                                    type = "MCQ",
-                                    difficulty = "MEDIUM",
-                                    question = "${targetSubject.name}: ${ch.title} - এর গুরুত্বপূর্ণ মক প্রশ্ন",
-                                    optionsJson = "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর|ভুল বিকল্প ১|ভুল বিকল্প ২|কোনোটিই নয়",
-                                    correctOptionIndex = 0,
-                                    correctAnswerText = "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর",
-                                    explanation = "${ch.title} অধ্যায়ের সঠিক সমাধান।",
-                                    marks = 1,
-                                    tagsJson = "$matchingSubjectId|MOCK|MCQ",
-                                    pyqYear = "2024",
-                                    classId = resolvedClassId
+                                    id = fq.id.ifBlank { "${testTemplate.id}_q_$idx" },
+                                    topicId = fq.topicId.ifBlank { "${testTemplate.chapterId ?: "ch"}_topic" },
+                                    chapterId = fq.chapterId.ifBlank { testTemplate.chapterId ?: "" },
+                                    subjectId = fq.subjectId.ifBlank { testTemplate.subjectId ?: "" },
+                                    classId = fq.classId.ifBlank { testTemplate.classId ?: "" },
+                                    type = fq.type.ifBlank { "MCQ" },
+                                    difficulty = fq.difficulty.ifBlank { "MEDIUM" },
+                                    question = fq.question,
+                                    optionsJson = org.json.JSONArray(fq.options).toString(),
+                                    correctOptionIndex = fq.correctOptionIndex,
+                                    correctAnswerText = fq.correctAnswerText.ifBlank { fq.options.getOrNull(fq.correctOptionIndex) ?: "" },
+                                    explanation = fq.explanation,
+                                    marks = fq.marks,
+                                    tagsJson = fq.tags.joinToString("|"),
+                                    pyqYear = "",
                                 )
                             }
-                            if (generated.isNotEmpty()) {
-                                dao.insertQuestions(generated)
-                                generated
+                            if (firestoreTemplateQs.isNotEmpty()) {
+                                dao.insertQuestions(firestoreTemplateQs)
+                            }
+                        }
+                    } catch (_: Exception) {}
+
+                    if (firestoreTemplateQs.isNotEmpty()) {
+                        firestoreTemplateQs
+                    } else {
+                        // 1. Direct test template tag match
+                        val testQs = dao.getAllQuestions().filter { 
+                            (it.pyqYear == "TEST_$targetId" || it.pyqYear.startsWith("TEST_${targetId}_") || it.id.contains(targetId) || it.tagsJson.contains(targetId)) &&
+                            (it.classId == resolvedClassId || it.classId.isBlank())
+                        }
+                        if (testQs.isNotEmpty()) {
+                            testQs.take(30)
+                        } else {
+                            // 2. Check if targetId matches a subject ID or subject code
+                            val targetSubject = dao.getSubjectById(targetId)
+                            val matchingSubjectId = targetSubject?.id ?: targetId
+                            val subQs = dao.getQuestionsForSubjectAndClass(resolvedClassId, matchingSubjectId, 30).ifEmpty {
+                                dao.getQuestionsForSubject(matchingSubjectId, 30)
+                            }.filter { it.subjectId == matchingSubjectId || (targetSubject != null && it.subjectId == targetSubject.id) }
+
+                            if (subQs.isNotEmpty()) {
+                                subQs
+                            } else if (targetSubject != null) {
+                                // Synthesize subject-isolated mock test questions
+                                val chs = dao.getChaptersForSubjectOnce(matchingSubjectId)
+                                val generated = chs.mapIndexed { idx, ch ->
+                                    QuestionEntity(
+                                        id = "${matchingSubjectId}_mock_q${idx + 1}",
+                                        topicId = "${ch.id}_top1",
+                                        chapterId = ch.id,
+                                        subjectId = matchingSubjectId,
+                                        type = "MCQ",
+                                        difficulty = "MEDIUM",
+                                        question = "${targetSubject.name}: ${ch.title} - এর গুরুত্বপূর্ণ মক প্রশ্ন",
+                                        optionsJson = "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর|ভুল বিকল্প ১|ভুল বিকল্প ২|কোনোটিই নয়",
+                                        correctOptionIndex = 0,
+                                        correctAnswerText = "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর",
+                                        explanation = "${ch.title} অধ্যায়ের সঠিক সমাধান।",
+                                        marks = 1,
+                                        tagsJson = "$matchingSubjectId|MOCK|MCQ",
+                                        pyqYear = "2024",
+                                        classId = resolvedClassId
+                                    )
+                                }
+                                if (generated.isNotEmpty()) {
+                                    dao.insertQuestions(generated)
+                                    generated
+                                } else {
+                                    dao.getRandomQuestionsForClass(resolvedClassId, 30).ifEmpty { dao.getRandomQuestions(30) }
+                                }
                             } else {
                                 dao.getRandomQuestionsForClass(resolvedClassId, 30).ifEmpty { dao.getRandomQuestions(30) }
                             }
-                        } else {
-                            dao.getRandomQuestionsForClass(resolvedClassId, 30).ifEmpty { dao.getRandomQuestions(30) }
                         }
                     }
                 } else {

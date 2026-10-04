@@ -1,5 +1,9 @@
 package com.example.ui.screens.admin
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,8 +11,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -16,19 +24,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.ChapterEntity
 import com.example.data.local.SubjectEntity
 import com.example.data.local.TopicEntity
 import com.example.data.model.AcademicClass
+import com.example.data.model.AcademicClassProvider
 import com.example.data.model.EducationBoard
-import com.example.ui.theme.CorrectGreen
-import com.example.ui.theme.ExamGold
-import com.example.ui.theme.WrongRed
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
+import com.example.util.formatCompactNumber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +57,7 @@ fun AdminCurriculumCRUDTab(
     var dbChapters by remember { mutableStateOf<List<ChapterEntity>>(emptyList()) }
     var dbTopics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
 
-    var refreshTrigger by remember { mutableStateOf(0) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(refreshTrigger) {
         try {
@@ -57,7 +69,7 @@ fun AdminCurriculumCRUDTab(
         }
     }
 
-    // 1. Selectors State
+    // Selectors State
     var boardValue by remember { mutableStateOf("WBBSE") }
     var classIdValue by remember { mutableStateOf("class_10_wbbse") }
     var subjectIdValue by remember { mutableStateOf("") }
@@ -67,6 +79,10 @@ fun AdminCurriculumCRUDTab(
     var boardExpanded by remember { mutableStateOf(false) }
     var classExpanded by remember { mutableStateOf(false) }
     var subjectExpanded by remember { mutableStateOf(false) }
+
+    // Search query for chapters/topics
+    var chapterSearchQuery by remember { mutableStateOf("") }
+    var topicSearchQuery by remember { mutableStateOf("") }
 
     // Dialogs States
     var showChapterDialog by remember { mutableStateOf(false) }
@@ -120,8 +136,8 @@ fun AdminCurriculumCRUDTab(
     var formTpVideoUrl by remember { mutableStateOf("") }
     var formTpPlaylistJson by remember { mutableStateOf("") }
 
-    val boards = if (liveBoards.isNotEmpty()) liveBoards else com.example.data.model.AcademicClassProvider.ALL_BOARDS
-    val classes = if (liveClasses.isNotEmpty()) liveClasses else com.example.data.model.AcademicClassProvider.ALL_CLASSES
+    val boards = if (liveBoards.isNotEmpty()) liveBoards else AcademicClassProvider.ALL_BOARDS
+    val classes = if (liveClasses.isNotEmpty()) liveClasses else AcademicClassProvider.ALL_CLASSES
     
     val filteredClasses = remember(boardValue, classes) {
         classes.filter { it.board.equals(boardValue, ignoreCase = true) }
@@ -130,7 +146,6 @@ fun AdminCurriculumCRUDTab(
     val availableSubjects = remember(classIdValue, dbSubjects) {
         val base = dbSubjects.filter { it.classId == classIdValue }
         if (base.isNotEmpty()) base else {
-            // fallback
             listOf(
                 SubjectEntity("${classIdValue}_bengali", "bengali", "বাংলা (Bengali)", "Bengali", 10, 0, 0, 0xFFE11D48L, classIdValue, "common"),
                 SubjectEntity("${classIdValue}_english", "english", "ইংরেজি (English)", "English", 10, 0, 0, 0xFF2563EBL, classIdValue, "common"),
@@ -150,9 +165,16 @@ fun AdminCurriculumCRUDTab(
         dbChapters.filter { it.subjectId == subjectIdValue || it.subjectId == subjectIdValue.substringAfterLast("_", "") }
     }
 
+    val filteredChapters = remember(chaptersForSubject, chapterSearchQuery) {
+        if (chapterSearchQuery.isBlank()) chaptersForSubject
+        else chaptersForSubject.filter { it.title.contains(chapterSearchQuery, ignoreCase = true) || it.id.contains(chapterSearchQuery, ignoreCase = true) }
+    }
+
     // Auto select first chapter of selected subject
     LaunchedEffect(chaptersForSubject) {
-        selectedChapter = chaptersForSubject.firstOrNull()
+        if (selectedChapter == null || chaptersForSubject.none { it.id == selectedChapter?.id }) {
+            selectedChapter = chaptersForSubject.firstOrNull()
+        }
     }
 
     val topicsForChapter = remember(selectedChapter, dbTopics, refreshTrigger) {
@@ -160,27 +182,80 @@ fun AdminCurriculumCRUDTab(
         if (chId.isNotBlank()) dbTopics.filter { it.chapterId == chId } else emptyList()
     }
 
+    val filteredTopics = remember(topicsForChapter, topicSearchQuery) {
+        if (topicSearchQuery.isBlank()) topicsForChapter
+        else topicsForChapter.filter { it.title.contains(topicSearchQuery, ignoreCase = true) || it.id.contains(topicSearchQuery, ignoreCase = true) }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // --- 1. SELECTION BAR (BOARD, CLASS, SUBJECT) ---
+        // ==========================================
+        // 1. PREMIUM FILTER & CONTROL CARD
+        // ==========================================
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = if (isBengali) "🎯 সিলেক্টর বার (সিলেবাস ফিল্টার করুন)" else "🎯 Selection Bar (Filter Syllabus)",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header with Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(PrimaryIndigo.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = null,
+                                tint = PrimaryIndigo,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isBengali) "সিলেবাস ফিল্টার ও কন্ট্রোল" else "Syllabus Filter & Controls",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
+                    // Stat Chip for currently loaded items
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PrimaryIndigo.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.2f))
+                    ) {
+                        Text(
+                            text = "${formatCompactNumber(chaptersForSubject.size)} অধ্যায় • ${formatCompactNumber(topicsForChapter.size)} টপিক",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryIndigo,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                // Dropdowns Grid (Board, Class, Subject)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -191,19 +266,29 @@ fun AdminCurriculumCRUDTab(
                             value = boardValue,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(if (isBengali) "বোর্ড (Board)" else "Board") },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                            modifier = Modifier.fillMaxWidth().clickable { boardExpanded = true },
-                            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp)
+                            label = { Text(if (isBengali) "বোর্ড" else "Board", fontSize = 11.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryIndigo)
+                            },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { boardExpanded = true },
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryIndigo,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                            )
                         )
                         DropdownMenu(expanded = boardExpanded, onDismissRequest = { boardExpanded = false }) {
                             boards.forEach { b ->
                                 DropdownMenuItem(
-                                    text = { Text("${b.shortName} - ${b.fullNameBengali}", fontSize = 13.sp) },
+                                    text = { Text("${b.shortName} - ${b.fullNameBengali}", fontSize = 12.5.sp) },
+                                    leadingIcon = { Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(16.dp), tint = PrimaryIndigo) },
                                     onClick = {
                                         boardValue = b.id
                                         boardExpanded = false
-                                        // Reset class and subject
                                         val firstCls = classes.firstOrNull { it.board.equals(b.id, ignoreCase = true) }
                                         classIdValue = firstCls?.id ?: ""
                                     }
@@ -213,21 +298,33 @@ fun AdminCurriculumCRUDTab(
                     }
 
                     // Class Selector
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1.2f)) {
                         val currentClassObj = classes.find { it.id == classIdValue }
                         val classLabel = currentClassObj?.name ?: classIdValue
                         OutlinedTextField(
                             value = classLabel,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(if (isBengali) "ক্লাস (Class)" else "Class") },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                            modifier = Modifier.fillMaxWidth().clickable { classExpanded = true }
+                            label = { Text(if (isBengali) "শ্রেণি (Class)" else "Class", fontSize = 11.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(16.dp), tint = CorrectGreen)
+                            },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { classExpanded = true },
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CorrectGreen,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                            )
                         )
                         DropdownMenu(expanded = classExpanded, onDismissRequest = { classExpanded = false }) {
                             filteredClasses.forEach { cls ->
                                 DropdownMenuItem(
-                                    text = { Text(cls.name, fontSize = 13.sp) },
+                                    text = { Text(cls.name, fontSize = 12.5.sp) },
+                                    leadingIcon = { Icon(Icons.Default.School, null, modifier = Modifier.size(16.dp), tint = CorrectGreen) },
                                     onClick = {
                                         classIdValue = cls.id
                                         classExpanded = false
@@ -242,19 +339,53 @@ fun AdminCurriculumCRUDTab(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     val currentSubObj = availableSubjects.find { it.id == subjectIdValue }
                     val subLabel = currentSubObj?.name ?: subjectIdValue
+                    val subColor = Color(currentSubObj?.colorHex ?: 0xFF6366F1L)
+
                     OutlinedTextField(
                         value = subLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text(if (isBengali) "বিষয় (Subject)" else "Subject") },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                        modifier = Modifier.fillMaxWidth().clickable { subjectExpanded = true },
-                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp)
+                        label = { Text(if (isBengali) "বিষয় (Subject)" else "Subject", fontSize = 11.sp) },
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(subColor)
+                            )
+                        },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(20.dp)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { subjectExpanded = true },
+                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryIndigo,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        )
                     )
-                    DropdownMenu(expanded = subjectExpanded, onDismissRequest = { subjectExpanded = false }) {
+                    DropdownMenu(
+                        expanded = subjectExpanded,
+                        onDismissRequest = { subjectExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.85f)
+                    ) {
                         availableSubjects.forEach { sub ->
                             DropdownMenuItem(
-                                text = { Text("${sub.name} (${sub.code})", fontSize = 13.sp) },
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(sub.colorHex))
+                                        )
+                                        Text("${sub.name} (${sub.code})", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                },
                                 onClick = {
                                     subjectIdValue = sub.id
                                     subjectExpanded = false
@@ -264,185 +395,325 @@ fun AdminCurriculumCRUDTab(
                     }
                 }
 
-                // Batch Upload Button for Selected Subject
-                OutlinedButton(
-                    onClick = {
-                        batchImportText = ""
-                        showBatchUploadDialog = true
-                    },
+                // Action Buttons Row (Batch Upload & Cloud Backup)
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (isBengali) "📥 অধ্যায় ও টপিক ব্যাচ আপলোড (CSV / JSON)" else "📥 Batch Upload Chapters & Topics (CSV/JSON)",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
+                    // Batch Upload Button
+                    OutlinedButton(
+                        onClick = {
+                            batchImportText = ""
+                            showBatchUploadDialog = true
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = PrimaryIndigo.copy(alpha = 0.05f),
+                            contentColor = PrimaryIndigo
+                        ),
+                        border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.35f)),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = if (isBengali) "ব্যাচ আপলোড" else "Batch Upload",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            maxLines = 1
+                        )
+                    }
 
-                // Cloud Backup & Push Button
-                var isPushingToCloud by remember { mutableStateOf(false) }
+                    // Cloud Backup Button
+                    var isPushingToCloud by remember { mutableStateOf(false) }
 
-                Button(
-                    onClick = {
-                        isPushingToCloud = true
-                        viewModel.pushLocalDatabaseToFirebase { success, msg ->
-                            isPushingToCloud = false
-                            onShowMessage(msg, success)
-                            if (success) refreshTrigger++
+                    Button(
+                        onClick = {
+                            isPushingToCloud = true
+                            viewModel.pushLocalDatabaseToFirebase { success, msg ->
+                                isPushingToCloud = false
+                                onShowMessage(msg, success)
+                                if (success) refreshTrigger++
+                            }
+                        },
+                        enabled = !isPushingToCloud,
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ExamGold,
+                            contentColor = Color(0xFF1E1B2E)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.5.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        if (isPushingToCloud) {
+                            CircularProgressIndicator(modifier = Modifier.size(15.dp), color = Color(0xFF1E1B2E), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (isBengali) "পুশ হচ্ছে..." else "Pushing...",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                maxLines = 1
+                            )
+                        } else {
+                            Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E1B2E))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (isBengali) "ফায়ারবেসে ব্যাকআপ (Push)" else "Backup to Cloud (Push)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                maxLines = 1
+                            )
                         }
-                    },
-                    enabled = !isPushingToCloud,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ExamGold,
-                        contentColor = Color(0xFF1E1B2E)
-                    )
-                ) {
-                    if (isPushingToCloud) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color(0xFF1E1B2E))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (isBengali) "ফায়ারবেসে পুশ হচ্ছে..." else "Pushing to Firebase...",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color(0xFF1E1B2E)
-                        )
-                    } else {
-                        Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E1B2E))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (isBengali) "☁️ সম্পূর্ণ লোকাল ডেটা ফায়ারবেসে ব্যাকআপ রাখুন (Push)" else "☁️ Backup Local Data to Firebase (Push)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color(0xFF1E1B2E)
-                        )
                     }
                 }
             }
         }
 
-        // --- 2. DOUBLE COLUMN OR STACKED ACTION PANELS ---
+        // ==========================================
+        // 2. CHAPTERS & TOPICS DUAL MANAGEMENT PANELS
+        // ==========================================
         Row(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // LEFT COLUMN: CHAPTERS
-            Column(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // ------------------------------------------
+            // LEFT COLUMN: CHAPTERS PANEL
+            // ------------------------------------------
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = if (isBengali) "📖 অধ্যায় সমূহ (${chaptersForSubject.size})" else "📖 Chapters (${chaptersForSubject.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    
-                    IconButton(
-                        onClick = {
-                            editingChapter = null
-                            formChId = ""
-                            formChNum = (chaptersForSubject.size + 1).toString()
-                            formChTitle = ""
-                            formChDesc = ""
-                            formChTotalTopics = "5"
-                            formChWeightage = "15"
-                            formChContentData = ""
-                            formChSolutionData = ""
-                            showChapterDialog = true
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    // Header Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = PrimaryIndigo,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (isBengali) "অধ্যায় (${chaptersForSubject.size})" else "Chapters (${chaptersForSubject.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = {
+                                editingChapter = null
+                                formChId = ""
+                                formChNum = (chaptersForSubject.size + 1).toString()
+                                formChTitle = ""
+                                formChDesc = ""
+                                formChTotalTopics = "5"
+                                formChWeightage = "15"
+                                formChContentData = ""
+                                formChSolutionData = ""
+                                showChapterDialog = true
+                            },
+                            modifier = Modifier.size(28.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = PrimaryIndigo.copy(alpha = 0.12f),
+                                contentColor = PrimaryIndigo
+                            )
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Chapter", modifier = Modifier.size(16.dp))
+                        }
                     }
-                }
 
-                if (chaptersForSubject.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(if (isBengali) "কোন অধ্যায় নেই" else "No Chapters", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                        contentPadding = PaddingValues(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(chaptersForSubject, key = { it.id }) { ch ->
-                            val isSelected = selectedChapter?.id == ch.id
-                            val bgColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent
-                            val borderColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else Color.Transparent
-                            
-                            Card(
-                                onClick = { selectedChapter = ch },
-                                colors = CardDefaults.cardColors(containerColor = bgColor),
-                                border = BorderStroke(1.dp, borderColor),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // Chapter List
+                    if (chaptersForSubject.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Icon(
+                                    Icons.Outlined.FolderOpen,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    text = if (isBengali) "কোনো অধ্যায় নেই" else "No Chapters",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            items(filteredChapters, key = { it.id }) { ch ->
+                                val isSelected = selectedChapter?.id == ch.id
+                                val animatedBorderColor by animateColorAsState(
+                                    if (isSelected) PrimaryIndigo else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                    label = "borderColor"
+                                )
+                                val animatedBgColor by animateColorAsState(
+                                    if (isSelected) PrimaryIndigo.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+                                    label = "bgColor"
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = animatedBgColor,
+                                    border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, animatedBorderColor),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { selectedChapter = ch }
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${ch.chapterNumber}. ${ch.title}",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "ID: ${ch.id}",
-                                            fontSize = 9.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    
-                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        IconButton(
-                                            onClick = {
-                                                editingChapter = ch
-                                                formChId = ch.id
-                                                formChNum = ch.chapterNumber.toString()
-                                                formChTitle = ch.title
-                                                formChDesc = ch.description
-                                                formChTotalTopics = ch.totalTopics.toString()
-                                                formChWeightage = "15"
-                                                formChContentData = ch.contentData ?: ""
-                                                formChSolutionData = ch.solutionData ?: ""
-                                                showChapterDialog = true
-                                            },
-                                            modifier = Modifier.size(24.dp)
+                                    Column(
+                                        modifier = Modifier.padding(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                // Chapter Number Circular Badge
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(22.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isSelected) PrimaryIndigo else MaterialTheme.colorScheme.surfaceVariant),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "${ch.chapterNumber}",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+
+                                                Text(
+                                                    text = ch.title,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                    fontSize = 12.sp,
+                                                    color = if (isSelected) PrimaryIndigo else MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            // Edit & Delete Action Buttons
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                IconButton(
+                                                    onClick = {
+                                                        editingChapter = ch
+                                                        formChId = ch.id
+                                                        formChNum = ch.chapterNumber.toString()
+                                                        formChTitle = ch.title
+                                                        formChDesc = ch.description
+                                                        formChTotalTopics = ch.totalTopics.toString()
+                                                        formChWeightage = "15"
+                                                        formChContentData = ch.contentData ?: ""
+                                                        formChSolutionData = ch.solutionData ?: ""
+                                                        showChapterDialog = true
+                                                    },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Edit,
+                                                        contentDescription = "Edit",
+                                                        tint = PrimaryIndigo,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                }
+
+                                                IconButton(
+                                                    onClick = { deletingChapter = ch },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.DeleteOutline,
+                                                        contentDescription = "Delete",
+                                                        tint = WrongRed,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                }
+                                            }
                                         }
 
-                                        IconButton(
-                                            onClick = { deletingChapter = ch },
-                                            modifier = Modifier.size(24.dp)
+                                        // Subtle ID & Topic count chip
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.DeleteOutline, null, tint = WrongRed, modifier = Modifier.size(14.dp))
+                                            Text(
+                                                text = ch.id,
+                                                fontSize = 9.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            if (isSelected) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = PrimaryIndigo.copy(alpha = 0.15f)
+                                                ) {
+                                                    Text(
+                                                        text = "✓ সক্রিয়",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = PrimaryIndigo,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -452,125 +723,239 @@ fun AdminCurriculumCRUDTab(
                 }
             }
 
-            // RIGHT COLUMN: TOPICS
-            Column(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // ------------------------------------------
+            // RIGHT COLUMN: TOPICS PANEL
+            // ------------------------------------------
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = if (isBengali) "🏷️ টপিক সমূহ (${topicsForChapter.size})" else "🏷️ Topics (${topicsForChapter.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                    // Header Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Label,
+                                contentDescription = null,
+                                tint = SecondaryEmerald,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (isBengali) "টপিক (${topicsForChapter.size})" else "Topics (${topicsForChapter.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
-                    IconButton(
-                        onClick = {
-                            editingTopic = null
-                            val chId = selectedChapter?.id ?: ""
-                            formTpId = ""
-                            formTpOrder = (topicsForChapter.size + 1).toString()
-                            formTpTitle = ""
-                            formTpSummary = ""
-                            formTpKeyPoints = ""
-                            formTpFormulae = ""
-                            formTpContentData = ""
-                            formTpVideoUrl = ""
-                            formTpPlaylistJson = ""
-                            if (chId.isBlank()) {
-                                onShowMessage("প্রথমে একটি অধ্যায় সিলেক্ট করুন", false)
-                            } else {
-                                showTopicDialog = true
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-                    ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                        IconButton(
+                            onClick = {
+                                editingTopic = null
+                                val chId = selectedChapter?.id ?: ""
+                                formTpId = ""
+                                formTpOrder = (topicsForChapter.size + 1).toString()
+                                formTpTitle = ""
+                                formTpSummary = ""
+                                formTpKeyPoints = ""
+                                formTpFormulae = ""
+                                formTpContentData = ""
+                                formTpVideoUrl = ""
+                                formTpPlaylistJson = ""
+                                if (chId.isBlank()) {
+                                    onShowMessage("প্রথমে একটি অধ্যায় সিলেক্ট করুন", false)
+                                } else {
+                                    showTopicDialog = true
+                                }
+                            },
+                            modifier = Modifier.size(28.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = SecondaryEmerald.copy(alpha = 0.12f),
+                                contentColor = SecondaryEmerald
+                            )
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Topic", modifier = Modifier.size(16.dp))
+                        }
                     }
-                }
 
-                if (selectedChapter == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(if (isBengali) "কোন অধ্যায় সিলেক্ট করা নেই" else "Select a Chapter First", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                } else if (topicsForChapter.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(if (isBengali) "কোন টপিক নেই" else "No Topics", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                        contentPadding = PaddingValues(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(topicsForChapter, key = { it.id }) { tp ->
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // Topic List
+                    if (selectedChapter == null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Icon(
+                                    Icons.Outlined.TouchApp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    text = if (isBengali) "বামপাশ থেকে অধ্যায় বেছে নিন" else "Select a Chapter First",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    } else if (topicsForChapter.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.NoteAdd,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    text = if (isBengali) "কোনো টপিক নেই" else "No Topics Found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            items(filteredTopics, key = { it.id }) { tp ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        modifier = Modifier.padding(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                // Topic Order Badge
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(22.dp)
+                                                        .clip(CircleShape)
+                                                        .background(SecondaryEmerald.copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "${tp.orderIndex}",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = SecondaryEmerald
+                                                    )
+                                                }
+
+                                                Text(
+                                                    text = tp.title,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 12.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            // Edit & Delete Action Buttons
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                IconButton(
+                                                    onClick = {
+                                                        editingTopic = tp
+                                                        formTpId = tp.id
+                                                        formTpOrder = tp.orderIndex.toString()
+                                                        formTpTitle = tp.title
+                                                        formTpSummary = tp.summary
+                                                        formTpKeyPoints = tp.keyPointsJson.replace("|", " | ")
+                                                        formTpFormulae = tp.solutionData ?: ""
+                                                        formTpContentData = tp.contentData ?: ""
+                                                        formTpVideoUrl = tp.videoUrl ?: ""
+                                                        formTpPlaylistJson = tp.playlistJson ?: ""
+                                                        showTopicDialog = true
+                                                    },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Edit,
+                                                        contentDescription = "Edit",
+                                                        tint = SecondaryEmerald,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                }
+
+                                                IconButton(
+                                                    onClick = { deletingTopic = tp },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.DeleteOutline,
+                                                        contentDescription = "Delete",
+                                                        tint = WrongRed,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
                                         Text(
-                                            text = "${tp.orderIndex}. ${tp.title}",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "ID: ${tp.id}",
+                                            text = tp.id,
                                             fontSize = 9.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
-                                    }
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        IconButton(
-                                            onClick = {
-                                                editingTopic = tp
-                                                formTpId = tp.id
-                                                formTpOrder = tp.orderIndex.toString()
-                                                formTpTitle = tp.title
-                                                formTpSummary = tp.summary
-                                                formTpKeyPoints = tp.keyPointsJson.replace("|", " | ")
-                                                formTpFormulae = tp.solutionData ?: ""
-                                                formTpContentData = tp.contentData ?: ""
-                                                formTpVideoUrl = tp.videoUrl ?: ""
-                                                formTpPlaylistJson = tp.playlistJson ?: ""
-                                                showTopicDialog = true
-                                            },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(14.dp))
-                                        }
-
-                                        IconButton(
-                                            onClick = { deletingTopic = tp },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(Icons.Default.DeleteOutline, null, tint = WrongRed, modifier = Modifier.size(14.dp))
-                                        }
                                     }
                                 }
                             }
@@ -581,22 +966,46 @@ fun AdminCurriculumCRUDTab(
         }
     }
 
-    // --- 3. DIALOGS ---
+    // ==========================================
+    // 3. DIALOGS & MODALS
+    // ==========================================
 
     // 1. ADD / EDIT CHAPTER DIALOG
     if (showChapterDialog) {
         val isEdit = editingChapter != null
         AlertDialog(
             onDismissRequest = { showChapterDialog = false },
-            title = { Text(if (isEdit) "✏️ অধ্যায় এডিট করুন" else "➕ নতুন অধ্যায় তৈরি করুন", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        if (isEdit) Icons.Default.Edit else Icons.Default.AddCircle,
+                        contentDescription = null,
+                        tint = PrimaryIndigo
+                    )
+                    Text(
+                        text = if (isEdit) "অধ্যায় এডিট করুন" else "নতুন অধ্যায় তৈরি করুন",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
                     OutlinedTextField(
                         value = formChId,
                         onValueChange = { if (!isEdit) formChId = it.lowercase().replace(" ", "_") },
                         readOnly = isEdit,
                         label = { Text("Chapter ID") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChNum,
@@ -610,38 +1019,44 @@ fun AdminCurriculumCRUDTab(
                         },
                         readOnly = isEdit,
                         label = { Text("Chapter Number") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChTitle,
                         onValueChange = { formChTitle = it },
                         label = { Text("Chapter Title (Bengali)") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChDesc,
                         onValueChange = { formChDesc = it },
                         label = { Text("Chapter Description") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChTotalTopics,
                         onValueChange = { formChTotalTopics = it },
                         label = { Text("Total Topics") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChContentData,
                         onValueChange = { formChContentData = it },
-                        label = { Text("Chapter Content/Notes (HTML or Plain Text)") },
+                        label = { Text("Chapter Content/Notes") },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
                         maxLines = 4
                     )
                     OutlinedTextField(
                         value = formChSolutionData,
                         onValueChange = { formChSolutionData = it },
-                        label = { Text("Chapter Solutions (Reference solutions)") },
+                        label = { Text("Chapter Solutions") },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
                         maxLines = 4
                     )
                 }
@@ -671,13 +1086,15 @@ fun AdminCurriculumCRUDTab(
                             }
                         }
                     },
-                    enabled = formChId.isNotBlank() && formChTitle.isNotBlank()
+                    enabled = formChId.isNotBlank() && formChTitle.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("💾 " + (if (isEdit) "আপডেট" else "তৈরি করুন"))
+                    Text(if (isEdit) "আপডেট করুন" else "তৈরি করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showChapterDialog = false }) { Text("বাতিল করুন") }
+                TextButton(onClick = { showChapterDialog = false }) { Text("বাতিল") }
             }
         )
     }
@@ -687,15 +1104,37 @@ fun AdminCurriculumCRUDTab(
         val isEdit = editingTopic != null
         AlertDialog(
             onDismissRequest = { showTopicDialog = false },
-            title = { Text(if (isEdit) "✏️ টপিক এডিট করুন" else "➕ নতুন টপিক তৈরি করুন", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        if (isEdit) Icons.Default.Edit else Icons.Default.AddCircle,
+                        contentDescription = null,
+                        tint = SecondaryEmerald
+                    )
+                    Text(
+                        text = if (isEdit) "টপিক এডিট করুন" else "নতুন টপিক তৈরি করুন",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
                     OutlinedTextField(
                         value = formTpId,
                         onValueChange = { if (!isEdit) formTpId = it.lowercase().replace(" ", "_") },
                         readOnly = isEdit,
                         label = { Text("Topic ID") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpOrder,
@@ -708,52 +1147,52 @@ fun AdminCurriculumCRUDTab(
                         },
                         readOnly = isEdit,
                         label = { Text("Topic Order Index") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpTitle,
                         onValueChange = { formTpTitle = it },
                         label = { Text("Topic Title (Bengali)") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpSummary,
                         onValueChange = { formTpSummary = it },
                         label = { Text("Summary") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpKeyPoints,
                         onValueChange = { formTpKeyPoints = it },
                         label = { Text("Key Points (Separate with '|')") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpFormulae,
                         onValueChange = { formTpFormulae = it },
                         label = { Text("Formulae / Solutions (Separate with '|')") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpContentData,
                         onValueChange = { formTpContentData = it },
-                        label = { Text("Topic Content/Detailed Study Notes") },
+                        label = { Text("Topic Content/Notes") },
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 5
+                        shape = RoundedCornerShape(10.dp),
+                        maxLines = 4
                     )
                     OutlinedTextField(
                         value = formTpVideoUrl,
                         onValueChange = { formTpVideoUrl = it },
-                        label = { Text("Video Tutorial URL (e.g., YouTube)") },
+                        label = { Text("Video Tutorial URL") },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
                         singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = formTpPlaylistJson,
-                        onValueChange = { formTpPlaylistJson = it },
-                        label = { Text("Playlist JSON or Resources") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
                     )
                 }
             },
@@ -787,13 +1226,15 @@ fun AdminCurriculumCRUDTab(
                             }
                         }
                     },
-                    enabled = formTpId.isNotBlank() && formTpTitle.isNotBlank()
+                    enabled = formTpId.isNotBlank() && formTpTitle.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SecondaryEmerald),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("💾 " + (if (isEdit) "আপডেট" else "তৈরি করুন"))
+                    Text(if (isEdit) "আপডেট করুন" else "তৈরি করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTopicDialog = false }) { Text("বাতিল করুন") }
+                TextButton(onClick = { showTopicDialog = false }) { Text("বাতিল") }
             }
         )
     }
@@ -802,8 +1243,9 @@ fun AdminCurriculumCRUDTab(
     if (deletingChapter != null) {
         AlertDialog(
             onDismissRequest = { deletingChapter = null },
-            title = { Text("⚠️ অধ্যায় ডিলিট করুন?", fontWeight = FontWeight.Bold) },
-            text = { Text("আপনি কি নিশ্চিতভাবে '${deletingChapter!!.title}' অধ্যায়টি এবং এর সাথে সম্পর্কিত সমস্ত তথ্য ফায়ারবেস ও লোকাল স্টোরেজ থেকে ডিলিট করতে চান?") },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = WrongRed) },
+            title = { Text("অধ্যায় ডিলিট করুন?", fontWeight = FontWeight.Bold) },
+            text = { Text("আপনি কি নিশ্চিতভাবে '${deletingChapter!!.title}' অধ্যায়টি ডিলিট করতে চান?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -813,13 +1255,14 @@ fun AdminCurriculumCRUDTab(
                             refreshTrigger++
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WrongRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("❌ ডিলিট করুন")
+                    Text("ডিলিট করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deletingChapter = null }) { Text("বাতিল করুন") }
+                TextButton(onClick = { deletingChapter = null }) { Text("বাতিল") }
             }
         )
     }
@@ -828,8 +1271,9 @@ fun AdminCurriculumCRUDTab(
     if (deletingTopic != null) {
         AlertDialog(
             onDismissRequest = { deletingTopic = null },
-            title = { Text("⚠️ টপিক ডিলিট করুন?", fontWeight = FontWeight.Bold) },
-            text = { Text("আপনি কি নিশ্চিতভাবে '${deletingTopic!!.title}' টপিকটি ফায়ারবেস ও লোকাল স্টোরেজ থেকে ডিলিট করতে চান?") },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = WrongRed) },
+            title = { Text("টপিক ডিলিট করুন?", fontWeight = FontWeight.Bold) },
+            text = { Text("আপনি কি নিশ্চিতভাবে '${deletingTopic!!.title}' টপিকটি ডিলিট করতে চান?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -839,13 +1283,14 @@ fun AdminCurriculumCRUDTab(
                             refreshTrigger++
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WrongRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("❌ ডিলিট করুন")
+                    Text("ডিলিট করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deletingTopic = null }) { Text("বাতিল করুন") }
+                TextButton(onClick = { deletingTopic = null }) { Text("বাতিল") }
             }
         )
     }
@@ -889,17 +1334,17 @@ fun AdminCurriculumCRUDTab(
             onDismissRequest = { if (!isUploading) showBatchUploadDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("📥 ব্যাচ আপলোড (CSV / JSON)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Icon(Icons.Default.CloudUpload, contentDescription = null, tint = PrimaryIndigo)
+                    Text("ব্যাচ আপলোড (CSV / JSON)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "বিষয়: ${availableSubjects.find { it.id == subjectIdValue }?.name ?: subjectIdValue}",
+                        text = "বিষয়: ${availableSubjects.find { it.id == subjectIdValue }?.name ?: subjectIdValue}",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
+                        color = PrimaryIndigo
                     )
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -922,9 +1367,12 @@ fun AdminCurriculumCRUDTab(
                     OutlinedTextField(
                         value = batchImportText,
                         onValueChange = { batchImportText = it },
-                        placeholder = { Text("এখানে JSON অ্যারে বা CSV/Pipe লাইন পেস্ট করুন...") },
-                        modifier = Modifier.fillMaxWidth().height(160.dp),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                        placeholder = { Text("এখানে JSON অ্যারে বা CSV/Pipe লাইন পেস্ট করুন...", fontSize = 11.5.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp),
+                        shape = RoundedCornerShape(10.dp)
                     )
 
                     if (batchImportText.isNotBlank()) {
@@ -936,9 +1384,9 @@ fun AdminCurriculumCRUDTab(
                         ) {
                             Text(
                                 text = if (parsedChCount > 0 || parsedTpCount > 0)
-                                    "✓ শনাক্ত হয়েছে: $parsedChCount টি অধ্যায় ও $parsedTpCount টি টপিক"
+                                    "✓ শনাক্ত হয়েছে: $parsedChCount টি অধ্যায় ও $parsedTpCount টি টপিক"
                                 else
-                                    "⚠️ কোনো সঠিক অধ্যায়/টপিক পাওয়া যায়নি।",
+                                    "⚠️ কোনো সঠিক অধ্যায়/টপিক পাওয়া যায়নি।",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (parsedChCount > 0 || parsedTpCount > 0) CorrectGreen else WrongRed,
@@ -965,10 +1413,12 @@ fun AdminCurriculumCRUDTab(
                             }
                         }
                     },
-                    enabled = !isUploading && batchImportText.isNotBlank() && subjectIdValue.isNotBlank()
+                    enabled = !isUploading && batchImportText.isNotBlank() && subjectIdValue.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     if (isUploading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                        CircularProgressIndicator(modifier = Modifier.size(15.dp), color = Color.White, strokeWidth = 2.dp)
                         Spacer(Modifier.width(6.dp))
                         Text("আপলোড হচ্ছে...", fontSize = 12.sp)
                     } else {

@@ -54,6 +54,7 @@ import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.DeshExamViewModel
 import com.example.util.PdfReportGenerator
 import com.example.util.StreamHelper
+import com.example.util.formatCompactNumber
 
 enum class ProfileSubTab {
     OVERVIEW,
@@ -415,7 +416,7 @@ fun ProfileScreen(
                                     )
                                 }
                                 Text(
-                                    text = "${profile.currentXp} / ${profile.xpToNextLevel} XP (${(levelProgress * 100).toInt()}%)",
+                                    text = "${formatCompactNumber(profile.currentXp)} / ${formatCompactNumber(profile.xpToNextLevel)} XP (${(levelProgress * 100).toInt()}%)",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                                     color = ExamGold
                                 )
@@ -450,7 +451,7 @@ fun ProfileScreen(
                             )
                             ProfileStatCapsule(
                                 icon = Icons.Default.Bolt,
-                                value = "${profile.currentXp}",
+                                value = formatCompactNumber(profile.currentXp),
                                 label = "XP",
                                 accentColor = Color(0xFF38BDF8),
                                 modifier = Modifier.weight(1f)
@@ -807,7 +808,7 @@ fun ProfileScreen(
                             ) {
                                 MetricHighlightCard(
                                     title = "মোট প্রশ্ন সমাধান",
-                                    value = "${profile.totalQuestionsAnswered}",
+                                    value = formatCompactNumber(profile.totalQuestionsAnswered),
                                     icon = Icons.Default.Quiz,
                                     color = Color(0xFF3B82F6),
                                     modifier = Modifier.weight(1f)
@@ -1579,7 +1580,7 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "$unlockedCount / ${badges.size} টি মেডেল আনলক হয়েছে | +$totalXpFromBadges XP অর্জিত",
+                                    text = "$unlockedCount / ${badges.size} টি মেডেল আনলক হয়েছে | +${formatCompactNumber(totalXpFromBadges)} XP অর্জিত",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

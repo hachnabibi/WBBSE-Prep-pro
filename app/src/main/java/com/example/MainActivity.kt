@@ -650,6 +650,15 @@ fun DeshExamApp(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                AppScreen.WEAKNESS_INSIGHT -> {
+                    WeaknessInsightScreen(
+                        viewModel = viewModel,
+                        isBengali = isBengali,
+                        onBack = { viewModel.goBack() },
+                        onStartRevision = { viewModel.navigateTo(AppScreen.MOCK) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 AppScreen.WALLET -> {
                     WalletScreen(
                         viewModel = viewModel,

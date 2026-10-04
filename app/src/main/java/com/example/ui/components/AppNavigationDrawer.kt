@@ -518,6 +518,13 @@ fun AppNavigationDrawerSheet(
                 onClick = { onNavigate(AppScreen.PROGRESS_DASHBOARD); onCloseDrawer() }
             )
 
+            DrawerMenuItem(
+                icon = Icons.Default.Warning,
+                label = "এআই দুর্বলতা বিশ্লেষণ",
+                isSelected = currentScreen == AppScreen.WEAKNESS_INSIGHT,
+                onClick = { onNavigate(AppScreen.WEAKNESS_INSIGHT); onCloseDrawer() }
+            )
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Section 3: Profile & Settings

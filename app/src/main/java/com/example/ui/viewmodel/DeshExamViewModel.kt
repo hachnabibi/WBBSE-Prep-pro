@@ -65,7 +65,8 @@ enum class AppScreen {
     EDIT_PROFILE,
     INTERNET_ARCHIVE_SEARCH,
     VIDEO_LESSON,
-    MEMBERSHIP
+    MEMBERSHIP,
+    WEAKNESS_INSIGHT
 }
 
 data class AppSettings(
@@ -145,12 +146,22 @@ data class CloudDatabaseStats(
     val lastCheckedTimestamp: Long = 0L
 )
 
+data class StructuredQuestionInput(
+    val questionText: String,
+    val options: List<String>,
+    val correctIndex: Int,
+    val explanation: String = ""
+)
+
 class DeshExamViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = DeshExamDatabase.getDatabase(application, viewModelScope)
     val repository = DeshExamRepository(database.deshExamDao(), application)
     val authRepository = FirebaseAuthRepository()
     val firestoreService = FirestoreService()
+
+    private val _weakTopics = MutableStateFlow<List<com.example.data.local.TopicMistakeCount>>(emptyList())
+    val weakTopics: StateFlow<List<com.example.data.local.TopicMistakeCount>> = _weakTopics.asStateFlow()
 
     private val _cloudBackupState = MutableStateFlow(CloudBackupState())
     val cloudBackupState: StateFlow<CloudBackupState> = _cloudBackupState.asStateFlow()
@@ -418,6 +429,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     init {
         // Load initial local database statistics for cloud backup dashboard
         loadLocalDatabaseStats()
+        loadWeakTopics()
 
         // Sync & update database from assets so that any subject/chapter/question changes reflect immediately
         viewModelScope.launch(Dispatchers.IO) {
@@ -624,7 +636,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             AppScreen.CERTIFICATE, AppScreen.DOUBT_SOLVER, AppScreen.MULTIPLAYER_BATTLE,
             AppScreen.AUDIO_PODCASTS, AppScreen.STUDY_PLANNER, AppScreen.BOOKMARK_HUB, AppScreen.STUDY_SQUADS,
             AppScreen.PROGRESS_DASHBOARD, AppScreen.PDF_NOTES, AppScreen.PYQ_PDF_DOWNLOAD, AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD,
-            AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET, AppScreen.MEMBERSHIP,
+            AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET, AppScreen.MEMBERSHIP, AppScreen.WEAKNESS_INSIGHT,
             AppScreen.SUBJECT_DETAIL -> {
                 _currentScreen.value = if (_previousScreen.value != AppScreen.SUBJECT_DETAIL && _previousScreen.value != AppScreen.HOME) _previousScreen.value else AppScreen.HOME
                 true
@@ -1328,8 +1340,38 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun syncRemoteQuestionsToLocal() {}
     
-    fun fetchFirestoreQuestions(limit: String = "1000", classId: String? = null) {}
-    fun fetchFirestoreTestTemplates(limit: String = "100", classId: String? = null) {}
+    fun fetchFirestoreQuestions(limit: String = "1000", classId: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val res = firestoreService.getAllQuestions()
+                val list = res.getOrDefault(emptyList())
+                val filtered = if (!classId.isNullOrBlank()) list.filter { it.classId == classId } else list
+                withContext(Dispatchers.Main) {
+                    _firestoreQuestions.value = filtered
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error fetching Firestore questions: ${e.message}")
+            }
+        }
+    }
+
+    fun fetchFirestoreTestTemplates(classId: String? = null, subjectId: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val res = firestoreService.getAllTestTemplates()
+                val list = res.getOrDefault(emptyList())
+                val filtered = list.filter { item ->
+                    (classId.isNullOrBlank() || item.classId.isNullOrBlank() || item.classId.equals(classId, ignoreCase = true)) &&
+                    (subjectId.isNullOrBlank() || item.subjectId.isNullOrBlank() || item.subjectId.equals(subjectId, ignoreCase = true))
+                }
+                withContext(Dispatchers.Main) {
+                    _firestoreTestTemplates.value = if (filtered.isNotEmpty()) filtered else list
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error fetching test templates: ${e.message}")
+            }
+        }
+    }
 
     fun loadLocalDatabaseStats() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -1888,26 +1930,43 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateFirestoreQuestion(question: FirestoreQuestion, onComplete: (Boolean, String) -> Unit) {
-        viewModelScope.launch {
-            val updated = _firestoreQuestions.value.map { if (it.id == question.id) question else it }
-            _firestoreQuestions.value = updated
-            onComplete(true, "প্রশ্ন আপডেট হয়েছে")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.saveQuestion(question)
+            } catch (_: Exception) {}
+            withContext(Dispatchers.Main) {
+                val updated = _firestoreQuestions.value.map { if (it.id == question.id) question else it }
+                _firestoreQuestions.value = updated
+                onComplete(true, "প্রশ্ন আপডেট হয়েছে")
+            }
         }
     }
 
     fun deleteFirestoreQuestion(questionId: String, onComplete: (Boolean, String) -> Unit) {
-        viewModelScope.launch {
-            val updated = _firestoreQuestions.value.filter { it.id != questionId }
-            _firestoreQuestions.value = updated
-            onComplete(true, "প্রশ্ন মোছা হয়েছে")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.deleteQuestion(questionId)
+            } catch (_: Exception) {}
+            withContext(Dispatchers.Main) {
+                val updated = _firestoreQuestions.value.filter { it.id != questionId }
+                _firestoreQuestions.value = updated
+                onComplete(true, "প্রশ্ন মোছা হয়েছে")
+            }
         }
     }
 
     fun deleteFirestoreTestTemplate(testId: String, onComplete: (Boolean, String) -> Unit) {
-        viewModelScope.launch {
-            val updated = _firestoreTestTemplates.value.filter { it.id != testId }
-            _firestoreTestTemplates.value = updated
-            onComplete(true, "টেস্ট মোছা হয়েছে")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                firestoreService.deleteTestTemplate(testId)
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error deleting test template: ${e.message}")
+            }
+            withContext(Dispatchers.Main) {
+                val updated = _firestoreTestTemplates.value.filter { it.id != testId }
+                _firestoreTestTemplates.value = updated
+                onComplete(true, "টেস্ট ফায়ারবেস থেকে মোছা হয়েছে")
+            }
         }
     }
 
@@ -1926,19 +1985,71 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         difficulty: String,
         onComplete: (Boolean, String) -> Unit
     ) {
-        viewModelScope.launch {
-            val t = FirestoreTestTemplate(
+        viewModelScope.launch(Dispatchers.IO) {
+            val qId = "q_${testId}_${System.currentTimeMillis()}"
+            val fQ = FirestoreQuestion(
+                id = qId,
+                classId = classId,
+                subjectId = subjectId,
+                chapterId = "ch_${subjectId}_custom",
+                topicId = "top_${subjectId}_custom",
+                type = "MCQ",
+                difficulty = difficulty,
+                question = questionText,
+                options = optionsList,
+                correctOptionIndex = correctIndex,
+                correctAnswerText = correctAnswerText,
+                explanation = explanationText,
+                marks = 1,
+                tags = listOf("CUSTOM_TEST", assessmentMode)
+            )
+
+            val entity = QuestionEntity(
+                id = qId,
+                topicId = "top_${subjectId}_custom",
+                chapterId = "ch_${subjectId}_custom",
+                subjectId = subjectId,
+                classId = classId,
+                type = "MCQ",
+                difficulty = difficulty,
+                question = questionText,
+                optionsJson = org.json.JSONArray(optionsList).toString(),
+                correctOptionIndex = correctIndex,
+                correctAnswerText = correctAnswerText,
+                explanation = explanationText,
+                marks = 1,
+                tagsJson = "CUSTOM_TEST",
+                pyqYear = ""
+            )
+
+            try { database.deshExamDao().insertQuestions(listOf(entity)) } catch (_: Exception) {}
+            try { firestoreService.saveQuestion(fQ) } catch (_: Exception) {}
+
+            val existing = _firestoreTestTemplates.value.find { it.id == testId }
+            val existingQuestions = existing?.questions ?: emptyList()
+            val updatedQuestions = existingQuestions + fQ
+
+            val template = FirestoreTestTemplate(
                 id = testId,
                 title = testTitle,
                 classId = classId,
                 subjectId = subjectId,
+                chapterId = "ch_${subjectId}_custom",
                 testType = assessmentMode,
                 durationMinutes = timeMinutes,
-                totalMarks = 10,
-                questions = emptyList()
+                totalMarks = updatedQuestions.size,
+                questionCount = updatedQuestions.size,
+                questions = updatedQuestions
             )
-            _firestoreTestTemplates.value = _firestoreTestTemplates.value + t
-            onComplete(true, "টেস্ট সংরক্ষিত হয়েছে")
+
+            try {
+                firestoreService.saveTestTemplate(template)
+            } catch (_: Exception) {}
+
+            withContext(Dispatchers.Main) {
+                _firestoreTestTemplates.value = _firestoreTestTemplates.value.filter { it.id != testId } + template
+                onComplete(true, "✓ টেস্ট ও প্রশ্ন সফলভাবে ফায়ারবেসে সংরক্ষিত হয়েছে!")
+            }
         }
     }
 
@@ -1951,26 +2062,93 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         description: String,
         durationMinutes: Int,
         totalMarks: Int,
-        questionText: String,
-        options: List<String>,
-        correctIndex: Int,
-        correctAnswerText: String,
-        explanation: String,
-        onComplete: (Boolean, String) -> Unit
+        questions: List<StructuredQuestionInput>,
+        onComplete: (Boolean, String, String?) -> Unit
     ) {
-        viewModelScope.launch {
-            val t = FirestoreTestTemplate(
-                id = "test_${System.currentTimeMillis()}",
+        viewModelScope.launch(Dispatchers.IO) {
+            val timestamp = System.currentTimeMillis()
+            val testId = "test_${classId}_${subjectId}_$timestamp"
+            val newEntities = mutableListOf<QuestionEntity>()
+            val firestoreQuestions = mutableListOf<FirestoreQuestion>()
+
+            questions.forEachIndexed { i, qInput ->
+                val qId = "q_${subjectId}_${timestamp}_$i"
+                val correctAnsText = qInput.options.getOrNull(qInput.correctIndex) ?: qInput.options.firstOrNull() ?: ""
+                val optionsJson = org.json.JSONArray(qInput.options).toString()
+
+                val entity = QuestionEntity(
+                    id = qId,
+                    topicId = "${chapterId}_topic",
+                    chapterId = chapterId,
+                    subjectId = subjectId,
+                    classId = classId,
+                    type = "MCQ",
+                    difficulty = "MEDIUM",
+                    question = qInput.questionText,
+                    optionsJson = optionsJson,
+                    correctOptionIndex = qInput.correctIndex,
+                    correctAnswerText = correctAnsText,
+                    explanation = qInput.explanation.ifBlank { "সঠিক উত্তর।" },
+                    marks = 1,
+                    tagsJson = "STRUCTURED_TEST",
+                    pyqYear = ""
+                )
+                newEntities.add(entity)
+
+                val fQ = FirestoreQuestion(
+                    id = qId,
+                    classId = classId,
+                    subjectId = subjectId,
+                    chapterId = chapterId,
+                    topicId = "${chapterId}_topic",
+                    type = "MCQ",
+                    difficulty = "MEDIUM",
+                    question = qInput.questionText,
+                    options = qInput.options,
+                    correctOptionIndex = qInput.correctIndex,
+                    correctAnswerText = correctAnsText,
+                    explanation = qInput.explanation.ifBlank { "সঠিক উত্তর।" },
+                    marks = 1,
+                    tags = listOf("STRUCTURED_TEST", testType)
+                )
+                firestoreQuestions.add(fQ)
+            }
+
+            // Save to local room DB
+            try {
+                if (newEntities.isNotEmpty()) {
+                    database.deshExamDao().insertQuestions(newEntities)
+                }
+            } catch (_: Exception) {}
+
+            // Save questions to Firestore
+            try {
+                if (firestoreQuestions.isNotEmpty()) {
+                    firestoreService.saveQuestionsBatch(firestoreQuestions)
+                }
+            } catch (_: Exception) {}
+
+            val template = FirestoreTestTemplate(
+                id = testId,
                 title = title,
                 classId = classId,
                 subjectId = subjectId,
+                chapterId = chapterId,
                 testType = testType,
                 durationMinutes = durationMinutes,
-                totalMarks = totalMarks,
-                questions = emptyList()
+                totalMarks = if (totalMarks > 0) totalMarks else firestoreQuestions.size,
+                questionCount = firestoreQuestions.size,
+                questions = firestoreQuestions
             )
-            _firestoreTestTemplates.value = _firestoreTestTemplates.value + t
-            onComplete(true, "অ্যাসেসমেন্ট তৈরি হয়েছে")
+
+            try {
+                firestoreService.saveTestTemplate(template)
+            } catch (_: Exception) {}
+
+            withContext(Dispatchers.Main) {
+                _firestoreTestTemplates.value = _firestoreTestTemplates.value + template
+                onComplete(true, "মোট ${firestoreQuestions.size}টি প্রশ্ন সহ টেস্ট সফলভাবে তৈরি ও ক্লাউডে সংরক্ষিত হয়েছে!", testId)
+            }
         }
     }
 
@@ -1984,8 +2162,231 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         customTestTitle: String,
         onComplete: (Boolean, String, Int) -> Unit
     ) {
-        viewModelScope.launch {
-            onComplete(true, "প্রশ্ন ইম্পোর্ট সম্পন্ন", 5)
+        viewModelScope.launch(Dispatchers.IO) {
+            val trimmed = rawInput.trim()
+            if (trimmed.isBlank()) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "কোনো ডেটা পাওয়া যায়নি", 0)
+                }
+                return@launch
+            }
+
+            val isJson = trimmed.startsWith("[") || trimmed.startsWith("{")
+            val newQuestions = mutableListOf<QuestionEntity>()
+            val firestoreQuestions = mutableListOf<FirestoreQuestion>()
+            val timestamp = System.currentTimeMillis()
+
+            try {
+                if (isJson) {
+                    val jsonArray = if (trimmed.startsWith("[")) {
+                        org.json.JSONArray(trimmed)
+                    } else {
+                        val rootObj = org.json.JSONObject(trimmed)
+                        rootObj.optJSONArray("questions") ?: org.json.JSONArray()
+                    }
+
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        val qText = obj.optString("question", obj.optString("questionText", obj.optString("q", ""))).trim()
+                        if (qText.isBlank()) continue
+
+                        val optionsList = mutableListOf<String>()
+                        val optsArr = obj.optJSONArray("options") ?: obj.optJSONArray("choices") ?: obj.optJSONArray("opts")
+                        if (optsArr != null) {
+                            for (o in 0 until optsArr.length()) {
+                                optionsList.add(optsArr.optString(o, "").trim())
+                            }
+                        } else {
+                            val optStr = obj.optString("options", "")
+                            if (optStr.contains("|")) {
+                                optionsList.addAll(optStr.split("|").map { it.trim() }.filter { it.isNotEmpty() })
+                            } else {
+                                listOf("opt1", "opt2", "opt3", "opt4").forEach { k ->
+                                    val v = obj.optString(k, "").trim()
+                                    if (v.isNotEmpty()) optionsList.add(v)
+                                }
+                            }
+                        }
+
+                        val correctIdx = when {
+                            obj.has("correctOptionIndex") -> obj.optInt("correctOptionIndex", 0)
+                            obj.has("correctAnswerIndex") -> obj.optInt("correctAnswerIndex", 0)
+                            obj.has("answerIndex") -> obj.optInt("answerIndex", 0)
+                            obj.has("correctIndex") -> obj.optInt("correctIndex", 0)
+                            obj.has("answer") -> {
+                                val ansStr = obj.optString("answer", "0").trim()
+                                ansStr.toIntOrNull() ?: optionsList.indexOfFirst { it.equals(ansStr, ignoreCase = true) }.coerceAtLeast(0)
+                            }
+                            else -> 0
+                        }
+
+                        val explanation = obj.optString("explanation", obj.optString("exp", obj.optString("solution", ""))).trim()
+                        val diff = obj.optString("difficulty", obj.optString("level", "MEDIUM")).uppercase().trim()
+                        val marks = obj.optInt("marks", obj.optInt("points", 1))
+                        val qType = obj.optString("type", "MCQ").uppercase().trim()
+                        val qPyqYear = obj.optString("pyqYear", pyqYear).trim()
+                        val qClassId = obj.optString("classId", classId).ifBlank { classId }
+                        val qSubjectId = obj.optString("subjectId", subjectId).ifBlank { subjectId }
+                        val qChapterId = obj.optString("chapterId", chapterId).ifBlank { chapterId }
+                        val qTopicId = obj.optString("topicId", topicId).ifBlank { topicId }
+                        val qId = obj.optString("id", "q_${qSubjectId}_${timestamp}_$i").trim()
+
+                        val optionsJson = org.json.JSONArray(optionsList).toString()
+                        val correctAnsText = optionsList.getOrNull(correctIdx) ?: ""
+
+                        val entity = QuestionEntity(
+                            id = qId,
+                            topicId = qTopicId,
+                            chapterId = qChapterId,
+                            subjectId = qSubjectId,
+                            classId = qClassId,
+                            type = qType,
+                            difficulty = diff,
+                            question = qText,
+                            optionsJson = optionsJson,
+                            correctOptionIndex = correctIdx,
+                            correctAnswerText = correctAnsText,
+                            explanation = explanation,
+                            marks = marks,
+                            tagsJson = if (qPyqYear.isNotBlank()) "PYQ_$qPyqYear" else "BULK_IMPORT",
+                            pyqYear = qPyqYear
+                        )
+                        newQuestions.add(entity)
+
+                        val fQ = FirestoreQuestion(
+                            id = qId,
+                            classId = qClassId,
+                            subjectId = qSubjectId,
+                            chapterId = qChapterId,
+                            topicId = qTopicId,
+                            type = qType,
+                            difficulty = diff,
+                            question = qText,
+                            options = optionsList,
+                            correctOptionIndex = correctIdx,
+                            correctAnswerText = correctAnsText,
+                            explanation = explanation,
+                            marks = marks,
+                            tags = if (qPyqYear.isNotBlank()) listOf("PYQ", qPyqYear) else listOf("BULK_IMPORT")
+                        )
+                        firestoreQuestions.add(fQ)
+                    }
+                } else {
+                    // Pipe format: Question | Opt1 | Opt2 | Opt3 | Opt4 | CorrectIndex(0-3) | Explanation | Difficulty | Marks
+                    val lines = trimmed.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+                    lines.forEachIndexed { idx, line ->
+                        val parts = line.split("|").map { it.trim() }
+                        if (parts.size >= 5) {
+                            val qText = parts[0]
+                            val opt1 = parts.getOrNull(1) ?: ""
+                            val opt2 = parts.getOrNull(2) ?: ""
+                            val opt3 = parts.getOrNull(3) ?: ""
+                            val opt4 = parts.getOrNull(4) ?: ""
+                            val opts = listOfNotNull(opt1, opt2, opt3.ifEmpty { null }, opt4.ifEmpty { null })
+                            val cIdx = parts.getOrNull(5)?.toIntOrNull() ?: 0
+                            val exp = parts.getOrNull(6) ?: ""
+                            val diff = parts.getOrNull(7)?.uppercase() ?: "MEDIUM"
+                            val marks = parts.getOrNull(8)?.toIntOrNull() ?: 1
+                            val qId = "q_${subjectId}_${timestamp}_$idx"
+
+                            val optionsJson = org.json.JSONArray(opts).toString()
+                            val correctAnsText = opts.getOrNull(cIdx) ?: ""
+
+                            val entity = QuestionEntity(
+                                id = qId,
+                                topicId = topicId,
+                                chapterId = chapterId,
+                                subjectId = subjectId,
+                                classId = classId,
+                                type = "MCQ",
+                                difficulty = diff,
+                                question = qText,
+                                optionsJson = optionsJson,
+                                correctOptionIndex = cIdx,
+                                correctAnswerText = correctAnsText,
+                                explanation = exp,
+                                marks = marks,
+                                tagsJson = if (pyqYear.isNotBlank()) "PYQ_$pyqYear" else "BULK_IMPORT",
+                                pyqYear = pyqYear
+                            )
+                            newQuestions.add(entity)
+
+                            val fQ = FirestoreQuestion(
+                                id = qId,
+                                classId = classId,
+                                subjectId = subjectId,
+                                chapterId = chapterId,
+                                topicId = topicId,
+                                type = "MCQ",
+                                difficulty = diff,
+                                question = qText,
+                                options = opts,
+                                correctOptionIndex = cIdx,
+                                correctAnswerText = correctAnsText,
+                                explanation = exp,
+                                marks = marks,
+                                tags = if (pyqYear.isNotBlank()) listOf("PYQ", pyqYear) else listOf("BULK_IMPORT")
+                            )
+                            firestoreQuestions.add(fQ)
+                        }
+                    }
+                }
+
+                if (newQuestions.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "কোনো বৈধ প্রশ্ন পাওয়া যায়নি। ফরম্যাট পরীক্ষা করুন।", 0)
+                    }
+                    return@launch
+                }
+
+                // 1. Save to local Room database
+                database.deshExamDao().insertQuestions(newQuestions)
+
+                // 2. Save batch to Firestore cloud in parallel
+                var cloudSuccessCount = 0
+                for (fq in firestoreQuestions) {
+                    try {
+                        if (firestoreService.saveQuestion(fq).isSuccess) {
+                            cloudSuccessCount++
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                // 3. Save as Test Template on Firestore if custom test title is provided
+                if (customTestTitle.isNotBlank()) {
+                    val testId = "test_${classId}_${subjectId}_${timestamp}"
+                    val template = FirestoreTestTemplate(
+                        id = testId,
+                        title = customTestTitle.trim(),
+                        classId = classId,
+                        subjectId = subjectId,
+                        chapterId = chapterId,
+                        testType = "MOCK_TEST",
+                        durationMinutes = 25,
+                        totalMarks = firestoreQuestions.size,
+                        questionCount = firestoreQuestions.size,
+                        questions = firestoreQuestions
+                    )
+                    try {
+                        firestoreService.saveTestTemplate(template)
+                        withContext(Dispatchers.Main) {
+                            _firestoreTestTemplates.value = _firestoreTestTemplates.value + template
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                withContext(Dispatchers.Main) {
+                    onComplete(
+                        true,
+                        "✓ সফলভাবে ${newQuestions.size} টি প্রশ্ন ডাটাবেজে যুক্ত হয়েছে! (ক্লাউড সিঙ্ক: $cloudSuccessCount/${newQuestions.size})",
+                        newQuestions.size
+                    )
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ইমপোর্টে ত্রুটি: ${e.message}", 0)
+                }
+            }
         }
     }
 
@@ -2801,6 +3202,16 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 loadUserVideoProgress()
             } catch (e: Exception) {
                 Log.w("DeshExamViewModel", "Failed to restore user progress from cloud: ${e.message}")
+            }
+        }
+    }
+
+    fun loadWeakTopics() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                _weakTopics.value = database.deshExamDao().getTopicMistakeCounts()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

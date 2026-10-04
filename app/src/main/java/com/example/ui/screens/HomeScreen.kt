@@ -53,6 +53,7 @@ import com.example.ui.components.PerformanceSummaryCard
 import com.example.ui.components.StreakTrackerCard
 import com.example.ui.components.SubjectIconBadge
 import com.example.ui.theme.*
+import com.example.util.formatCompactNumber
 import com.example.ui.viewmodel.AppScreen
 
 @Composable
@@ -716,7 +717,7 @@ fun StudentGreetingHeader(
                     ) {
                         Text(text = "🪙", fontSize = 13.sp)
                         Text(
-                            text = "${profile.coins}",
+                            text = formatCompactNumber(profile.coins),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = Color(0xFFB45309)
                         )
@@ -1322,11 +1323,12 @@ fun ActiveStudentsTicker(count: Int, isBengali: Boolean) {
                     .background(Color(0xFF10B981)) // Green pulse
             )
             Spacer(modifier = Modifier.width(8.dp))
+            val formattedCount = formatCompactNumber(count)
             Text(
                 text = if (isBengali) 
-                    "বর্তমানে $count জন শিক্ষার্থী আপনার সাথে পড়াশোনা করছে" 
+                    "বর্তমানে $formattedCount জন শিক্ষার্থী আপনার সাথে পড়াশোনা করছে" 
                 else 
-                    "Currently $count students are studying with you",
+                    "Currently $formattedCount students are studying with you",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )

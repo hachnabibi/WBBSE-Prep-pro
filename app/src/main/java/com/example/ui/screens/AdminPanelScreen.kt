@@ -30,6 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +53,8 @@ import com.example.data.model.EducationBoard
 import com.example.data.model.AssessmentMode
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
+import com.example.ui.viewmodel.StructuredQuestionInput
+import com.example.util.formatCompactNumber
 
 private fun getAdminClassSubjects(classId: String): List<SubjectEntity> {
     return when {
@@ -181,6 +191,9 @@ fun AdminPanelScreen(
     var structuredOpt4 by remember { mutableStateOf("") }
     var structuredCorrectIndex by remember { mutableStateOf(0) }
     var structuredExplanation by remember { mutableStateOf("") }
+    var structuredStagedQuestions by remember { mutableStateOf<List<StructuredQuestionInput>>(emptyList()) }
+    var lastCreatedTestId by remember { mutableStateOf<String?>(null) }
+    var lastCreatedTestTitle by remember { mutableStateOf<String?>(null) }
 
     var bulkImportText by remember { mutableStateOf("") }
     var bulkCustomTestTitle by remember { mutableStateOf("") }
@@ -217,16 +230,46 @@ fun AdminPanelScreen(
 
     val sampleJsonTemplate = """[
   {
-    "question": "সালোকসংশ্লেষ প্রক্রিয়ায় নির্গত গ্যাসের নাম কী?",
-    "options": ["অক্সিজেন", "কার্বন ডাই অক্সাইড", "নাইট্রোজেন", "হাইড্রোজেন"],
+    "question": "সালোকসংশ্লেষ প্রক্রিয়ায় নির্গত উপজাত গ্যাসের নাম কী?",
+    "options": [
+      "অক্সিজেন (O2)",
+      "কার্বন ডাই অক্সাইড (CO2)",
+      "নাইট্রোজেন (N2)",
+      "হাইড্রোজেন (H2)"
+    ],
     "correctOptionIndex": 0,
-    "explanation": "সালোকসংশ্লেষ প্রক্রিয়ায় উপজাত হিসেবে অক্সিজেন নির্গত হয়।"
+    "explanation": "সালোকসংশ্লেষে জল বিশ্লিষ্ট হয়ে উপজাত পদার্থ হিসেবে অক্সিজেন গ্যাস নির্গত হয়।",
+    "difficulty": "EASY",
+    "marks": 1,
+    "pyqYear": "2024"
   },
   {
-    "question": "মানবদেহের দীর্ঘতম স্নায়ু কোনটি?",
-    "options": ["ভেগাস", "অপটিক", "সায়াটিক", "অডিটরি"],
+    "question": "মানবদেহের দীর্ঘতম স্নায়ু (Nerve) কোনটি?",
+    "options": [
+      "ভেগাস স্নায়ু",
+      "অপটিক স্নায়ু",
+      "সায়াটিক স্নায়ু",
+      "অডিটরি স্নায়ু"
+    ],
     "correctOptionIndex": 2,
-    "explanation": "সায়াটিক নার্ভ হলো মানবদেহের সবচেয়ে দীর্ঘতম স্নায়ু।"
+    "explanation": "সায়াটিক নার্ভ (Sciatic Nerve) হলো মানবদেহের সবচেয়ে দীর্ঘতম ও মোটা স্নায়ু।",
+    "difficulty": "MEDIUM",
+    "marks": 1,
+    "pyqYear": "2023"
+  },
+  {
+    "question": "একটি বৃত্তের ব্যাসার্ধ r হলে, বৃত্তের ক্ষেত্রফলের সূত্র কোনটি?",
+    "options": [
+      "2πr",
+      "πr²",
+      "2πr²",
+      "4/3 πr³"
+    ],
+    "correctOptionIndex": 1,
+    "explanation": "বৃত্তের ক্ষেত্রফল = π × (ব্যাসার্ধ)² = πr² বর্গ একক।",
+    "difficulty": "EASY",
+    "marks": 1,
+    "pyqYear": "2025"
   }
 ]"""
 
@@ -385,14 +428,80 @@ fun AdminPanelScreen(
     var cmsSubjectDropdownExpanded by remember { mutableStateOf(false) }
     var testCmsClassDropdownExpanded by remember { mutableStateOf(false) }
     var testCmsSubjectDropdownExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    var showJsonGuideDialog by remember { mutableStateOf(false) }
+    var bulkBoardDropdownExpanded by remember { mutableStateOf(false) }
     var bulkClassDropdownExpanded by remember { mutableStateOf(false) }
     var bulkSubjectDropdownExpanded by remember { mutableStateOf(false) }
     var bulkChapterDropdownExpanded by remember { mutableStateOf(false) }
     var bulkTopicDropdownExpanded by remember { mutableStateOf(false) }
+    var bulkPyqDropdownExpanded by remember { mutableStateOf(false) }
+    var bulkFileStatusMessage by remember { mutableStateOf<String?>(null) }
+    var bulkFileStatusSuccess by remember { mutableStateOf(true) }
+
+    val jsonFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val content = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
+                    reader.readText()
+                } ?: ""
+                if (content.isNotBlank()) {
+                    bulkImportText = content
+                    bulkFileStatusMessage = "✓ JSON ফাইল সফলভাবে লোড হয়েছে!"
+                    bulkFileStatusSuccess = true
+                } else {
+                    bulkFileStatusMessage = "⚠️ ফাইলটি ফাঁকা!"
+                    bulkFileStatusSuccess = false
+                }
+            } catch (e: Exception) {
+                bulkFileStatusMessage = "ফাইল পড়তে সমস্যা হয়েছে: ${e.message}"
+                bulkFileStatusSuccess = false
+            }
+        }
+    }
+
+    val downloadQuestionJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.openOutputStream(it)?.use { output ->
+                    output.write(sampleJsonTemplate.toByteArray(Charsets.UTF_8))
+                }
+                bulkFileStatusMessage = "✓ নমুনা প্রশ্ন JSON ফাইল সফলভাবে ডাউনলোড / সেভ হয়েছে!"
+                bulkFileStatusSuccess = true
+            } catch (e: Exception) {
+                bulkFileStatusMessage = "ফাইল সেভ করতে সমস্যা হয়েছে: ${e.message}"
+                bulkFileStatusSuccess = false
+            }
+        }
+    }
+
+    val downloadSyllabusJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.openOutputStream(it)?.use { output ->
+                    output.write(sampleCurriculumJsonTemplate.toByteArray(Charsets.UTF_8))
+                }
+                bulkFileStatusMessage = "✓ নমুনা সিলেবাস JSON ফাইল সফলভাবে ডাউনলোড / সেভ হয়েছে!"
+                bulkFileStatusSuccess = true
+            } catch (e: Exception) {
+                bulkFileStatusMessage = "ফাইল সেভ করতে সমস্যা হয়েছে: ${e.message}"
+                bulkFileStatusSuccess = false
+            }
+        }
+    }
     var customClassDropdownExpanded by remember { mutableStateOf(false) }
     var customSubjectDropdownExpanded by remember { mutableStateOf(false) }
+    var structuredBoardDropdownExpanded by remember { mutableStateOf(false) }
     var structuredClassDropdownExpanded by remember { mutableStateOf(false) }
     var structuredSubjectDropdownExpanded by remember { mutableStateOf(false) }
+    var structuredChapterDropdownExpanded by remember { mutableStateOf(false) }
 
     var customQuestionId by remember { mutableStateOf("") }
     var questionText by remember { mutableStateOf("") }
@@ -627,15 +736,15 @@ fun AdminPanelScreen(
                 item {
                     val localStats = backupState.stats
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             // Top Header with Quick Refresh
                             Row(
@@ -644,38 +753,38 @@ fun AdminPanelScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(46.dp)
-                                            .clip(RoundedCornerShape(14.dp))
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(PrimaryIndigo.copy(alpha = 0.18f), ExamCyan.copy(alpha = 0.10f))
                                                 )
                                             )
-                                            .border(1.dp, PrimaryIndigo.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                                            .border(1.dp, PrimaryIndigo.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            Icons.Default.CloudUpload,
+                                            Icons.Default.CloudSync,
                                             contentDescription = null,
                                             tint = PrimaryIndigo,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                     Column {
                                         Text(
-                                            text = "☁️ লোকাল ডেটাবেজ ক্লাউড ব্যাকআপ",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            text = "লোকাল ডেটাবেজ ক্লাউড ব্যাকআপ",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "বোর্ড, ক্লাস, বিষয়, অধ্যায় ও প্রশ্নমালা ক্লাউডে ব্যাকআপ রাখুন",
-                                            style = MaterialTheme.typography.labelSmall,
+                                            text = "বোর্ড, ক্লাস, বিষয়, অধ্যায় ও প্রশ্নমালা ক্লাউডে পুশ করুন",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -685,7 +794,7 @@ fun AdminPanelScreen(
                                     onClick = { viewModel.loadLocalDatabaseStats() },
                                     enabled = !backupState.isBackingUp,
                                     modifier = Modifier
-                                        .size(38.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                                 ) {
@@ -693,34 +802,23 @@ fun AdminPanelScreen(
                                         Icons.Default.Refresh,
                                         contentDescription = "Refresh stats",
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 
-                            // Current Local Database Counts with Vibrant Background Gradient
+                            // Current Local Database Counts
                             Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.Transparent,
-                                border = BorderStroke(1.dp, Brush.linearGradient(listOf(PrimaryIndigo.copy(alpha = 0.40f), ExamCyan.copy(alpha = 0.25f)))),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                PrimaryIndigo.copy(alpha = 0.10f),
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                                Color(0xFF8B5CF6).copy(alpha = 0.06f)
-                                            )
-                                        ),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -735,11 +833,11 @@ fun AdminPanelScreen(
                                                 Icons.Default.Storage,
                                                 contentDescription = null,
                                                 tint = PrimaryIndigo,
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size(16.dp)
                                             )
                                             Text(
-                                                text = "সংরক্ষিত আইটেম ও পরিসংখ্যান:",
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                text = "সংরক্ষিত ডেটা পরিসংখ্যান",
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
@@ -751,30 +849,24 @@ fun AdminPanelScreen(
                                                 (localStats?.questionCount ?: 0)
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = Color.Transparent,
-                                            border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.4f)),
-                                            modifier = Modifier.background(
-                                                Brush.horizontalGradient(
-                                                    listOf(PrimaryIndigo.copy(alpha = 0.22f), ExamCyan.copy(alpha = 0.12f))
-                                                ),
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
+                                            color = PrimaryIndigo.copy(alpha = 0.12f),
+                                            border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.3f))
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                             ) {
                                                 Icon(
                                                     Icons.Default.Analytics,
                                                     contentDescription = null,
                                                     tint = PrimaryIndigo,
-                                                    modifier = Modifier.size(12.dp)
+                                                    modifier = Modifier.size(11.dp)
                                                 )
                                                 Text(
-                                                    text = "$totalItems টি আইটেম",
+                                                    text = "${formatCompactNumber(totalItems)} টি আইটেম",
                                                     fontSize = 11.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = PrimaryIndigo
                                                 )
                                             }
@@ -784,32 +876,32 @@ fun AdminPanelScreen(
                                     // Badges Row 1: বোর্ড, ক্লাস, বিষয়
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.boardCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.boardCount ?: 0),
                                             label = "বোর্ড",
                                             icon = Icons.Default.AccountBalance,
-                                            gradientColors = listOf(Color(0xFF6366F1).copy(alpha = 0.20f), Color(0xFF4338CA).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFF6366F1).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFF6366F1).copy(alpha = 0.16f), Color(0xFF4338CA).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFF6366F1).copy(alpha = 0.4f),
                                             accentColor = Color(0xFF4F46E5),
                                             modifier = Modifier.weight(1f)
                                         )
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.classCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.classCount ?: 0),
                                             label = "ক্লাস",
                                             icon = Icons.Default.School,
-                                            gradientColors = listOf(Color(0xFF10B981).copy(alpha = 0.20f), Color(0xFF059669).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFF10B981).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFF10B981).copy(alpha = 0.16f), Color(0xFF059669).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFF10B981).copy(alpha = 0.4f),
                                             accentColor = Color(0xFF059669),
                                             modifier = Modifier.weight(1f)
                                         )
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.subjectCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.subjectCount ?: 0),
                                             label = "বিষয়",
                                             icon = Icons.Default.MenuBook,
-                                            gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.20f), Color(0xFFD97706).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFFF59E0B).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFFF59E0B).copy(alpha = 0.16f), Color(0xFFD97706).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFFF59E0B).copy(alpha = 0.4f),
                                             accentColor = Color(0xFFD97706),
                                             modifier = Modifier.weight(1f)
                                         )
@@ -818,32 +910,32 @@ fun AdminPanelScreen(
                                     // Badges Row 2: অধ্যায়, টপিক, প্রশ্ন
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.chapterCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.chapterCount ?: 0),
                                             label = "অধ্যায়",
                                             icon = Icons.Default.BookmarkBorder,
-                                            gradientColors = listOf(Color(0xFF06B6D4).copy(alpha = 0.20f), Color(0xFF0284C7).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFF06B6D4).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFF06B6D4).copy(alpha = 0.16f), Color(0xFF0284C7).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFF06B6D4).copy(alpha = 0.4f),
                                             accentColor = Color(0xFF0284C7),
                                             modifier = Modifier.weight(1f)
                                         )
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.topicCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.topicCount ?: 0),
                                             label = "টপিক",
                                             icon = Icons.Default.Layers,
-                                            gradientColors = listOf(Color(0xFFA855F7).copy(alpha = 0.20f), Color(0xFF7C3AED).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFFA855F7).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFFA855F7).copy(alpha = 0.16f), Color(0xFF7C3AED).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFFA855F7).copy(alpha = 0.4f),
                                             accentColor = Color(0xFF7C3AED),
                                             modifier = Modifier.weight(1f)
                                         )
                                         AdminStatGradientBadge(
-                                            count = "${localStats?.questionCount ?: 0}",
+                                            count = formatCompactNumber(localStats?.questionCount ?: 0),
                                             label = "প্রশ্ন",
                                             icon = Icons.Default.Quiz,
-                                            gradientColors = listOf(Color(0xFFF43F5E).copy(alpha = 0.20f), Color(0xFFE11D48).copy(alpha = 0.08f)),
-                                            borderColor = Color(0xFFF43F5E).copy(alpha = 0.45f),
+                                            gradientColors = listOf(Color(0xFFF43F5E).copy(alpha = 0.16f), Color(0xFFE11D48).copy(alpha = 0.05f)),
+                                            borderColor = Color(0xFFF43F5E).copy(alpha = 0.4f),
                                             accentColor = Color(0xFFE11D48),
                                             modifier = Modifier.weight(1f)
                                         )
@@ -851,36 +943,48 @@ fun AdminPanelScreen(
                                 }
                             }
 
-                            // Last backup status
+                            // Last backup status (Compact Note)
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    val backupTimeText = if (backupState.lastBackupTimestamp > 0) {
-                                        val fmt = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm:ss a", java.util.Locale.getDefault())
-                                        "সর্বশেষ ক্লাউড ব্যাকআপ: ${fmt.format(java.util.Date(backupState.lastBackupTimestamp))}"
-                                    } else {
-                                        "সর্বশেষ ক্লাউড ব্যাকআপ: এই সেশনে ব্যাকআপ নেওয়া হয়নি"
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.AccessTime,
+                                        contentDescription = null,
+                                        tint = PrimaryIndigo,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        val backupTimeText = if (backupState.lastBackupTimestamp > 0) {
+                                            val fmt = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault())
+                                            "সর্বশেষ ব্যাকআপ: ${fmt.format(java.util.Date(backupState.lastBackupTimestamp))}"
+                                        } else {
+                                            "সর্বশেষ ব্যাকআপ: এই সেশনে ব্যাকআপ নেওয়া হয়নি"
+                                        }
+                                        Text(
+                                            text = backupTimeText,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "💡 ফায়ারবেসে পুশ করলে ডেটাবেজের সকল ডেটা ক্লাউডে স্থায়ীভাবে সংরক্ষিত হবে।",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                    Text(
-                                        text = backupTimeText,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "👉 নিচের বাটনে চাপলে ডিভাইসে থাকা সম্পূর্ণ সিলেবাস ও প্রশ্নব্যাংক ক্লাউডে সুরক্ষিত থাকবে।",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
 
                             // In-progress indicator
                             if (backupState.isBackingUp) {
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -888,20 +992,20 @@ fun AdminPanelScreen(
                                     ) {
                                         Text(
                                             text = backupState.step,
-                                            fontSize = 12.sp,
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
                                             text = "${(backupState.progress * 100).toInt()}%",
-                                            fontSize = 12.sp,
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                     LinearProgressIndicator(
                                         progress = { backupState.progress },
-                                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                         color = MaterialTheme.colorScheme.primary,
                                         trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                     )
@@ -912,19 +1016,19 @@ fun AdminPanelScreen(
                             if (backupState.summary != null && !backupState.isBackingUp) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = CorrectGreen.copy(alpha = 0.15f),
-                                    border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.4f)),
+                                    color = CorrectGreen.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.35f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(12.dp),
+                                        modifier = Modifier.padding(10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = CorrectGreen, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = CorrectGreen, modifier = Modifier.size(18.dp))
                                         Text(
                                             text = backupState.summary ?: "",
-                                            fontSize = 12.sp,
+                                            fontSize = 11.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = CorrectGreen
                                         )
@@ -936,19 +1040,19 @@ fun AdminPanelScreen(
                             if (backupState.error != null && !backupState.isBackingUp) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = WrongRed.copy(alpha = 0.15f),
-                                    border = BorderStroke(1.dp, WrongRed.copy(alpha = 0.4f)),
+                                    color = WrongRed.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, WrongRed.copy(alpha = 0.35f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(12.dp),
+                                        modifier = Modifier.padding(10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.Default.Error, contentDescription = null, tint = WrongRed, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.Error, contentDescription = null, tint = WrongRed, modifier = Modifier.size(18.dp))
                                         Text(
                                             text = backupState.error ?: "",
-                                            fontSize = 12.sp,
+                                            fontSize = 11.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = WrongRed
                                         )
@@ -956,7 +1060,7 @@ fun AdminPanelScreen(
                                 }
                             }
 
-                            // Clean, Fixed Action Button (No squishing, full width with comfortable height!)
+                            // Premium Action Button 1: Push Full Database
                             Button(
                                 onClick = {
                                     viewModel.pushLocalDatabaseToFirebase { success, msg ->
@@ -965,45 +1069,45 @@ fun AdminPanelScreen(
                                     }
                                 },
                                 enabled = !isLoading && !backupState.isBackingUp,
-                                colors = ButtonDefaults.buttonColors(containerColor = ExamGold),
-                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                                shape = RoundedCornerShape(12.dp),
                                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp)
+                                    .height(46.dp)
                             ) {
                                 if (backupState.isBackingUp) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(22.dp),
-                                        color = Color(0xFF1E1B2E),
-                                        strokeWidth = 2.5.dp
+                                        modifier = Modifier.size(18.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "ফায়ারবেসে ব্যাকআপ হচ্ছে... ${(backupState.progress * 100).toInt()}%",
-                                        color = Color(0xFF1E1B2E),
+                                        color = Color.White,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
+                                        fontSize = 13.sp
                                     )
                                 } else {
                                     Icon(
-                                        Icons.Default.CloudSync,
+                                        Icons.Default.CloudUpload,
                                         contentDescription = null,
-                                        tint = Color(0xFF1E1B2E),
-                                        modifier = Modifier.size(22.dp)
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "🚀 লোকাল ডেটা ফায়ারবেসে পুশ করুন",
-                                        color = Color(0xFF1E1B2E),
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp
+                                        "ফায়ারবেস ক্লাউডে সম্পূর্ণ ডেটা পুশ করুন",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp
                                     )
                                 }
                             }
 
-                            // Dedicated Force Sync Questions Button
-                            Button(
+                            // Action Button 2: Sync Question Bank
+                            OutlinedButton(
                                 onClick = {
                                     viewModel.forceSyncQuestionsToFirebase { success, msg ->
                                         actionSuccess = success
@@ -1011,29 +1115,28 @@ fun AdminPanelScreen(
                                     }
                                 },
                                 enabled = !isLoading && !backupState.isBackingUp,
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
-                                shape = RoundedCornerShape(14.dp),
-                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryIndigo),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp)
+                                    .height(42.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.CloudUpload,
+                                    Icons.Default.Quiz,
                                     contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = PrimaryIndigo,
+                                    modifier = Modifier.size(17.dp)
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "❓ প্রশ্ন ব্যাংক ক্লাউডে সিঙ্ক ও পুশ করুন",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                                    "প্রশ্ন ব্যাংক ক্লাউডে সিঙ্ক ও পুশ করুন",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp
                                 )
                             }
 
-                            // Quick Action Chip Buttons (রিফ্রেশ ও ক্লাউড সংযোগ চিপ বাটন)
+                            // Quick Action Chip Buttons
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1045,14 +1148,14 @@ fun AdminPanelScreen(
                                         actionSuccess = true
                                         actionMessage = "🔄 লোকাল ডেটাবেজ পরিসংখ্যান সফলভাবে রিফ্রেশ হয়েছে।"
                                     },
-                                    label = { Text("রিফ্রেশ স্ট্যাটস", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                                    label = { Text("পরিসংখ্যান রিফ্রেশ", fontSize = 11.sp, fontWeight = FontWeight.Medium) },
                                     leadingIcon = {
                                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp), tint = PrimaryIndigo)
                                     },
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.35f)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, PrimaryIndigo.copy(alpha = 0.25f)),
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = PrimaryIndigo.copy(alpha = 0.08f),
+                                        containerColor = PrimaryIndigo.copy(alpha = 0.06f),
                                         labelColor = MaterialTheme.colorScheme.onSurface
                                     ),
                                     modifier = Modifier.weight(1f)
@@ -1063,14 +1166,14 @@ fun AdminPanelScreen(
                                         actionSuccess = true
                                         actionMessage = "🟢 ক্লাউড ফায়ারস্টোর সংযোগ সক্রিয় ও রেডি রয়েছে!"
                                     },
-                                    label = { Text("ক্লাউড সংযোগ", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                                    label = { Text("ক্লাউড সংযোগ স্ট্যাটাস", fontSize = 11.sp, fontWeight = FontWeight.Medium) },
                                     leadingIcon = {
                                         Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp), tint = CorrectGreen)
                                     },
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.35f)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.25f)),
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = CorrectGreen.copy(alpha = 0.08f),
+                                        containerColor = CorrectGreen.copy(alpha = 0.06f),
                                         labelColor = MaterialTheme.colorScheme.onSurface
                                     ),
                                     modifier = Modifier.weight(1f)
@@ -1083,15 +1186,15 @@ fun AdminPanelScreen(
                 // 2. Cloud Restore / Pull & Health Monitor Card
                 item {
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1099,38 +1202,38 @@ fun AdminPanelScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(46.dp)
-                                            .clip(RoundedCornerShape(14.dp))
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(CorrectGreen.copy(alpha = 0.20f), ExamCyan.copy(alpha = 0.10f))
                                                 )
                                             )
-                                            .border(1.dp, CorrectGreen.copy(alpha = 0.35f)),
+                                            .border(1.dp, CorrectGreen.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             Icons.Default.CloudDownload,
                                             contentDescription = null,
                                             tint = CorrectGreen,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                     Column {
                                         Text(
-                                            text = "📥 ক্লাউড থেকে রিস্টোর ও সিঙ্ক",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            text = "ক্লাউড থেকে রিস্টোর ও সিঙ্ক",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "ক্লাউড ফায়ারস্টোর থেকে সমস্ত প্রশ্ন ও সিলেবাস লোকাল ডিভাইসে নামিয়ে নিন",
-                                            style = MaterialTheme.typography.labelSmall,
+                                            text = "ক্লাউড ফায়ারস্টোর থেকে সিলেবাস ডিভাইসে নামিয়ে নিন",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -1140,7 +1243,7 @@ fun AdminPanelScreen(
                                     onClick = { viewModel.checkCloudDatabaseIntegrity() },
                                     enabled = !cloudStats.isChecking,
                                     modifier = Modifier
-                                        .size(38.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                                 ) {
@@ -1148,30 +1251,23 @@ fun AdminPanelScreen(
                                         Icons.Default.CloudQueue,
                                         contentDescription = "Check Cloud",
                                         tint = CorrectGreen,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 
                             // Cloud Stats Summary Surface
                             Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.Transparent,
-                                border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.3f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(CorrectGreen.copy(alpha = 0.08f), MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-                                        ),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                border = BorderStroke(1.dp, CorrectGreen.copy(alpha = 0.25f)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1179,20 +1275,20 @@ fun AdminPanelScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "☁️ ফায়ারস্টোর ক্লাউড ডেটা পরিসংখ্যান:",
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            text = "ফায়ারস্টোর ক্লাউড ডেটা",
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Surface(
-                                            shape = RoundedCornerShape(8.dp),
+                                            shape = RoundedCornerShape(6.dp),
                                             color = CorrectGreen.copy(alpha = 0.15f)
                                         ) {
                                             Text(
                                                 text = if (cloudStats.isOnline) "🟢 অনলাইন" else "🔴 অফলাইন",
-                                                fontSize = 11.sp,
+                                                fontSize = 10.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = CorrectGreen,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
@@ -1200,10 +1296,10 @@ fun AdminPanelScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("বোর্ড: ${cloudStats.boardCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text("ক্লাস: ${cloudStats.classCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text("বিষয়: ${cloudStats.subjectCount}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text("প্রশ্ন: ${cloudStats.questionCount}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CorrectGreen)
+                                        Text("বোর্ড: ${formatCompactNumber(cloudStats.boardCount)}", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("ক্লাস: ${formatCompactNumber(cloudStats.classCount)}", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("বিষয়: ${formatCompactNumber(cloudStats.subjectCount)}", fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("প্রশ্ন: ${formatCompactNumber(cloudStats.questionCount)}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = CorrectGreen)
                                     }
                                 }
                             }
@@ -1218,38 +1314,38 @@ fun AdminPanelScreen(
                                 },
                                 enabled = !isPulling,
                                 colors = ButtonDefaults.buttonColors(containerColor = CorrectGreen),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp)
+                                    .height(46.dp)
                             ) {
                                 if (isPulling) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(22.dp),
+                                        modifier = Modifier.size(18.dp),
                                         color = Color.White,
-                                        strokeWidth = 2.5.dp
+                                        strokeWidth = 2.dp
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "ক্লাউড থেকে ডেটা নামানো হচ্ছে...",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
+                                        fontSize = 13.sp
                                     )
                                 } else {
                                     Icon(
                                         Icons.Default.CloudDownload,
                                         contentDescription = null,
                                         tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "📥 ক্লাউড থেকে লোকাল ডেটাবেজে সিঙ্ক ও রিস্টোর করুন",
+                                        "ক্লাউড থেকে লোকাল ডেটাবেজে রিস্টোর করুন",
                                         color = Color.White,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp
                                     )
                                 }
                             }
@@ -2059,8 +2155,8 @@ fun AdminPanelScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = if (isBengali) "মোট ${firestoreQuestionsList.size} টি প্রশ্ন ক্লাউডে সংরক্ষিত আছে (ফিল্টার করা: ${filteredQuestions.size} টি)। যেকোনো প্রশ্ন সরাসরি সম্পাদনা বা মুছে ফেলতে পারেন।"
-                                    else "Total ${firestoreQuestionsList.size} questions in Firebase (${filteredQuestions.size} matching filter). Edit or delete directly.",
+                                    text = if (isBengali) "মোট ${formatCompactNumber(firestoreQuestionsList.size)} টি প্রশ্ন ক্লাউডে সংরক্ষিত আছে (ফিল্টার করা: ${formatCompactNumber(filteredQuestions.size)} টি)। যেকোনো প্রশ্ন সরাসরি সম্পাদনা বা মুছে ফেলতে পারেন।"
+                                    else "Total ${formatCompactNumber(firestoreQuestionsList.size)} questions in Firebase (${formatCompactNumber(filteredQuestions.size)} matching filter). Edit or delete directly.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(10.dp)
@@ -2757,7 +2853,60 @@ fun AdminPanelScreen(
                 }
 
                 item {
+                    val currentBoardClasses = remember(selectedBoard, allClasses) {
+                        allClasses.filter { it.board.equals(selectedBoard.id, ignoreCase = true) || it.board.equals(selectedBoard.shortName, ignoreCase = true) }
+                            .ifEmpty { allClasses }
+                    }
+
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        // 1. Board Selector
+                        ExposedDropdownMenuBox(
+                            expanded = structuredBoardDropdownExpanded,
+                            onExpandedChange = { structuredBoardDropdownExpanded = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = "${selectedBoard.shortName} - ${selectedBoard.fullNameBengali}",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("১. বোর্ড / পর্ষদ নির্বাচন", maxLines = 1) },
+                                leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = structuredBoardDropdownExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = structuredBoardDropdownExpanded,
+                                onDismissRequest = { structuredBoardDropdownExpanded = false }
+                            ) {
+                                allBoards.forEach { board ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text("${board.shortName} (${board.fullNameBengali})", fontWeight = FontWeight.Bold)
+                                                Text(board.subtitleBengali, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedBoard = board
+                                            val boardClasses = allClasses.filter { it.board.equals(board.id, ignoreCase = true) || it.board.equals(board.shortName, ignoreCase = true) }.ifEmpty { allClasses }
+                                            selectedClass = boardClasses.first()
+                                            val subs = getAdminClassSubjects(selectedClass.id)
+                                            selectedSubject = subs.first()
+                                            val chs = allChapters.filter { it.subjectId == selectedSubject.id }
+                                            selectedStructuredChapter = chs.firstOrNull()
+                                            structuredBoardDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. Class Selector
                         ExposedDropdownMenuBox(
                             expanded = structuredClassDropdownExpanded,
                             onExpandedChange = { structuredClassDropdownExpanded = it },
@@ -2767,17 +2916,19 @@ fun AdminPanelScreen(
                                 value = selectedClass.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("শ্রেণি") },
+                                label = { Text("২. শ্রেণি") },
+                                leadingIcon = { Icon(Icons.Default.Class, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = structuredClassDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                singleLine = true,
                                 shape = RoundedCornerShape(10.dp)
                             )
                             ExposedDropdownMenu(
                                 expanded = structuredClassDropdownExpanded,
                                 onDismissRequest = { structuredClassDropdownExpanded = false }
                             ) {
-                                allClasses.forEach { cls ->
+                                currentBoardClasses.forEach { cls ->
                                     DropdownMenuItem(
                                         text = {
                                             Column {
@@ -2789,6 +2940,8 @@ fun AdminPanelScreen(
                                             selectedClass = cls
                                             val subs = getAdminClassSubjects(cls.id)
                                             selectedSubject = subs.first()
+                                            val chs = allChapters.filter { it.subjectId == selectedSubject.id }
+                                            selectedStructuredChapter = chs.firstOrNull()
                                             structuredClassDropdownExpanded = false
                                         }
                                     )
@@ -2796,6 +2949,7 @@ fun AdminPanelScreen(
                             }
                         }
 
+                        // 3. Subject Selector
                         ExposedDropdownMenuBox(
                             expanded = structuredSubjectDropdownExpanded,
                             onExpandedChange = { structuredSubjectDropdownExpanded = it },
@@ -2805,10 +2959,12 @@ fun AdminPanelScreen(
                                 value = selectedSubject.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("বিষয়") },
+                                label = { Text("৩. বিষয়") },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = structuredSubjectDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                singleLine = true,
                                 shape = RoundedCornerShape(10.dp)
                             )
                             ExposedDropdownMenu(
@@ -2838,36 +2994,50 @@ fun AdminPanelScreen(
                                 }
                             }
                         }
-                    }
-                }
 
-                if (structuredTestType != "FULL_SYLLABUS_MOCK") {
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "নির্দিষ্ট অধ্যায় নির্বাচন করুন:",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            if (filteredChapters.isEmpty()) {
-                                Text(
-                                    text = "কোনো অধ্যায় পাওয়া যায়নি",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        // 4. Chapter Selector (Dropdown)
+                        if (structuredTestType != "FULL_SYLLABUS_MOCK") {
+                            ExposedDropdownMenuBox(
+                                expanded = structuredChapterDropdownExpanded,
+                                onExpandedChange = { structuredChapterDropdownExpanded = it },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedStructuredChapter?.title ?: "অধ্যায় নির্বাচন করুন",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("৪. নির্দিষ্ট অধ্যায়") },
+                                    leadingIcon = { Icon(Icons.Default.Bookmark, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = structuredChapterDropdownExpanded) },
+                                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp)
                                 )
-                            } else {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(filteredChapters) { ch ->
-                                        val isSelected = selectedStructuredChapter?.id == ch.id
-                                        Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = if (isSelected) CorrectGreen else MaterialTheme.colorScheme.surfaceVariant,
-                                            modifier = Modifier.clickable { selectedStructuredChapter = ch }
-                                        ) {
-                                            Text(
-                                                text = ch.title,
-                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                ExposedDropdownMenu(
+                                    expanded = structuredChapterDropdownExpanded,
+                                    onDismissRequest = { structuredChapterDropdownExpanded = false }
+                                ) {
+                                    val subChapters = allChapters.filter { it.subjectId == selectedSubject.id }
+                                    if (subChapters.isEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("কোনো অধ্যায় পাওয়া যায়নি") },
+                                            onClick = { structuredChapterDropdownExpanded = false }
+                                        )
+                                    } else {
+                                        subChapters.forEach { ch ->
+                                            DropdownMenuItem(
+                                                text = { 
+                                                    Text(
+                                                        "${ch.chapterNumber}. ${ch.title}",
+                                                        fontWeight = if (selectedStructuredChapter?.id == ch.id) FontWeight.Bold else FontWeight.Normal
+                                                    ) 
+                                                },
+                                                onClick = {
+                                                    selectedStructuredChapter = ch
+                                                    selectedChapter = ch
+                                                    structuredChapterDropdownExpanded = false
+                                                }
                                             )
                                         }
                                     }
@@ -2878,136 +3048,410 @@ fun AdminPanelScreen(
                 }
 
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = structuredTestTitle,
                             onValueChange = { structuredTestTitle = it },
                             label = { Text("টেস্টের শিরোনাম") },
+                            leadingIcon = { Icon(Icons.Default.Quiz, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
                             shape = RoundedCornerShape(10.dp)
                         )
-                        OutlinedTextField(
-                            value = structuredTestDuration,
-                            onValueChange = { structuredTestDuration = it },
-                            label = { Text("সময় (মিনিট)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredTestMarks,
-                            onValueChange = { structuredTestMarks = it },
-                            label = { Text("মোট নম্বর") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
+
+                        // Time and Total Marks in a single Row
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = structuredTestDuration,
+                                onValueChange = { structuredTestDuration = it },
+                                label = { Text("সময় (মিনিট)") },
+                                leadingIcon = { Icon(Icons.Default.HourglassBottom, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            OutlinedTextField(
+                                value = structuredTestMarks,
+                                onValueChange = { structuredTestMarks = it },
+                                label = { Text("মোট নম্বর") },
+                                leadingIcon = { Icon(Icons.Default.Grade, contentDescription = null, tint = ExamGold, modifier = Modifier.size(18.dp)) },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
                     }
                 }
 
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = "প্রশ্ন যোগ করুন:",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                        OutlinedTextField(
-                            value = structuredQuestionText,
-                            onValueChange = { structuredQuestionText = it },
-                            label = { Text("প্রশ্নের বিবরণ") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredOpt1,
-                            onValueChange = { structuredOpt1 = it },
-                            label = { Text("অপশন ক") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredOpt2,
-                            onValueChange = { structuredOpt2 = it },
-                            label = { Text("অপশন খ") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredOpt3,
-                            onValueChange = { structuredOpt3 = it },
-                            label = { Text("অপশন গ") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredOpt4,
-                            onValueChange = { structuredOpt4 = it },
-                            label = { Text("অপশন ঘ") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = structuredExplanation,
-                            onValueChange = { structuredExplanation = it },
-                            label = { Text("ব্যাখ্যা ও সমাধান") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-                }
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.HelpOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = "৫. প্রশ্নের বিবরণ ও অপশন যোগ করুন:",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            val opts = listOf(structuredOpt1, structuredOpt2, structuredOpt3, structuredOpt4).filter { it.isNotBlank() }
-                            val correctAns = opts.getOrNull(structuredCorrectIndex) ?: structuredOpt1
-                            viewModel.createStructuredAssessment(
-                                testType = structuredTestType,
-                                classId = selectedClass.id,
-                                subjectId = selectedSubject.id,
-                                chapterId = selectedStructuredChapter?.id ?: "${selectedSubject.id}_ch1",
-                                title = structuredTestTitle,
-                                description = "Structured test linked to ${selectedStructuredChapter?.title ?: selectedSubject.name}",
-                                durationMinutes = structuredTestDuration.toIntOrNull() ?: 25,
-                                totalMarks = structuredTestMarks.toIntOrNull() ?: 25,
-                                questionText = structuredQuestionText,
-                                options = opts,
-                                correctIndex = structuredCorrectIndex,
-                                correctAnswerText = correctAns,
-                                explanation = structuredExplanation.ifBlank { "সঠিক উত্তর।" }
-                            ) { success, msg ->
-                                actionSuccess = success
-                                actionMessage = msg
-                                if (success) {
+                            OutlinedTextField(
+                                value = structuredQuestionText,
+                                onValueChange = { structuredQuestionText = it },
+                                label = { Text("প্রশ্নের বিবরণ (Question Text)") },
+                                placeholder = { Text("যেমন: সালোকসংশ্লেষ প্রক্রিয়ায় নির্গত উপজাত গ্যাস কোনটি?") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            // 4 MCQ Options
+                            OutlinedTextField(
+                                value = structuredOpt1,
+                                onValueChange = { structuredOpt1 = it },
+                                label = { Text("অপশন ক") },
+                                leadingIcon = { Icon(Icons.Default.RadioButtonUnchecked, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            OutlinedTextField(
+                                value = structuredOpt2,
+                                onValueChange = { structuredOpt2 = it },
+                                label = { Text("অপশন খ") },
+                                leadingIcon = { Icon(Icons.Default.RadioButtonUnchecked, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            OutlinedTextField(
+                                value = structuredOpt3,
+                                onValueChange = { structuredOpt3 = it },
+                                label = { Text("অপশন গ") },
+                                leadingIcon = { Icon(Icons.Default.RadioButtonUnchecked, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            OutlinedTextField(
+                                value = structuredOpt4,
+                                onValueChange = { structuredOpt4 = it },
+                                label = { Text("অপশন ঘ") },
+                                leadingIcon = { Icon(Icons.Default.RadioButtonUnchecked, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+
+                            // Correct Answer Option Selector
+                            Text(
+                                text = "সঠিক উত্তর কোনটি? (নিচের অপশন বেছে নিন):",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val optionLabels = listOf("ক (১ম)", "খ (২য়)", "গ (৩য়)", "ঘ (৪র্থ)")
+                                optionLabels.forEachIndexed { idx, lbl ->
+                                    val isSelected = structuredCorrectIndex == idx
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) CorrectGreen else MaterialTheme.colorScheme.surfaceVariant,
+                                        border = BorderStroke(1.dp, if (isSelected) CorrectGreen else MaterialTheme.colorScheme.outlineVariant),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { structuredCorrectIndex = idx }
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 2.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                if (isSelected) {
+                                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                                }
+                                                Text(
+                                                    text = lbl,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                                    fontSize = 11.sp,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = structuredExplanation,
+                                onValueChange = { structuredExplanation = it },
+                                label = { Text("ব্যাখ্যা ও সমাধান (ঐচ্ছিক)") },
+                                placeholder = { Text("প্রশ্নের সঠিক উত্তরের ব্যাখ্যা ও সূত্র লিখুন...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            // Add Question to Staged List button
+                            OutlinedButton(
+                                onClick = {
+                                    val opts = listOf(structuredOpt1, structuredOpt2, structuredOpt3, structuredOpt4).filter { it.isNotBlank() }
+                                    if (structuredQuestionText.isBlank()) {
+                                        Toast.makeText(context, "অনুগ্রহ করে প্রশ্নের বিবরণ লিখুন!", Toast.LENGTH_SHORT).show()
+                                        return@OutlinedButton
+                                    }
+                                    if (opts.size < 2) {
+                                        Toast.makeText(context, "কমপক্ষে ২টি অপশন লিখুন!", Toast.LENGTH_SHORT).show()
+                                        return@OutlinedButton
+                                    }
+                                    val qInput = StructuredQuestionInput(
+                                        questionText = structuredQuestionText.trim(),
+                                        options = opts,
+                                        correctIndex = structuredCorrectIndex.coerceIn(0, opts.size - 1),
+                                        explanation = structuredExplanation.trim()
+                                    )
+                                    structuredStagedQuestions = structuredStagedQuestions + qInput
                                     structuredQuestionText = ""
                                     structuredOpt1 = ""
                                     structuredOpt2 = ""
                                     structuredOpt3 = ""
                                     structuredOpt4 = ""
                                     structuredExplanation = ""
+                                    structuredCorrectIndex = 0
+                                    Toast.makeText(context, "✓ প্রশ্ন যোগ হয়েছে! (মোট ${structuredStagedQuestions.size}টি প্রশ্ন প্রস্তুত)", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = structuredQuestionText.isNotBlank() && structuredOpt1.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth().height(46.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "➕ এই টেস্টে প্রশ্নটি যোগ করুন (${structuredStagedQuestions.size + 1} নং প্রশ্ন)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Staged Questions Preview Card
+                if (structuredStagedQuestions.isNotEmpty()) {
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "📋 প্রস্তুত করা প্রশ্নসমূহ (${structuredStagedQuestions.size}টি):",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    TextButton(
+                                        onClick = { structuredStagedQuestions = emptyList() },
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("সব মুছুন", color = WrongRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                structuredStagedQuestions.forEachIndexed { qIdx, sq ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text("${qIdx + 1}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                                }
+                                            }
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(sq.questionText, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), maxLines = 2)
+                                                val correctOptText = sq.options.getOrNull(sq.correctIndex) ?: ""
+                                                Text("সঠিক: $correctOptText", style = MaterialTheme.typography.labelSmall, color = CorrectGreen)
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    structuredStagedQuestions = structuredStagedQuestions.filterIndexed { index, _ -> index != qIdx }
+                                                },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = WrongRed, modifier = Modifier.size(16.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val totalQuestionCount = remember(structuredStagedQuestions, structuredQuestionText) {
+                        structuredStagedQuestions.size + (if (structuredQuestionText.isNotBlank() && structuredOpt1.isNotBlank()) 1 else 0)
+                    }
+
+                    Button(
+                        onClick = {
+                            val allQList = mutableListOf<StructuredQuestionInput>()
+                            allQList.addAll(structuredStagedQuestions)
+
+                            if (structuredQuestionText.isNotBlank() && structuredOpt1.isNotBlank()) {
+                                val opts = listOf(structuredOpt1, structuredOpt2, structuredOpt3, structuredOpt4).filter { it.isNotBlank() }
+                                allQList.add(
+                                    StructuredQuestionInput(
+                                        questionText = structuredQuestionText.trim(),
+                                        options = opts,
+                                        correctIndex = structuredCorrectIndex.coerceIn(0, opts.size - 1),
+                                        explanation = structuredExplanation.trim()
+                                    )
+                                )
+                            }
+
+                            if (allQList.isEmpty()) {
+                                Toast.makeText(context, "অনুগ্রহ করে কমপক্ষে ১টি প্রশ্ন তৈরি করুন!", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            viewModel.createStructuredAssessment(
+                                testType = structuredTestType,
+                                classId = selectedClass.id,
+                                subjectId = selectedSubject.id,
+                                chapterId = selectedStructuredChapter?.id ?: "${selectedSubject.id}_ch1",
+                                title = structuredTestTitle.trim(),
+                                description = "Structured test linked to ${selectedStructuredChapter?.title ?: selectedSubject.name}",
+                                durationMinutes = structuredTestDuration.toIntOrNull() ?: 25,
+                                totalMarks = structuredTestMarks.toIntOrNull() ?: allQList.size,
+                                questions = allQList
+                            ) { success, msg, createdId ->
+                                actionSuccess = success
+                                actionMessage = msg
+                                if (success) {
+                                    lastCreatedTestId = createdId
+                                    lastCreatedTestTitle = structuredTestTitle.trim()
+                                    structuredStagedQuestions = emptyList()
+                                    structuredQuestionText = ""
+                                    structuredOpt1 = ""
+                                    structuredOpt2 = ""
+                                    structuredOpt3 = ""
+                                    structuredOpt4 = ""
+                                    structuredExplanation = ""
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                 }
                             }
                         },
-                        enabled = !isLoading && structuredTestTitle.isNotBlank() && structuredQuestionText.isNotBlank() && structuredOpt1.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = ExamGold),
+                        enabled = !isLoading && structuredTestTitle.isNotBlank() && (structuredStagedQuestions.isNotEmpty() || (structuredQuestionText.isNotBlank() && structuredOpt1.isNotBlank())),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF1E1B2E))
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("সংরক্ষণ হচ্ছে...", color = Color(0xFF1E1B2E))
+                            Text("সংরক্ষণ হচ্ছে...", color = Color.White)
                         } else {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color(0xFF1E1B2E))
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "🚀 টেস্ট তৈরি ও সংরক্ষণ করুন",
-                                color = Color(0xFF1E1B2E),
+                                "🚀 মোট ${if (totalQuestionCount > 0) totalQuestionCount else 1}টি প্রশ্ন সহ টেস্ট প্রকাশ করুন",
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                if (lastCreatedTestId != null && lastCreatedTestTitle != null) {
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = CorrectGreen)
+                                    Text(
+                                        text = "টেস্ট তৈরি সম্পন্ন: \"${lastCreatedTestTitle}\"",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Text(
+                                    text = "আপনার নতুন টেস্টটি ফায়ারবেস ক্লাউডে সফলভাবে সেভ হয়েছে। এখনই টেস্ট করে দেখতে নিচের বাটনে চাপ দিন:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Button(
+                                    onClick = {
+                                        viewModel.startAssessment(
+                                            mode = com.example.data.model.AssessmentMode.MOCK_TEST,
+                                            targetId = lastCreatedTestId,
+                                            customTitle = lastCreatedTestTitle
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("▶️ প্রকাশিত টেস্টটিতে এখনই অংশ নিন / টেস্ট করুন", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } else if (selectedTab == 5) {
@@ -3025,7 +3469,7 @@ fun AdminPanelScreen(
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -3038,7 +3482,7 @@ fun AdminPanelScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Quiz, contentDescription = null, tint = ExamGold)
+                                    Icon(Icons.Default.Quiz, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Text(
                                         text = "📑 ফায়ারবেস টেস্ট টেমপ্লেট ব্যবস্থাপনা",
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -3048,7 +3492,7 @@ fun AdminPanelScreen(
                                     onClick = { viewModel.fetchFirestoreTestTemplates(selectedClass.id, selectedSubject.id) },
                                     modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = ExamGold)
+                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
 
@@ -3122,13 +3566,14 @@ fun AdminPanelScreen(
 
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = ExamGold.copy(alpha = 0.12f),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = if (isBengali) "মোট ${firestoreTestTemplatesList.size} টি টেস্ট টেমপ্লেট ফায়ারবেসে সংরক্ষিত আছে।"
-                                    else "Total ${firestoreTestTemplatesList.size} test templates available in Firebase.",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    text = if (isBengali) "মোট ${formatCompactNumber(firestoreTestTemplatesList.size)} টি টেস্ট টেমপ্লেট ফায়ারবেসে সংরক্ষিত আছে।"
+                                    else "Total ${formatCompactNumber(firestoreTestTemplatesList.size)} test templates available in Firebase.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(10.dp)
                                 )
@@ -3140,7 +3585,7 @@ fun AdminPanelScreen(
                 if (isLoading && firestoreTestTemplatesList.isEmpty()) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = ExamGold)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 } else if (firestoreTestTemplatesList.isEmpty()) {
@@ -3168,7 +3613,7 @@ fun AdminPanelScreen(
                         Card(
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -3187,39 +3632,49 @@ fun AdminPanelScreen(
                                     )
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
-                                        color = ExamGold.copy(alpha = 0.2f)
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                     ) {
                                         Text(
                                             text = test.testType,
                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = ExamGold,
+                                            color = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                         )
                                     }
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Text(
-                                        text = "⏱️ ${test.durationMinutes} মিনিট",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "🎯 ${test.totalMarks} নম্বর",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "❓ ${test.questions.size} টি প্রশ্ন",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Icon(Icons.Default.HourglassBottom, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+                                        Text(
+                                            text = "${test.durationMinutes} মিনিট",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Icon(Icons.Default.AdsClick, contentDescription = null, tint = CorrectGreen, modifier = Modifier.size(15.dp))
+                                        Text(
+                                            text = "${test.totalMarks} নম্বর",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Icon(Icons.Default.HelpOutline, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(15.dp))
+                                        Text(
+                                            text = "${test.questions.size} টি প্রশ্ন",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
 
                                 Text(
                                     text = "ID: ${test.id}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
                                 Button(
@@ -3230,7 +3685,7 @@ fun AdminPanelScreen(
                                 ) {
                                     Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("🗑️ টেস্ট ডিলিট করুন", color = Color.White)
+                                    Text("🗑️ টেস্ট ডিলিট করুন", color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -3240,121 +3695,359 @@ fun AdminPanelScreen(
         } else if (selectedTab == 6) {
             var bulkImportSubTab by remember { mutableIntStateOf(0) } // 0: Questions, 1: Curriculum (Chapters & Topics)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TabRow(
-                    selectedTabIndex = bulkImportSubTab,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
-                ) {
-                    Tab(
-                        selected = bulkImportSubTab == 0,
-                        onClick = {
-                            bulkImportSubTab = 0
-                            bulkImportText = ""
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.Quiz, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("প্রশ্ন ব্যাংক ইমপোর্ট", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = bulkImportSubTab == 1,
-                        onClick = {
-                            bulkImportSubTab = 1
-                            bulkImportText = ""
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("সিলেবাস (অধ্যায় ও টপিক)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-                    )
+            if (bulkImportSubTab == 0) {
+                val currentBoardClasses = remember(selectedBoard, allClasses) {
+                    allClasses.filter { it.board.equals(selectedBoard.id, ignoreCase = true) || it.board.equals(selectedBoard.shortName, ignoreCase = true) }
+                        .ifEmpty { allClasses }
                 }
 
-                if (bulkImportSubTab == 0) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Non-sticky Tab Switcher at top
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
                         ) {
-                            Text(
-                                text = "📦 একসাথে একাধিক প্রশ্ন / টেস্ট আপলোড",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "জেসন (JSON) অ্যারে অথবা পাইপ লাইন (|) ফরম্যাটে একসাথে একাধিক প্রশ্ন পেস্ট করে সরাসরি ফায়ারবেস ক্লাউড ও ডেটাবেজে সংরক্ষণ করুন।",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(
+                                modifier = Modifier.padding(4.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { 
+                                            bulkImportSubTab = 0
+                                            bulkImportText = ""
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Quiz, 
+                                            contentDescription = null, 
+                                            modifier = Modifier.size(16.dp),
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "❓ প্রশ্ন ব্যাংক", 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 13.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { 
+                                            bulkImportSubTab = 1
+                                            bulkImportText = ""
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.MenuBook, 
+                                            contentDescription = null, 
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "📖 সিলেবাস", 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-
-                item {
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                text = "টার্গেট শ্রেণি, বিষয়, অধ্যায় ও টপিক নির্বাচন:",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
+                                    Text(
+                                        text = "📦 একসাথে একাধিক প্রশ্ন / টেস্ট আপলোড",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "জেসন (JSON) ফাইল সরাসরি আপলোড করুন অথবা JSON / পাইপ লাইন ফরম্যাটে প্রশ্ন পেস্ট করে ডেটাবেজে সংরক্ষণ করুন।",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        // 1. JSON FILE UPLOAD CARD
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                                ),
+                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(MaterialTheme.colorScheme.primary),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.FileUpload,
+                                                    contentDescription = "Upload JSON",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Column {
+                                                Text(
+                                                    text = "📁 JSON ফাইল সরাসরি আপলোড",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "ডিভাইস থেকে .json বা .txt ফাইল সিলেক্ট করুন",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                jsonFilePickerLauncher.launch("*/*")
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = Color.White
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                        ) {
+                                            Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("ফাইল বাছুন", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
+                                    }
+
+                                    if (bulkFileStatusMessage != null) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (bulkFileStatusSuccess) CorrectGreen.copy(alpha = 0.15f) else WrongRed.copy(alpha = 0.15f),
+                                            border = BorderStroke(1.dp, if (bulkFileStatusSuccess) CorrectGreen.copy(alpha = 0.4f) else WrongRed.copy(alpha = 0.4f))
+                                        ) {
+                                            Text(
+                                                text = bulkFileStatusMessage ?: "",
+                                                color = if (bulkFileStatusSuccess) CorrectGreen else WrongRed,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (bulkImportText.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "ডেটা সাইজ: ${(bulkImportText.length / 1024.0).let { "%.1f KB".format(it) }}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                TextButton(
+                                                    onClick = { 
+                                                        bulkImportText = ""
+                                                        bulkFileStatusMessage = null
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = WrongRed, modifier = Modifier.size(14.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("ক্লিয়ার", color = WrongRed, fontSize = 12.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. TARGET HIERARCHY SELECTION (SINGLE FULL-WIDTH ROWS)
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.AccountTree,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "টার্গেট পর্ষদ, শ্রেণি, বিষয়, অধ্যায় ও টপিক নির্বাচন:",
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+
+                                    // FIELD 1: BOARD (বোর্ড / পর্ষদ)
+                                    ExposedDropdownMenuBox(
+                                        expanded = bulkBoardDropdownExpanded,
+                                        onExpandedChange = { bulkBoardDropdownExpanded = it },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        OutlinedTextField(
+                                            value = "${selectedBoard.shortName} - ${selectedBoard.fullNameBengali}",
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("১. বোর্ড / পর্ষদ (Board)", fontWeight = FontWeight.SemiBold) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.AccountBalance,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
+                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkBoardDropdownExpanded) },
+                                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                            modifier = Modifier
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                                .fillMaxWidth(),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        ExposedDropdownMenu(
+                                            expanded = bulkBoardDropdownExpanded,
+                                            onDismissRequest = { bulkBoardDropdownExpanded = false }
+                                        ) {
+                                            allBoards.forEach { board ->
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Column {
+                                                            Text(board.shortName, fontWeight = FontWeight.Bold)
+                                                            Text(board.fullNameBengali, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        selectedBoard = board
+                                                        val filteredCls = allClasses.filter { it.board.equals(board.id, ignoreCase = true) || it.board.equals(board.shortName, ignoreCase = true) }
+                                                        if (filteredCls.isNotEmpty()) {
+                                                            selectedClass = filteredCls.first()
+                                                            val subs = getAdminClassSubjects(selectedClass.id)
+                                                            selectedSubject = subs.first()
+                                                            val chs = allChapters.filter { it.subjectId == selectedSubject.id }
+                                                            selectedChapter = chs.firstOrNull()
+                                                            val tps = if (selectedChapter != null) allTopics.filter { it.chapterId == selectedChapter!!.id } else emptyList()
+                                                            selectedTopic = tps.firstOrNull()
+                                                        }
+                                                        bulkBoardDropdownExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // FIELD 2: CLASS (শ্রেণি)
                                     ExposedDropdownMenuBox(
                                         expanded = bulkClassDropdownExpanded,
                                         onExpandedChange = { bulkClassDropdownExpanded = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         OutlinedTextField(
                                             value = selectedClass.name,
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("১. শ্রেণি", maxLines = 1) },
-                                            leadingIcon = { Icon(Icons.Default.Class, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                            label = { Text("২. শ্রেণি (Class)", fontWeight = FontWeight.SemiBold) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Class,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkClassDropdownExpanded) },
                                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                            modifier = Modifier
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                                .fillMaxWidth(),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(10.dp)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = bulkClassDropdownExpanded,
                                             onDismissRequest = { bulkClassDropdownExpanded = false }
                                         ) {
-                                            allClasses.forEach { cls ->
+                                            currentBoardClasses.forEach { cls ->
                                                 DropdownMenuItem(
                                                     text = {
                                                         Column {
@@ -3377,22 +4070,32 @@ fun AdminPanelScreen(
                                         }
                                     }
 
+                                    // FIELD 3: SUBJECT (বিষয়)
                                     ExposedDropdownMenuBox(
                                         expanded = bulkSubjectDropdownExpanded,
                                         onExpandedChange = { bulkSubjectDropdownExpanded = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         OutlinedTextField(
                                             value = selectedSubject.name,
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("২. বিষয়", maxLines = 1) },
-                                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                            label = { Text("৩. বিষয় (Subject)", fontWeight = FontWeight.SemiBold) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.MenuBook,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkSubjectDropdownExpanded) },
                                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                            modifier = Modifier
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                                .fillMaxWidth(),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(10.dp)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = bulkSubjectDropdownExpanded,
@@ -3420,28 +4123,33 @@ fun AdminPanelScreen(
                                             }
                                         }
                                     }
-                                }
 
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
+                                    // FIELD 4: CHAPTER (অধ্যায়)
                                     ExposedDropdownMenuBox(
                                         expanded = bulkChapterDropdownExpanded,
                                         onExpandedChange = { bulkChapterDropdownExpanded = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         OutlinedTextField(
                                             value = selectedChapter?.title ?: "কোনো অধ্যায় নেই",
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("৩. অধ্যায়", maxLines = 1) },
-                                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.LibraryBooks, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                            label = { Text("৪. অধ্যায় (Chapter)", fontWeight = FontWeight.SemiBold) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.LibraryBooks,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkChapterDropdownExpanded) },
                                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                            modifier = Modifier
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                                .fillMaxWidth(),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(10.dp)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = bulkChapterDropdownExpanded,
@@ -3468,22 +4176,32 @@ fun AdminPanelScreen(
                                         }
                                     }
 
+                                    // FIELD 5: TOPIC (টপিক)
                                     ExposedDropdownMenuBox(
                                         expanded = bulkTopicDropdownExpanded,
                                         onExpandedChange = { bulkTopicDropdownExpanded = it },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         OutlinedTextField(
                                             value = selectedTopic?.title ?: "কোনো টপিক নেই",
                                             onValueChange = {},
                                             readOnly = true,
-                                            label = { Text("৪. টপিক", maxLines = 1) },
-                                            leadingIcon = { Icon(Icons.Default.Topic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                            label = { Text("৫. টপিক (Topic)", fontWeight = FontWeight.SemiBold) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Topic,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            },
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkTopicDropdownExpanded) },
                                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                            modifier = Modifier
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                                .fillMaxWidth(),
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(10.dp)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = bulkTopicDropdownExpanded,
@@ -3510,55 +4228,192 @@ fun AdminPanelScreen(
                                 }
                             }
                         }
-                    }
-                }
 
+                // 3. SAMPLE TEMPLATES & JSON DOWNLOAD CARD
                 item {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = { bulkImportText = sampleJsonTemplate },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                contentColor = MaterialTheme.colorScheme.primary
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                "📄 নমুনা ফরম্যাট ১ (JSON)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = { bulkImportText = sampleCsvTemplate },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                                contentColor = MaterialTheme.colorScheme.secondary
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                "📋 নমুনা ফরম্যাট ২ (Pipe)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
-                        }
-                        if (bulkImportText.isNotBlank()) {
-                            IconButton(
-                                onClick = { bulkImportText = "" },
-                                modifier = Modifier.size(40.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Clear", tint = WrongRed)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Lightbulb,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "নমুনা ফরম্যাট ও উদাহরণ (Template):",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                TextButton(
+                                    onClick = { showJsonGuideDialog = true },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("স্ট্রাকচার গাইড", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+
+                            Text(
+                                text = "💡 টেমপ্লেট কী কাজে লাগে? একসাথে শত শত প্রশ্ন তৈরি ও আপলোড করতে সঠিক নিয়ম (যেমন: প্রশ্ন, অপশন ১, ২, ৩, ৪, সঠিক উত্তর ইত্যাদি) জানার জন্য এই নমুনা ব্যবহার করুন।",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Download and copy buttons row
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = {
+                                        downloadQuestionJsonLauncher.launch("desh_exam_sample_questions.json")
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.weight(1.2f)
+                                ) {
+                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "📥 নমুনা JSON ডাউনলোড",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(sampleJsonTemplate))
+                                        bulkFileStatusMessage = "✓ নমুনা JSON কোড ক্লিপবোর্ডে কপি করা হয়েছে!"
+                                        bulkFileStatusSuccess = true
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                    modifier = Modifier.weight(0.9f)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "📋 কপি JSON",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        try {
+                                            val sendIntent = Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(Intent.EXTRA_TEXT, sampleJsonTemplate)
+                                                putExtra(Intent.EXTRA_TITLE, "sample_questions.json")
+                                                type = "text/plain"
+                                            }
+                                            context.startActivity(Intent.createChooser(sendIntent, "নমুনা JSON শেয়ার / সেভ করুন"))
+                                        } catch (_: Exception) {}
+                                    },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+
+                            // Fill sample into editor buttons
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedButton(
+                                    onClick = { 
+                                        bulkImportText = sampleJsonTemplate 
+                                        bulkFileStatusMessage = "✓ নমুনা JSON এডিটরে লোড হয়েছে!"
+                                        bulkFileStatusSuccess = true
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        "📄 এডিটরে JSON লোড করুন",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = { 
+                                        bulkImportText = sampleCsvTemplate 
+                                        bulkFileStatusMessage = "✓ নমুনা পাইপ ফরম্যাট এডিটরে লোড হয়েছে!"
+                                        bulkFileStatusSuccess = true
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        "📋 নমুনা পাইপ ফরম্যাট লোড",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                if (bulkImportText.isNotBlank()) {
+                                    IconButton(
+                                        onClick = { 
+                                            bulkImportText = "" 
+                                            bulkFileStatusMessage = null
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Clear", tint = WrongRed)
+                                    }
+                                }
                             }
                         }
                     }
@@ -3577,19 +4432,73 @@ fun AdminPanelScreen(
                             placeholder = { Text("মডেল টেস্ট ১") },
                             leadingIcon = { Icon(Icons.Default.Quiz, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
                             singleLine = true,
-                            modifier = Modifier.weight(1.15f),
+                            modifier = Modifier.weight(1.1f),
                             shape = RoundedCornerShape(10.dp)
                         )
-                        OutlinedTextField(
-                            value = bulkPyqYearInput,
-                            onValueChange = { bulkPyqYearInput = it },
-                            label = { Text("বিগত সাল (ঐচ্ছিক)", maxLines = 1) },
-                            placeholder = { Text("2025") },
-                            leadingIcon = { Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(0.85f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
+
+                        // PYQ Year Dropdown selector
+                        val pyqYearList = remember {
+                            listOf(
+                                "সাধারণ (কোনো নির্দিষ্ট সাল নয়)",
+                                "2026", "2025", "2024", "2023", "2022", "2021",
+                                "2020", "2019", "2018", "2017", "2016", "2015",
+                                "2014", "2013", "2012", "2011", "2010"
+                            )
+                        }
+
+                        ExposedDropdownMenuBox(
+                            expanded = bulkPyqDropdownExpanded,
+                            onExpandedChange = { bulkPyqDropdownExpanded = it },
+                            modifier = Modifier.weight(0.9f)
+                        ) {
+                            OutlinedTextField(
+                                value = if (bulkPyqYearInput.isBlank()) "কোনো সাল নয়" else bulkPyqYearInput,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("বিগত সাল (PYQ)", maxLines = 1) },
+                                leadingIcon = { Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkPyqDropdownExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = bulkPyqDropdownExpanded,
+                                onDismissRequest = { bulkPyqDropdownExpanded = false }
+                            ) {
+                                pyqYearList.forEach { yr ->
+                                    val isNone = yr.startsWith("সাধারণ")
+                                    val isSelected = (isNone && bulkPyqYearInput.isBlank()) || (bulkPyqYearInput == yr)
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Icon(
+                                                    if (isNone) Icons.Default.Block else Icons.Default.CalendarToday,
+                                                    contentDescription = null,
+                                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    yr,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            bulkPyqYearInput = if (isNone) "" else yr
+                                            bulkPyqDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -3726,6 +4635,80 @@ fun AdminPanelScreen(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // Non-sticky Tab Switcher at top of Syllabus tab
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(4.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { 
+                                            bulkImportSubTab = 0
+                                            bulkImportText = ""
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Quiz, 
+                                            contentDescription = null, 
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "❓ প্রশ্ন ব্যাংক", 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { 
+                                            bulkImportSubTab = 1
+                                            bulkImportText = ""
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.MenuBook, 
+                                            contentDescription = null, 
+                                            modifier = Modifier.size(16.dp),
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "📖 সিলেবাস", 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 13.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                     item {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -3853,53 +4836,174 @@ fun AdminPanelScreen(
                         }
                     }
 
-                    // Sample template buttons
+                    // Sample template and JSON download buttons for Syllabus
                     item {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            OutlinedButton(
-                                onClick = { bulkImportText = sampleCurriculumJsonTemplate },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    "📄 নমুনা JSON",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1
-                                )
-                            }
-                            OutlinedButton(
-                                onClick = { bulkImportText = sampleCurriculumCsvTemplate },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                                    contentColor = MaterialTheme.colorScheme.secondary
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    "📋 নমুনা CSV/Pipe",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1
-                                )
-                            }
-                            if (bulkImportText.isNotBlank()) {
-                                IconButton(
-                                    onClick = { bulkImportText = "" },
-                                    modifier = Modifier.size(40.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Clear", tint = WrongRed)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DownloadForOffline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "সিলেবাস নমুনা ও JSON ডাউনলোড:",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            downloadSyllabusJsonLauncher.launch("desh_exam_sample_syllabus.json")
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier.weight(1.2f)
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "📥 সিলেবাস JSON ডাউনলোড",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(sampleCurriculumJsonTemplate))
+                                            bulkFileStatusMessage = "✓ সিলেবাস JSON কোড ক্লিপবোর্ডে কপি করা হয়েছে!"
+                                            bulkFileStatusSuccess = true
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.primary
+                                        ),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                        modifier = Modifier.weight(0.9f)
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            "📋 কপি JSON",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            try {
+                                                val sendIntent = Intent().apply {
+                                                    action = Intent.ACTION_SEND
+                                                    putExtra(Intent.EXTRA_TEXT, sampleCurriculumJsonTemplate)
+                                                    putExtra(Intent.EXTRA_TITLE, "sample_syllabus.json")
+                                                    type = "text/plain"
+                                                }
+                                                context.startActivity(Intent.createChooser(sendIntent, "সিলেবাস JSON শেয়ার / সেভ করুন"))
+                                            } catch (_: Exception) {}
+                                        },
+                                        modifier = Modifier.size(38.dp)
+                                    ) {
+                                        Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { 
+                                            bulkImportText = sampleCurriculumJsonTemplate 
+                                            bulkFileStatusMessage = "✓ নমুনা সিলেবাস JSON এডিটরে লোড হয়েছে!"
+                                            bulkFileStatusSuccess = true
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            "📄 এডিটরে JSON লোড",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { 
+                                            bulkImportText = sampleCurriculumCsvTemplate 
+                                            bulkFileStatusMessage = "✓ নমুনা CSV এডিটরে লোড হয়েছে!"
+                                            bulkFileStatusSuccess = true
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            "📋 নমুনা CSV লোড",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    if (bulkImportText.isNotBlank()) {
+                                        IconButton(
+                                            onClick = { 
+                                                bulkImportText = "" 
+                                                bulkFileStatusMessage = null
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Clear", tint = WrongRed)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -4046,8 +5150,7 @@ fun AdminPanelScreen(
                     }
                 }
             }
-        }
-    } else if (selectedTab == 7) {
+        } else if (selectedTab == 7) {
             var subSectionTab by remember { mutableStateOf(0) }
             
             ScrollableTabRow(
@@ -5529,6 +6632,251 @@ fun AdminPanelScreen(
         )
     }
 
+    if (showJsonGuideDialog) {
+        Dialog(
+            onDismissRequest = { showJsonGuideDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.88f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Code,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "📖 JSON ফাইল স্ট্রাকচার গাইড",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "সঠিক নিয়মে JSON ফাইল তৈরি ও ডাউনলোডের নিয়মাবলী",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = { showJsonGuideDialog = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // 1. Question Bank Guide
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "১. প্রশ্ন ব্যাংক (Question Bank) JSON ফরম্যাট:",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
+                                    Button(
+                                        onClick = {
+                                            downloadQuestionJsonLauncher.launch("desh_exam_sample_questions.json")
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("ডাউনলোড", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                Text(
+                                    text = "প্রতিটি প্রশ্নের অবজেক্টে নিচের ফিল্ডগুলো থাকবে:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text("• question : মূল প্রশ্ন (String - আবশ্যক)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("• options : ৪টি অপশনের লিস্ট (Array of Strings - আবশ্যক)", fontSize = 12.sp)
+                                        Text("• correctOptionIndex : সঠিক উত্তরের ইনডেক্স (0=১ম, 1=২য়, 2=৩য়, 3=৪র্থ) (Number - আবশ্যক)", fontSize = 12.sp, color = CorrectGreen, fontWeight = FontWeight.SemiBold)
+                                        Text("• explanation : সঠিক উত্তরের ব্যাখ্যা ও সমাধান (String - ঐচ্ছিক)", fontSize = 12.sp)
+                                        Text("• difficulty : 'EASY', 'MEDIUM', অথবা 'HARD' (String - ঐচ্ছিক)", fontSize = 12.sp)
+                                        Text("• marks : প্রশ্নের মান (যেমন: 1, 2, 5) (Number - ঐচ্ছিক)", fontSize = 12.sp)
+                                        Text("• pyqYear : বিগত বছরের সাল যেমন '2024', '2025' (String - ঐচ্ছিক)", fontSize = 12.sp)
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(sampleJsonTemplate))
+                                            bulkFileStatusMessage = "✓ নমুনা প্রশ্ন JSON কপি করা হয়েছে!"
+                                            bulkFileStatusSuccess = true
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("নমুনা কোড কপি করুন", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Syllabus / Curriculum Guide
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "২. সিলেবাস (অধ্যায় ও টপিক) JSON ফরম্যাট:",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
+                                    Button(
+                                        onClick = {
+                                            downloadSyllabusJsonLauncher.launch("desh_exam_sample_syllabus.json")
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("ডাউনলোড", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                Text(
+                                    text = "অধ্যায় ও তার অন্তর্গত টপিকসমূহের অবজেক্ট স্ট্রাকচার:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text("• chapterNumber : অধ্যায় নম্বর (Number - আবশ্যক)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("• title : অধ্যায়ের নাম (String - আবশ্যক)", fontSize = 12.sp)
+                                        Text("• description : অধ্যায়ের সংক্ষিপ্ত বিবরণ (String - ঐচ্ছিক)", fontSize = 12.sp)
+                                        Text("• topics : টপিক লিস্ট (Array of Topic Objects)", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                                        Text("    - orderIndex : টপিকের ক্রম (Number)", fontSize = 11.sp)
+                                        Text("    - title : টপিকের নাম (String)", fontSize = 11.sp)
+                                        Text("    - summary : সারসংক্ষেপ (String)", fontSize = 11.sp)
+                                        Text("    - keyPoints : মূল পয়েন্টসমূহ (Array of Strings)", fontSize = 11.sp)
+                                        Text("    - formulae : সূত্রাবলী (Array of Strings)", fontSize = 11.sp)
+                                        Text("    - contentData : বিস্তারিত পড়াশোনা কনটেন্ট (String)", fontSize = 11.sp)
+                                        Text("    - videoUrl : ভিডিও লেকচার লিংক (String)", fontSize = 11.sp)
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(sampleCurriculumJsonTemplate))
+                                            bulkFileStatusMessage = "✓ নমুনা সিলেবাস JSON কপি করা হয়েছে!"
+                                            bulkFileStatusSuccess = true
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("নমুনা কোড কপি করুন", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Button(
+                        onClick = { showJsonGuideDialog = false },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("ঠিক আছে (Close)", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
     if (deletingTestTemplate != null) {
         val test = deletingTestTemplate!!
         AlertDialog(
@@ -5577,35 +6925,40 @@ private fun AdminStatGradientBadge(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, borderColor.copy(alpha = 0.35f)),
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Brush.verticalGradient(gradientColors))
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
-            .padding(vertical = 12.dp, horizontal = 6.dp),
-        contentAlignment = Alignment.Center
+            .background(Brush.verticalGradient(gradientColors), RoundedCornerShape(12.dp))
     ) {
         Column(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 7.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = count,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 17.sp,
-                color = accentColor,
-                maxLines = 1
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = count,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp,
+                    color = accentColor,
+                    maxLines = 1
+                )
+            }
             Text(
                 text = label,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )

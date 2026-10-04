@@ -39,6 +39,7 @@ import com.example.data.model.toBengaliDigits
 import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
+import com.example.util.formatCompactNumber
 
 enum class LeaderboardMainTab {
     SUBJECT_MOCKS,
@@ -1724,7 +1725,7 @@ fun CategoryPodiumPillar(
                 text = when (tab) {
                     LeaderboardMainTab.OVERALL_MOCK -> "${student.mockScore}/90"
                     LeaderboardMainTab.BOSS_BATTLES -> "⚔️ ${student.bossVictories} জয়"
-                    LeaderboardMainTab.OVERALL_XP -> "${student.xp} XP"
+                    LeaderboardMainTab.OVERALL_XP -> "${formatCompactNumber(student.xp)} XP"
                     else -> "${student.mockScore}/90"
                 },
                 style = MaterialTheme.typography.labelSmall.copy(
@@ -1923,7 +1924,7 @@ fun CategoryStudentCard(
                     }
                     LeaderboardMainTab.OVERALL_XP -> {
                         Text(
-                            text = "${student.xp} XP",
+                            text = "${formatCompactNumber(student.xp)} XP",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                             color = ExamGold
                         )
@@ -1990,7 +1991,7 @@ fun StickyCategoryUserCard(
                     text = when (tab) {
                         LeaderboardMainTab.OVERALL_MOCK -> "মক টেস্ট: ${student.mockScore}/৯০ • শুভম পালের চেয়ে ৫ নম্বর পেছনে"
                         LeaderboardMainTab.BOSS_BATTLES -> "বস জয়: ${student.bossVictories}টি • আর ৭টি জয় করলে ১ম স্থান!"
-                        LeaderboardMainTab.OVERALL_XP -> "মোট XP: ${student.xp} • পরবর্তী স্তরে যেতে ৩০০ XP প্রয়োজন"
+                        LeaderboardMainTab.OVERALL_XP -> "মোট XP: ${formatCompactNumber(student.xp)} • পরবর্তী স্তরে যেতে ৩০০ XP প্রয়োজন"
                         else -> ""
                     },
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
