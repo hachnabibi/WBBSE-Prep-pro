@@ -595,10 +595,26 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                 } else {
-                    if (!_isGuestUser.value) {
-                        _currentScreen.value = AppScreen.AUTH
+                    val guestCompleted = prefs.getBoolean("onboarding_completed_guest", false)
+                    val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
+                    if (guestCompleted || hasCompleted) {
+                        if (_currentScreen.value == AppScreen.SPLASH || _currentScreen.value == AppScreen.AUTH) {
+                            _currentScreen.value = AppScreen.HOME
+                        }
+                    } else {
+                        if (_currentScreen.value == AppScreen.SPLASH) {
+                            _currentScreen.value = AppScreen.AUTH
+                        }
                     }
                 }
+            }
+        }
+
+        // Fail-safe: Under no circumstances should the app stay stuck on SPLASH screen
+        viewModelScope.launch {
+            delay(1200)
+            if (_currentScreen.value == AppScreen.SPLASH) {
+                forceExitSplash()
             }
         }
 
@@ -644,6 +660,16 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             }
+        }
+    }
+
+    fun forceExitSplash() {
+        if (_currentScreen.value == AppScreen.SPLASH) {
+            val guestCompleted = prefs.getBoolean("onboarding_completed_guest", false)
+            val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
+            val currentUser = authRepository.currentUserState
+            val isUserValid = (currentUser != null && (currentUser.isAnonymous || prefs.getBoolean("onboarding_completed_${currentUser.uid}", false))) || guestCompleted || hasCompleted
+            _currentScreen.value = if (isUserValid) AppScreen.HOME else AppScreen.AUTH
         }
     }
 

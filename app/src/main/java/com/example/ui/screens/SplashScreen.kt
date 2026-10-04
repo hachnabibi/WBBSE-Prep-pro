@@ -31,8 +31,15 @@ private val AccentGold = Color(0xFFFFD700)
 
 @Composable
 fun SplashScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTimeout: (() -> Unit)? = null
 ) {
+    if (onTimeout != null) {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(1500)
+            onTimeout()
+        }
+    }
     val infiniteTransition = rememberInfiniteTransition(label = "splash_transition")
     
     val pulseScale by infiniteTransition.animateFloat(

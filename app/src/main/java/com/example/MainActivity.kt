@@ -309,7 +309,10 @@ fun DeshExamApp(
 
                 when (currentScreen) {
                 AppScreen.SPLASH -> {
-                    SplashScreen(modifier = Modifier.fillMaxSize())
+                    SplashScreen(
+                        modifier = Modifier.fillMaxSize(),
+                        onTimeout = { viewModel.forceExitSplash() }
+                    )
                 }
                 AppScreen.AUTH -> {
                     val isAuthLoading by viewModel.isAuthLoading.collectAsState()
