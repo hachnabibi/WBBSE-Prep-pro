@@ -31,6 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.example.data.model.AcademicClassProvider
 import com.example.data.model.StudentProfile
 
@@ -63,7 +66,7 @@ fun OnboardingScreen(
     districts: List<String>,
     districtSchoolsMap: Map<String, List<String>>,
     isLoadingDistricts: Boolean,
-    onCompleteOnboarding: (name: String, classLevel: String, district: String, school: String, targetExam: String, stream: String, studyGoals: List<String>) -> Unit,
+    onCompleteOnboarding: (name: String, classLevel: String, district: String, school: String, targetExam: String, stream: String, studyGoals: List<String>, phone: String, gender: String, dob: String) -> Unit,
     onNavigateToAuth: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     authUserState: com.example.data.auth.AuthUserState? = null
@@ -81,11 +84,19 @@ fun OnboardingScreen(
         }
     }
     var name by rememberSaveable(defaultOnboardingName) { mutableStateOf(defaultOnboardingName) }
-    var selectedClassNumber by rememberSaveable { mutableIntStateOf(10) }
+    var phone by rememberSaveable { mutableStateOf(profile.phoneNumber) }
+    var gender by rememberSaveable { mutableStateOf(profile.gender.ifBlank { "male" }) }
+    var dob by rememberSaveable { mutableStateOf(profile.dateOfBirth) }
+
+    val initialClassObj = remember(profile.classId) { AcademicClassProvider.getClassById(profile.classId) }
+    var selectedBoardId by rememberSaveable { mutableStateOf(initialClassObj?.board ?: "WBBSE") }
+    var selectedClassId by rememberSaveable { mutableStateOf(profile.classId.ifBlank { "class_10_wbbse" }) }
+    var selectedClassNumber by rememberSaveable { mutableIntStateOf(initialClassObj?.classNumber ?: 10) }
     var classLevel by rememberSaveable { mutableStateOf(profile.classLevel.ifBlank { "দশম শ্রেণি (মাধ্যমিক) - WBBSE" }) }
     var selectedStream by rememberSaveable { mutableStateOf(profile.stream.ifBlank { "all" }) }
     var targetExam by rememberSaveable { mutableStateOf(profile.targetExam.ifBlank { "WBBSE Madhyamik 2026" }) }
-    var district by rememberSaveable { mutableStateOf(profile.district) }
+    var district by rememberSaveable { mutableStateOf(profile.district.ifBlank { "কলকাতা" }) }
+    var block by rememberSaveable { mutableStateOf("সদর ব্লক (Sadar)") }
     var school by rememberSaveable { mutableStateOf(profile.school) }
 
     // Storing multiple goals as comma separated string for easy saveable
@@ -94,7 +105,7 @@ fun OnboardingScreen(
         if (selectedGoalsStr.isBlank()) emptyList<String>() else selectedGoalsStr.split(",")
     }
 
-    BackHandler(enabled = currentStep in 2..5) {
+    BackHandler(enabled = currentStep in 2..4) {
         currentStep--
     }
 
@@ -109,10 +120,10 @@ fun OnboardingScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // Header / Progress
-            if (currentStep < 6) {
+            if (currentStep < 5) {
                 OnboardingHeader(
                     currentStep = currentStep,
-                    totalSteps = 5,
+                    totalSteps = 4,
                     onBack = if (currentStep > 1) { { currentStep-- } } else null
                 )
             }
@@ -138,57 +149,63 @@ fun OnboardingScreen(
                     },
                     label = "onboarding_steps"
                 ) { step ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         when (step) {
                             1 -> Step1Name(
                                 name = name,
                                 onNameChange = { name = it },
+                                phone = phone,
+                                onPhoneChange = { phone = it },
+                                gender = gender,
+                                onGenderChange = { gender = it },
+                                dob = dob,
+                                onDobChange = { dob = it },
                                 isBengali = isBengali,
                                 onNext = { currentStep++ }
                             )
                             2 -> Step2Class(
+                                selectedBoardId = selectedBoardId,
+                                onBoardChange = { newBoard ->
+                                    if (selectedBoardId != newBoard) {
+                                        selectedBoardId = newBoard
+                                        selectedClassId = "" // clear selected class when board changes
+                                    }
+                                },
+                                selectedClassId = selectedClassId,
                                 selectedClassNumber = selectedClassNumber,
                                 selectedStream = selectedStream,
-                                onClassChange = { clsNum, clsLevel, exam, stream ->
+                                onClassChange = { clsId, clsNum, clsLvl, exam, stream ->
+                                    selectedClassId = clsId
                                     selectedClassNumber = clsNum
-                                    classLevel = clsLevel
+                                    classLevel = clsLvl
                                     targetExam = exam
                                     selectedStream = stream
                                 },
                                 isBengali = isBengali,
                                 onNext = { currentStep++ }
                             )
-                            3 -> Step3District(
+                            3 -> Step3LocationAndSchool(
                                 district = district,
-                                onDistrictChange = { 
-                                    district = it
-                                    // Auto-select first school if available
-                                    val suggestedSchools = districtSchoolsMap[it] ?: emptyList()
+                                onDistrictChange = { newDist ->
+                                    district = newDist
+                                    val suggestedSchools = districtSchoolsMap[newDist] ?: emptyList()
                                     if (suggestedSchools.isNotEmpty()) {
                                         school = suggestedSchools.first()
                                     } else {
-                                        school = "" // Clear if no schools
+                                        school = ""
                                     }
                                 },
-                                districts = districts,
-                                isLoading = isLoadingDistricts,
-                                isBengali = isBengali,
-                                onNext = { currentStep++ }
-                            )
-                            4 -> Step4School(
+                                block = block,
+                                onBlockChange = { block = it },
                                 school = school,
                                 onSchoolChange = { school = it },
+                                districts = districts,
                                 availableSchools = districtSchoolsMap[district] ?: emptyList(),
+                                isLoadingDistricts = isLoadingDistricts,
                                 isBengali = isBengali,
                                 onNext = { currentStep++ }
                             )
-                            5 -> Step5Goals(
+                            4 -> Step5Goals(
                                 selectedGoals = selectedGoals,
                                 onGoalToggle = { goal ->
                                     val current = selectedGoals.toMutableList()
@@ -201,7 +218,7 @@ fun OnboardingScreen(
                                     currentStep++
                                 }
                             )
-                            6 -> Step6Complete(
+                            5 -> Step6Complete(
                                 name = name,
                                 classLevel = classLevel,
                                 district = district,
@@ -215,7 +232,10 @@ fun OnboardingScreen(
                                         school,
                                         targetExam,
                                         selectedStream,
-                                        selectedGoals
+                                        selectedGoals,
+                                        phone,
+                                        gender,
+                                        dob
                                     )
                                 }
                             )
@@ -228,443 +248,1010 @@ fun OnboardingScreen(
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STEP 1: NAME
+// STEP 1: PERSONAL DETAILS (Name, Phone, Gender, Date of Birth)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Step1Name(
     name: String,
     onNameChange: (String) -> Unit,
+    phone: String,
+    onPhoneChange: (String) -> Unit,
+    gender: String,
+    onGenderChange: (String) -> Unit,
+    dob: String,
+    onDobChange: (String) -> Unit,
     isBengali: Boolean,
     onNext: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    // Logo
-    Box(
+    val context = LocalContext.current
+
+    Column(
         modifier = Modifier
-            .size(80.dp)
-            .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(AppPrimaryStart, AppPrimaryEnd))),
-        contentAlignment = Alignment.Center
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
     ) {
-        Icon(Icons.Default.School, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-    }
-    
-    Spacer(modifier = Modifier.height(24.dp))
-    
-    Text(
-        text = "স্বাগতম! \uD83D\uDC4B",
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "চলুন আপনার শেখার অভিজ্ঞতাটি ব্যক্তিগত করে তুলি",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AppCard),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(24.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Logo
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(AppPrimaryStart, AppPrimaryEnd))),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.School, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
             Text(
-                text = "প্রথমে আপনার নামটি বলুন",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = AppTextPrimary
+                text = "স্বাগতম! 👋",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = AppTextPrimary,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "আপনাকে কোন নামে সম্বোধন করব?",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppTextSecondary
+                text = "আপনার নাম, মোবাইল, জেন্ডার ও জন্ম তারিখ দিন।",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
             )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
-                value = name,
-                onValueChange = onNameChange,
-                label = { Text("শিক্ষার্থীর পুরো নাম (Full Name)") },
-                placeholder = { Text("আপনার নাম লিখুন") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = AppTextSecondary) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AppPrimaryAccent,
-                    unfocusedBorderColor = AppBorder,
-                    focusedLabelColor = AppPrimaryAccent,
-                    unfocusedLabelColor = AppTextSecondary,
-                    focusedTextColor = AppTextPrimary,
-                    unfocusedTextColor = AppTextPrimary,
-                    focusedContainerColor = AppInput,
-                    unfocusedContainerColor = AppInput
-                ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 1. FULL NAME
+                Column {
+                    Text(
+                        text = "১. শিক্ষার্থীর পুরো নাম (Full Name)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = onNameChange,
+                        placeholder = { Text("আপনার পুরো নাম", maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = AppPrimaryAccent) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF818CF8),
+                            unfocusedBorderColor = Color(0x33FFFFFF),
+                            focusedLabelColor = Color(0xFF818CF8),
+                            unfocusedLabelColor = AppTextSecondary,
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                            unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // 2. MOBILE NUMBER
+                Column {
+                    Text(
+                        text = "২. মোবাইল নম্বর (Mobile Number)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = onPhoneChange,
+                        placeholder = { Text("১০ ডিজিটের মোবাইল নম্বর", maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = AppPrimaryAccent) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF818CF8),
+                            unfocusedBorderColor = Color(0x33FFFFFF),
+                            focusedLabelColor = Color(0xFF818CF8),
+                            unfocusedLabelColor = AppTextSecondary,
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                            unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // 3. GENDER SELECTION
+                Column {
+                    Text(
+                        text = "৩. লিঙ্গ / জেন্ডার (Gender)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    val genderOptions = listOf(
+                        Triple("male", "👦 ছাত্র", "Male"),
+                        Triple("female", "👧 ছাত্রী", "Female"),
+                        Triple("other", "✨ অন্যান্য", "Other")
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        genderOptions.forEach { (id, label, _) ->
+                            val isSelected = gender.equals(id, ignoreCase = true)
+                            
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) Color(0xFF2E1065).copy(alpha = 0.6f) else AppInput.copy(alpha = 0.4f),
+                                border = BorderStroke(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) Color(0xFF818CF8) else Color(0x33FFFFFF)
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .clickable { onGenderChange(id) }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        ),
+                                        color = if (isSelected) AppTextPrimary else AppTextSecondary,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4. DATE OF BIRTH
+                Column {
+                    Text(
+                        text = "৪. জন্ম তারিখ (Date of Birth)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    fun openDatePicker() {
+                        val cal = java.util.Calendar.getInstance()
+                        val year = cal.get(java.util.Calendar.YEAR) - 15
+                        val month = cal.get(java.util.Calendar.MONTH)
+                        val day = cal.get(java.util.Calendar.DAY_OF_MONTH)
+
+                        android.app.DatePickerDialog(
+                            context,
+                            { _, selectedYear, selectedMonth, selectedDay ->
+                                val formattedDay = selectedDay.toString().padStart(2, '0')
+                                val formattedMonth = (selectedMonth + 1).toString().padStart(2, '0')
+                                onDobChange("$formattedDay/$formattedMonth/$selectedYear")
+                            },
+                            year, month, day
+                        ).show()
+                    }
+
+                    OutlinedTextField(
+                        value = dob,
+                        onValueChange = onDobChange,
+                        placeholder = { Text("DD/MM/YYYY (যেমন 15/08/2009)", maxLines = 1) },
+                        leadingIcon = { 
+                            IconButton(onClick = { openDatePicker() }) {
+                                Icon(Icons.Default.Event, contentDescription = "Pick Date", tint = AppPrimaryAccent) 
+                            }
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { openDatePicker() }) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = "Select Date", tint = AppTextSecondary)
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF818CF8),
+                            unfocusedBorderColor = Color(0x33FFFFFF),
+                            focusedLabelColor = Color(0xFF818CF8),
+                            unfocusedLabelColor = AppTextSecondary,
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                            unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Fixed Bottom Button
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            OnboardingPrimaryButton(
+                text = if (isBengali) "পরবর্তী →" else "Next →",
+                enabled = name.trim().isNotBlank(),
+                onClick = onNext
             )
         }
     }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "পরবর্তী →",
-        enabled = name.trim().isNotBlank(),
-        onClick = onNext
-    )
-    Spacer(modifier = Modifier.height(32.dp))
+}
+
+@Composable
+fun ClassSelectionItem(
+    cls: com.example.data.model.AcademicClass,
+    isSelected: Boolean,
+    isBengali: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val displayTitle = when {
+        !isBengali -> "Class ${cls.classNumber}"
+        cls.nameBengali.isNotBlank() -> cls.nameBengali
+        else -> cls.name
+    }
+
+    Box(
+        modifier = modifier.padding(top = 8.dp)
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(20.dp),
+            color = if (isSelected) Color.Transparent else AppInput.copy(alpha = 0.4f),
+            border = if (isSelected) null else BorderStroke(1.dp, Color(0x33FFFFFF)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .then(
+                    if (isSelected) Modifier.background(
+                        Brush.horizontalGradient(listOf(Color(0xFF4F46E5), Color(0xFF06B6D4))),
+                        shape = RoundedCornerShape(20.dp)
+                    ) else Modifier
+                )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = displayTitle,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 14.sp
+                    ),
+                    color = if (isSelected) Color.White else AppTextSecondary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
+
+        if (isSelected) {
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFF0D9488),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-8).dp)
+            ) {
+                Text(
+                    text = "Active",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STEP 2: CLASS
+// STEP 2: BOARD & CLASS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @Composable
 fun Step2Class(
+    selectedBoardId: String,
+    onBoardChange: (String) -> Unit,
+    selectedClassId: String,
     selectedClassNumber: Int,
     selectedStream: String,
-    onClassChange: (Int, String, String, String) -> Unit,
+    onClassChange: (classId: String, classNum: Int, classLevel: String, targetExam: String, stream: String) -> Unit,
     isBengali: Boolean,
     onNext: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Text(
-        text = "আপনি কোন শ্রেণিতে পড়েন?",
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "আপনার শ্রেণি নির্বাচন করুন",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
+    val allBoards by AcademicClassProvider.ALL_BOARDS_FLOW.collectAsState()
     val allClasses by AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
-    
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 400.dp)
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
     ) {
-        items(allClasses) { cls ->
-            val isSelected = selectedClassNumber == cls.classNumber
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
             
-            SelectableOptionCard(
-                text = cls.nameBengali.ifBlank { AcademicClassProvider.getBengaliClassShortBadge(cls.classNumber) },
-                isSelected = isSelected,
-                onClick = {
-                    val stream = if (cls.classNumber in 11..12) "science" else "all"
-                    onClassChange(
-                        cls.classNumber,
-                        if (cls.classNumber in 11..12) "${cls.name} (Science) - ${cls.board}" else "${cls.name} - ${cls.board}",
-                        cls.targetExam,
-                        stream
-                    )
-                }
-            )
-        }
-    }
-    
-    // Sub-class selector for Class 11 & 12
-    AnimatedVisibility(
-        visible = selectedClassNumber in listOf(11, 12),
-        enter = expandVertically() + fadeIn(),
-        exit = shrinkVertically() + fadeOut()
-    ) {
-        Column(modifier = Modifier.padding(top = 24.dp)) {
+            // Screen Title & Subtitle
             Text(
-                text = "বিভাগ বেছে নিন:",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                text = if (isBengali) "শিক্ষা বোর্ড ও শ্রেণি নির্বাচন" else "Select Board & Class",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = AppTextPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (isBengali) "আপনার সিলেবাস ও মক টেস্ট পার্সোনালাইজ করুন" else "Personalize your syllabus and mock tests",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // SECTION 1: EDUCATION BOARD
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = null,
+                    tint = AppTextPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = if (isBengali) "এডুকেশন বোর্ড" else "Education Board",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AppTextPrimary
+                )
+            }
+            
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                allBoards.forEach { board ->
+                    val isBoardSelected = selectedBoardId.equals(board.id, ignoreCase = true)
+                    val boardLabel = when {
+                        isBengali && board.fullNameBengali.isNotBlank() -> board.fullNameBengali
+                        board.id.equals("WBBPE", ignoreCase = true) -> "West Bengal Primary Board (WBBPE)"
+                        board.id.equals("WBBSE", ignoreCase = true) -> "West Bengal Board (WBBSE - Madhyamik)"
+                        board.id.equals("WBCHSE", ignoreCase = true) -> "WBCHSE (Higher Secondary 11th & 12th)"
+                        else -> board.fullNameBengali.ifBlank { board.shortName }
+                    }
+
+                    Surface(
+                        onClick = { onBoardChange(board.id) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isBoardSelected) Color(0xFF2E1065).copy(alpha = 0.6f) else AppInput.copy(alpha = 0.4f),
+                        border = BorderStroke(
+                            width = if (isBoardSelected) 2.dp else 1.dp,
+                            color = if (isBoardSelected) Color(0xFF818CF8) else Color(0x33FFFFFF)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = boardLabel,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = AppTextPrimary,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Check / Radio indicator
+                            if (isBoardSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(Brush.horizontalGradient(listOf(Color(0xFF4F46E5), Color(0xFF06B6D4)))),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, Color(0xFF475569), CircleShape)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // SECTION 2: CLASS SELECTION
+            val selectedBoard = allBoards.find { it.id.equals(selectedBoardId, ignoreCase = true) }
+            val classesForBoard = remember(selectedBoardId, allClasses) {
+                if (selectedBoardId.isBlank()) emptyList()
+                else {
+                    val list = allClasses.filter { it.board.equals(selectedBoardId, ignoreCase = true) }
+                    if (list.isNotEmpty()) list
+                    else allClasses.filter { it.board.contains(selectedBoardId, ignoreCase = true) || selectedBoardId.contains(it.board, ignoreCase = true) }
+                        .ifEmpty { allClasses }
+                }
+            }
+
+            Text(
+                text = if (isBengali) "শ্রেণি নির্বাচন" else "Class Selection",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = AppTextPrimary,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            
-            val subOptions = listOf(
-                OnboardingStreamOption("science", "বিজ্ঞান (Science)", Icons.Default.Science),
-                OnboardingStreamOption("arts", "কলা (Arts)", Icons.Default.AutoStories),
-                OnboardingStreamOption("commerce", "বাণিজ্য (Commerce)", Icons.Default.AccountBalanceWallet)
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                subOptions.forEach { opt ->
-                    val isSubSelected = selectedStream == opt.id
-                    SelectableOptionCard(
-                        text = opt.label,
-                        isSelected = isSubSelected,
-                        onClick = {
-                            val cls = allClasses.find { it.classNumber == selectedClassNumber }
-                            if (cls != null) {
-                                onClassChange(
-                                    cls.classNumber,
-                                    "${cls.name} (${opt.label}) - ${cls.board}",
-                                    cls.targetExam,
-                                    opt.id
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        height = 60.dp
-                    )
-                }
-            }
-        }
-    }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "পরবর্তী →",
-        enabled = true,
-        onClick = onNext
-    )
-    Spacer(modifier = Modifier.height(32.dp))
-}
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STEP 3: DISTRICT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun Step3District(
-    district: String,
-    onDistrictChange: (String) -> Unit,
-    districts: List<String>,
-    isLoading: Boolean,
-    isBengali: Boolean,
-    onNext: () -> Unit
-) {
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Text(
-        text = "আপনি কোন জেলায় থাকেন?",
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "আপনার শেখার অভিজ্ঞতা আরও ব্যক্তিগত করতে আপনার জেলা নির্বাচন করুন।",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    var expanded by remember { mutableStateOf(false) }
-    
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = district,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("জেলা (District)") },
-            placeholder = { Text("আপনার জেলা নির্বাচন করুন") },
-            leadingIcon = { Icon(Icons.Default.Map, contentDescription = null, tint = AppTextSecondary) },
-            trailingIcon = {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = AppPrimaryAccent)
-                } else {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            },
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppPrimaryAccent,
-                unfocusedBorderColor = AppBorder,
-                focusedLabelColor = AppPrimaryAccent,
-                unfocusedLabelColor = AppTextSecondary,
-                focusedTextColor = AppTextPrimary,
-                unfocusedTextColor = AppTextPrimary,
-                focusedContainerColor = AppInput,
-                unfocusedContainerColor = AppInput
-            ),
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
-        )
-        
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(AppCard)
-        ) {
-            if (districts.isEmpty() && !isLoading) {
-                DropdownMenuItem(
-                    text = { Text("No districts available", color = AppTextSecondary) },
-                    onClick = { expanded = false }
+            if (selectedBoardId.isBlank()) {
+                Text(
+                    text = if (isBengali) "প্রথমে বোর্ড নির্বাচন করুন" else "Please select an Education Board first",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppTextSecondary
                 )
             } else {
-                districts.forEach { dist ->
-                    DropdownMenuItem(
-                        text = { Text(dist, color = AppTextPrimary) },
-                        onClick = {
-                            onDistrictChange(dist)
-                            expanded = false
+                if (classesForBoard.size <= 3) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        classesForBoard.forEach { cls ->
+                            ClassSelectionItem(
+                                cls = cls,
+                                isSelected = selectedClassId.equals(cls.id, ignoreCase = true),
+                                isBengali = isBengali,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    val stream = if (cls.classNumber in 11..12) "science" else "all"
+                                    onClassChange(
+                                        cls.id,
+                                        cls.classNumber,
+                                        "${cls.name} - ${cls.board}",
+                                        cls.targetExam,
+                                        stream
+                                    )
+                                }
+                            )
                         }
-                    )
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp)
+                    ) {
+                        items(classesForBoard) { cls ->
+                            ClassSelectionItem(
+                                cls = cls,
+                                isSelected = selectedClassId.equals(cls.id, ignoreCase = true),
+                                isBengali = isBengali,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    val stream = if (cls.classNumber in 11..12) "science" else "all"
+                                    onClassChange(
+                                        cls.id,
+                                        cls.classNumber,
+                                        "${cls.name} - ${cls.board}",
+                                        cls.targetExam,
+                                        stream
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
             }
+
+            // SECTION 3: STREAM SELECTION (When Class 11 or 12 selected)
+            AnimatedVisibility(
+                visible = selectedClassNumber in listOf(11, 12) && selectedClassId.isNotBlank(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(top = 24.dp)) {
+                    Text(
+                        text = if (isBengali) "বিভাগ (Stream) নির্বাচন" else "Stream Selection",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    val streams = listOf(
+                        Triple("science", "Science 🧪", "বিজ্ঞান 🧪"),
+                        Triple("arts", "Arts", "কলা"),
+                        Triple("commerce", "Commerce", "বাণিজ্য")
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        streams.forEach { (stId, labelEn, labelBn) ->
+                            val isStreamSelected = selectedStream == stId
+                            val streamText = if (isBengali) labelBn else labelEn
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(top = 8.dp)
+                            ) {
+                                Surface(
+                                    onClick = {
+                                        val cls = allClasses.find { it.id.equals(selectedClassId, ignoreCase = true) }
+                                        if (cls != null) {
+                                            onClassChange(
+                                                cls.id,
+                                                cls.classNumber,
+                                                "${cls.name} ($streamText) - ${cls.board}",
+                                                cls.targetExam,
+                                                stId
+                                            )
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isStreamSelected) Color(0xFF1E1B4B).copy(alpha = 0.6f) else AppInput.copy(alpha = 0.4f),
+                                    border = BorderStroke(
+                                        width = if (isStreamSelected) 2.dp else 1.dp,
+                                        color = if (isStreamSelected) Color(0xFF818CF8) else Color(0x33FFFFFF)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = streamText,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = if (isStreamSelected) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = if (isStreamSelected) Color.White else AppTextSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+
+                                // Floating "Selected" badge above selected stream
+                                if (isStreamSelected) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF4338CA),
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .offset(y = (-8).dp)
+                                    ) {
+                                        Text(
+                                            text = "Selected",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // Fixed Bottom Button
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            OnboardingPrimaryButton(
+                text = if (isBengali) "পরবর্তী ধাপ →" else "Next Step →",
+                enabled = selectedBoardId.isNotBlank() && selectedClassId.isNotBlank(),
+                onClick = onNext
+            )
         }
     }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "পরবর্তী →",
-        enabled = district.trim().isNotBlank(),
-        onClick = onNext
-    )
-    Spacer(modifier = Modifier.height(32.dp))
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STEP 4: SCHOOL
+// STEP 3: DISTRICT, BLOCK & SCHOOL (All in one Screen)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Step4School(
+fun Step3LocationAndSchool(
+    district: String,
+    onDistrictChange: (String) -> Unit,
+    block: String,
+    onBlockChange: (String) -> Unit,
     school: String,
     onSchoolChange: (String) -> Unit,
+    districts: List<String>,
     availableSchools: List<String>,
+    isLoadingDistricts: Boolean,
     isBengali: Boolean,
     onNext: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Text(
-        text = "আপনার স্কুল কোনটি?",
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "আপনার স্কুল নির্বাচন করুন",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    var expanded by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    
-    val filteredSchools = remember(searchQuery, availableSchools) {
-        if (searchQuery.isBlank()) availableSchools
-        else availableSchools.filter { it.contains(searchQuery, ignoreCase = true) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "জেলা, ব্লক ও বিদ্যালয় নির্বাচন",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = AppTextPrimary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "স্থান ও বিদ্যালয়ের তথ্য সম্পূর্ণ করুন।",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 1. DISTRICT SELECTOR
+                var districtExpanded by remember { mutableStateOf(false) }
+                
+                Column {
+                    Text(
+                        text = "১. জেলা (District)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = districtExpanded,
+                        onExpandedChange = { districtExpanded = !districtExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = district,
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = { Text("জেলা নির্বাচন করুন", maxLines = 1) },
+                            leadingIcon = { Icon(Icons.Default.Map, contentDescription = null, tint = AppPrimaryAccent) },
+                            trailingIcon = {
+                                if (isLoadingDistricts) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = AppPrimaryAccent)
+                                } else {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = districtExpanded)
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF818CF8),
+                                unfocusedBorderColor = Color(0x33FFFFFF),
+                                focusedLabelColor = Color(0xFF818CF8),
+                                unfocusedLabelColor = AppTextSecondary,
+                                focusedTextColor = AppTextPrimary,
+                                unfocusedTextColor = AppTextPrimary,
+                                focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                                unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                            ),
+                            singleLine = true,
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = districtExpanded,
+                            onDismissRequest = { districtExpanded = false },
+                            modifier = Modifier.background(AppCard.copy(alpha = 0.95f))
+                        ) {
+                            districts.forEach { dist ->
+                                DropdownMenuItem(
+                                    text = { Text(dist, color = AppTextPrimary) },
+                                    onClick = {
+                                        onDistrictChange(dist)
+                                        districtExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // 2. BLOCK SELECTOR / INPUT
+                var blockExpanded by remember { mutableStateOf(false) }
+                val defaultBlocks = remember(district) {
+                    listOf("সদর ব্লক (Sadar Block)", "১ম ব্লক / থানা অঞ্চল", "২য় ব্লক / গ্রামীণ অঞ্চল", "পৌরসভা / ম্যুনিসিপ্যালিটি", "অন্যান্য ব্লক")
+                }
+                
+                Column {
+                    Text(
+                        text = "২. ব্লক / থানা (Block / Sub-division)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = blockExpanded,
+                        onExpandedChange = { blockExpanded = !blockExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = block,
+                            onValueChange = { onBlockChange(it) },
+                            placeholder = { Text("ব্লকের নাম লিখুন বা বাছুন", maxLines = 1) },
+                            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = AppPrimaryAccent) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = blockExpanded) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF818CF8),
+                                unfocusedBorderColor = Color(0x33FFFFFF),
+                                focusedLabelColor = Color(0xFF818CF8),
+                                unfocusedLabelColor = AppTextSecondary,
+                                focusedTextColor = AppTextPrimary,
+                                unfocusedTextColor = AppTextPrimary,
+                                focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                                unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                            ),
+                            singleLine = true,
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryEditable)
+                                .fillMaxWidth()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = blockExpanded,
+                            onDismissRequest = { blockExpanded = false },
+                            modifier = Modifier.background(AppCard.copy(alpha = 0.95f))
+                        ) {
+                            defaultBlocks.forEach { b ->
+                                DropdownMenuItem(
+                                    text = { Text(b, color = AppTextPrimary) },
+                                    onClick = {
+                                        onBlockChange(b)
+                                        blockExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // 3. SCHOOL SEARCH & SELECTOR
+                var searchQuery by remember { mutableStateOf("") }
+                val filteredSchools = remember(searchQuery, availableSchools) {
+                    if (searchQuery.isBlank()) availableSchools
+                    else availableSchools.filter { it.contains(searchQuery, ignoreCase = true) }
+                }
+                
+                Column {
+                    Text(
+                        text = "৩. বিদ্যালয় (School)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = searchQuery.ifEmpty { school },
+                        onValueChange = { 
+                            searchQuery = it 
+                            onSchoolChange(it)
+                        },
+                        placeholder = { Text("স্কুলের নাম লিখুন বা খুঁজুন", maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = AppPrimaryAccent) },
+                        trailingIcon = {
+                            if (school.isNotBlank()) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent)
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF818CF8),
+                            unfocusedBorderColor = Color(0x33FFFFFF),
+                            focusedLabelColor = Color(0xFF818CF8),
+                            unfocusedLabelColor = AppTextSecondary,
+                            focusedTextColor = AppTextPrimary,
+                            unfocusedTextColor = AppTextPrimary,
+                            focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                            unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // Suggested School List Box
+                    if (filteredSchools.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = AppInput.copy(alpha = 0.4f)),
+                            border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 140.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState())
+                            ) {
+                                filteredSchools.forEach { s ->
+                                    val isSelected = school == s
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                onSchoolChange(s)
+                                                searchQuery = "" // reset search so school name displays
+                                            }
+                                            .background(if (isSelected) AppPrimaryAccent.copy(alpha = 0.25f) else Color.Transparent)
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.School,
+                                            contentDescription = null,
+                                            tint = if (isSelected) AppPrimaryAccent else AppTextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = s,
+                                            color = if (isSelected) AppPrimaryAccent else AppTextPrimary,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 13.sp
+                                            ),
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (isSelected) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    HorizontalDivider(color = Color(0x22FFFFFF), thickness = 0.5.dp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Fixed Bottom Button
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            OnboardingPrimaryButton(
+                text = "পরবর্তী →",
+                enabled = district.trim().isNotBlank() && school.trim().isNotBlank(),
+                onClick = onNext
+            )
+        }
     }
-    
-    // We'll use a combination of TextField for search + List below it
-    OutlinedTextField(
-        value = searchQuery.ifEmpty { school },
-        onValueChange = { 
-            searchQuery = it 
-            if (it != school) onSchoolChange("") // clear selection if typing
-        },
-        label = { Text("আপনার স্কুলের নাম লিখুন") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AppTextSecondary) },
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = AppPrimaryAccent,
-            unfocusedBorderColor = AppBorder,
-            focusedLabelColor = AppPrimaryAccent,
-            unfocusedLabelColor = AppTextSecondary,
-            focusedTextColor = AppTextPrimary,
-            unfocusedTextColor = AppTextPrimary,
-            focusedContainerColor = AppInput,
-            unfocusedContainerColor = AppInput
+}
+
+private data class GoalOptionData(
+    val id: String,
+    val titleEn: String,
+    val subtitleBn: String,
+    val icon: ImageVector
+)
+
+@Composable
+fun GoalCard(
+    titleEn: String,
+    subtitleBn: String,
+    isSelected: Boolean,
+    defaultIcon: ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = if (isSelected) Color(0xFF1E1B4B).copy(alpha = 0.6f) else AppCard.copy(alpha = 0.35f),
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) Color(0xFF818CF8) else Color(0x33FFFFFF)
         ),
         modifier = Modifier.fillMaxWidth()
-    )
-    
-    Spacer(modifier = Modifier.height(16.dp))
-    
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = AppCard),
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 250.dp)
     ) {
-        if (filteredSchools.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) Brush.horizontalGradient(listOf(Color(0xFF4F46E5), Color(0xFF06B6D4)))
+                        else androidx.compose.ui.graphics.SolidColor(AppInput.copy(alpha = 0.5f))
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.Check else defaultIcon,
+                    contentDescription = null,
+                    tint = if (isSelected) Color.White else AppTextSecondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "কোনো স্কুল পাওয়া যায়নি",
+                    text = titleEn,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = AppTextPrimary
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitleBn,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = AppTextSecondary
                 )
             }
-        } else {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                filteredSchools.forEach { s ->
-                    val isSelected = school == s
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSchoolChange(s)
-                                searchQuery = "" // clear search to show selected name
-                            }
-                            .background(if (isSelected) AppPrimaryAccent.copy(alpha = 0.1f) else Color.Transparent)
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.School,
-                            contentDescription = null,
-                            tint = if (isSelected) AppPrimaryAccent else AppTextSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = s,
-                            color = if (isSelected) AppPrimaryAccent else AppTextPrimary,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal),
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (isSelected) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                    HorizontalDivider(color = AppBorder, thickness = 0.5.dp)
-                }
-            }
         }
     }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "পরবর্তী →",
-        enabled = school.trim().isNotBlank(),
-        onClick = onNext
-    )
-    Spacer(modifier = Modifier.height(32.dp))
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -677,52 +1264,96 @@ fun Step5Goals(
     isBengali: Boolean,
     onNext: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Text(
-        text = "আপনার পড়াশোনার লক্ষ্য কী?",
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "আপনার জন্য সঠিক পড়াশোনার অভিজ্ঞতা তৈরি করতে সাহায্য করবে।",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    val goals = listOf(
-        "প্রতিদিন পড়াশোনা করতে চাই",
-        "পরীক্ষার প্রস্তুতি নিতে চাই",
-        "ভালো ফলাফল করতে চাই",
-        "দুর্বল বিষয়গুলোতে উন্নতি করতে চাই"
-    )
-    
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        goals.forEach { goal ->
-            val isSelected = selectedGoals.contains(goal)
-            SelectableOptionCard(
-                text = goal,
-                isSelected = isSelected,
-                onClick = { onGoalToggle(goal) },
-                height = 70.dp,
-                icon = if (isSelected) Icons.Default.CheckCircle else null
+    val goalOptions = remember {
+        listOf(
+            GoalOptionData(
+                id = "study_daily",
+                titleEn = "Study Daily",
+                subtitleBn = "প্রতিদিন পড়াশোনা করতে চাই",
+                icon = Icons.Default.EventAvailable
+            ),
+            GoalOptionData(
+                id = "prepare_exams",
+                titleEn = "Prepare for Board Exams",
+                subtitleBn = "পরীক্ষার প্রস্তুতি নিতে চাই",
+                icon = Icons.Default.Assignment
+            ),
+            GoalOptionData(
+                id = "top_marks",
+                titleEn = "Score Top Marks",
+                subtitleBn = "ভালো ফলাফল করতে চাই",
+                icon = Icons.Default.EmojiEvents
+            ),
+            GoalOptionData(
+                id = "improve_weak",
+                titleEn = "Improve Weak Subjects",
+                subtitleBn = "দুর্বল বিষয়গুলোতে উন্নতি করতে চাই",
+                icon = Icons.Default.Psychology
+            )
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Text(
+                text = if (isBengali) "আপনার পড়াশোনার লক্ষ্য কী?" else "What is your study goal?",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = AppTextPrimary,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (isBengali) "আপনার জন্য সঠিক পড়াশোনার অভিজ্ঞতা তৈরি করতে সাহায্য করবে" else "Helps us craft the perfect study experience for you",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextSecondary,
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                goalOptions.forEach { goal ->
+                    val isSelected = selectedGoals.contains(goal.id) || 
+                            selectedGoals.contains(goal.titleEn) || 
+                            selectedGoals.contains(goal.subtitleBn)
+                    
+                    GoalCard(
+                        titleEn = goal.titleEn,
+                        subtitleBn = goal.subtitleBn,
+                        isSelected = isSelected,
+                        defaultIcon = goal.icon,
+                        onClick = { onGoalToggle(goal.id) }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // Fixed Bottom Button
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            OnboardingPrimaryButton(
+                text = if (isBengali) "আমার পড়াশোনা শুরু করি →" else "Start My Studies →",
+                enabled = selectedGoals.isNotEmpty(),
+                onClick = onNext
             )
         }
     }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "আমার পড়াশোনা শুরু করি →",
-        enabled = selectedGoals.isNotEmpty(),
-        onClick = onNext
-    )
-    Spacer(modifier = Modifier.height(32.dp))
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -737,74 +1368,111 @@ fun Step6Complete(
     isBengali: Boolean,
     onFinish: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(48.dp))
-    
-    Box(
+    Column(
         modifier = Modifier
-            .size(100.dp)
-            .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(AppPrimaryStart, AppPrimaryEnd))),
-        contentAlignment = Alignment.Center
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
     ) {
-        Icon(Icons.Default.Celebration, contentDescription = null, tint = Color.White, modifier = Modifier.size(50.dp))
-    }
-    
-    Spacer(modifier = Modifier.height(24.dp))
-    
-    Text(
-        text = "সব প্রস্তুত! \uD83C\uDF89",
-        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-        color = AppTextPrimary,
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        text = "স্বাগতম, $name!",
-        style = MaterialTheme.typography.titleMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AppCard),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SummaryItem(Icons.Default.Person, name)
-            SummaryItem(Icons.Default.School, classLevel)
-            SummaryItem(Icons.Default.LocationOn, district)
-            SummaryItem(Icons.Default.LocationCity, school)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(AppPrimaryStart, AppPrimaryEnd))),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Celebration, contentDescription = null, tint = Color.White, modifier = Modifier.size(44.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "সব প্রস্তুত! 🎉",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = AppTextPrimary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "স্বাগতম, $name!",
+                style = MaterialTheme.typography.titleMedium,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                SummaryItem(Icons.Default.Person, "নাম", name)
+                SummaryItem(Icons.Default.School, "শ্রেণি ও বোর্ড", classLevel)
+                SummaryItem(Icons.Default.LocationOn, "জেলা", district)
+                SummaryItem(Icons.Default.LocationCity, "বিদ্যালয়", school)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "আপনার personalized learning journey এখন শুরু হতে চলেছে।",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Fixed Bottom Button
+        Surface(
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            OnboardingPrimaryButton(
+                text = "ড্যাশবোর্ডে যান →",
+                enabled = true,
+                onClick = onFinish
+            )
         }
     }
-    
-    Spacer(modifier = Modifier.height(24.dp))
-    
-    Text(
-        text = "আপনার personalized learning journey এখন শুরু হতে চলেছে।",
-        style = MaterialTheme.typography.bodyMedium,
-        color = AppTextSecondary,
-        textAlign = TextAlign.Center
-    )
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    OnboardingPrimaryButton(
-        text = "ড্যাশবোর্ডে যান →",
-        enabled = true,
-        onClick = onFinish
-    )
-    Spacer(modifier = Modifier.height(32.dp))
 }
 
 @Composable
-fun SummaryItem(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(text = text, color = AppTextPrimary, style = MaterialTheme.typography.bodyLarge)
+fun SummaryItem(icon: ImageVector, label: String, text: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = AppInput.copy(alpha = 0.4f),
+        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2E1065).copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = Color(0xFF818CF8), modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = AppTextSecondary)
+                Text(text = text.ifBlank { "N/A" }, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = AppTextPrimary)
+            }
+        }
     }
 }
 
@@ -814,45 +1482,85 @@ fun SummaryItem(icon: ImageVector, text: String) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 @Composable
-fun OnboardingHeader(
-    currentStep: Int,
-    totalSteps: Int,
-    onBack: (() -> Unit)?
-) {
+fun SegmentedProgressBar(currentStep: Int, totalSteps: Int = 5) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = AppTextPrimary)
-            }
-        } else {
-            Spacer(modifier = Modifier.size(48.dp))
+        for (i in 1..totalSteps) {
+            val isFilled = i <= currentStep
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isFilled) Brush.horizontalGradient(
+                            listOf(Color(0xFF38BDF8), Color(0xFF6366F1))
+                        )
+                        else androidx.compose.ui.graphics.SolidColor(AppActiveSurface.copy(alpha = 0.5f))
+                    )
+            )
         }
-        
-        Text(
-            text = "$currentStep / $totalSteps",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = AppTextSecondary
-        )
-        
-        // Placeholder for symmetry
-        Spacer(modifier = Modifier.size(48.dp))
     }
-    
-    // Progress Bar
-    LinearProgressIndicator(
-        progress = { currentStep.toFloat() / totalSteps.toFloat() },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(4.dp),
-        color = AppPrimaryAccent,
-        trackColor = AppSecondarySurface
-    )
+}
+
+@Composable
+fun OnboardingHeader(
+    currentStep: Int,
+    totalSteps: Int = 5,
+    onBack: (() -> Unit)?
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (onBack != null) {
+                Surface(
+                    onClick = onBack,
+                    shape = CircleShape,
+                    color = AppCard.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = AppTextPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.size(38.dp))
+            }
+
+            // Step Badge Pill
+            Surface(
+                shape = CircleShape,
+                color = Color(0x1A38BDF8),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f))
+            ) {
+                Text(
+                    text = "$currentStep / $totalSteps",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color(0xFF38BDF8),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.size(38.dp))
+        }
+
+        SegmentedProgressBar(currentStep = currentStep, totalSteps = totalSteps)
+    }
 }
 
 @Composable
@@ -867,15 +1575,30 @@ fun OnboardingPrimaryButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = AppPrimaryAccent,
-            contentColor = Color.White,
-            disabledContainerColor = AppActiveSurface,
-            disabledContentColor = AppTextSecondary
-        )
+            containerColor = Color.Transparent,
+            disabledContainerColor = AppActiveSurface.copy(alpha = 0.4f)
+        ),
+        contentPadding = PaddingValues(0.dp)
     ) {
-        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    if (enabled) Brush.horizontalGradient(listOf(Color(0xFF4F46E5), Color(0xFF06B6D4)))
+                    else Brush.horizontalGradient(listOf(AppActiveSurface.copy(alpha = 0.4f), AppActiveSurface.copy(alpha = 0.4f))),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) Color.White else AppTextSecondary
+            )
+        }
     }
 }
 
@@ -885,22 +1608,22 @@ fun SelectableOptionCard(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    height: androidx.compose.ui.unit.Dp = 80.dp,
+    height: androidx.compose.ui.unit.Dp = 60.dp,
     icon: ImageVector? = null
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) AppPrimaryAccent else AppBorder,
-                shape = RoundedCornerShape(16.dp)
+                color = if (isSelected) Color(0xFF818CF8) else Color(0x33FFFFFF),
+                shape = RoundedCornerShape(12.dp)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) AppPrimaryAccent.copy(alpha = 0.15f) else AppCard
+            containerColor = if (isSelected) Color(0xFF1E1B4B).copy(alpha = 0.6f) else AppCard.copy(alpha = 0.35f)
         )
     ) {
         Box(
@@ -910,24 +1633,26 @@ fun SelectableOptionCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
             ) {
                 if (icon != null) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = if (isSelected) AppPrimaryAccent else AppTextSecondary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                 }
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (height <= 60.dp) 13.sp else 15.sp
                     ),
                     color = if (isSelected) AppTextPrimary else AppTextSecondary,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
                 )
             }
         }

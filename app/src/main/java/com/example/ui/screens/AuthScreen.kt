@@ -185,102 +185,123 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Center
         ) {
             
-            // Overlapping Logo and Form Box Container
+            // 1. App Logo Badge
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                contentAlignment = Alignment.TopCenter
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF9333EA), // Purple
+                                Color(0xFF3B82F6)  // Indigo Blue
+                            )
+                        )
+                    )
+                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                
-                // 1. Transparent Glassmorphic Card (Shifted down to overlap)
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = glassCardBgColor),
-                    border = BorderStroke(1.dp, glassCardBorderColor),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 45.dp) // Leave top space for overlapping circle
-                        .testTag("auth_form_card")
-                ) {
-                    Column(
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = "Logo Cap",
+                    tint = Color.White,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 2. Form Column directly on layout (No outer Card)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("auth_form_container"),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Segmented Toggle control with Gradient Active Tab
+                if (authMode != AuthMode.FORGOT_PASSWORD) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp, top = 65.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                            .height(50.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1E293B).copy(alpha = 0.5f))
+                            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), CircleShape)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        
-                        // Segmented Toggle control inside pill-shaped box
-                        if (authMode != AuthMode.FORGOT_PASSWORD) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFF1E293B).copy(alpha = 0.5f))
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                val isSignIn = authMode == AuthMode.SIGN_IN
-                                val isSignUp = authMode == AuthMode.SIGN_UP
+                        val isSignIn = authMode == AuthMode.SIGN_IN
+                        val isSignUp = authMode == AuthMode.SIGN_UP
 
-                                // Sign In tab item
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSignIn) Color(0xFF475569).copy(alpha = 0.8f) else Color.Transparent)
-                                        .border(
-                                            if (isSignIn) BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)) else BorderStroke(0.dp, Color.Transparent),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                        .clickable {
-                                            authMode = AuthMode.SIGN_IN
-                                            onClearError()
-                                        }
-                                        .testTag("tab_signin"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "সাইন ইন",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSignIn) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 14.sp
+                        // Sign In tab item
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(CircleShape)
+                                .then(
+                                    if (isSignIn) Modifier.background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color(0xFF9333EA), // Purple
+                                                Color(0xFF3B82F6)  // Blue
+                                            )
                                         ),
-                                        color = if (isSignIn) Color.White else Color(0xFF94A3B8)
-                                    )
+                                        shape = CircleShape
+                                    ) else Modifier
+                                )
+                                .clickable {
+                                    authMode = AuthMode.SIGN_IN
+                                    onClearError()
                                 }
+                                .testTag("tab_signin"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "সাইন ইন",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSignIn) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp
+                                ),
+                                color = if (isSignIn) Color.White else Color(0xFF94A3B8)
+                            )
+                        }
 
-                                // Sign Up tab item
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSignUp) Color(0xFF475569).copy(alpha = 0.8f) else Color.Transparent)
-                                        .border(
-                                            if (isSignUp) BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)) else BorderStroke(0.dp, Color.Transparent),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                        .clickable {
-                                            authMode = AuthMode.SIGN_UP
-                                            onClearError()
-                                        }
-                                        .testTag("tab_signup"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "নতুন অ্যাকাউন্ট",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSignUp) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 14.sp
+                        // Sign Up tab item
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(CircleShape)
+                                .then(
+                                    if (isSignUp) Modifier.background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color(0xFF9333EA), // Purple
+                                                Color(0xFF3B82F6)  // Blue
+                                            )
                                         ),
-                                        color = if (isSignUp) Color.White else Color(0xFF94A3B8)
-                                    )
+                                        shape = CircleShape
+                                    ) else Modifier
+                                )
+                                .clickable {
+                                    authMode = AuthMode.SIGN_UP
+                                    onClearError()
                                 }
-                            }
-                        } else {
+                                .testTag("tab_signup"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "নতুন অ্যাকাউন্ট",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSignUp) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp
+                                ),
+                                color = if (isSignUp) Color.White else Color(0xFF94A3B8)
+                            )
+                        }
+                    }
+                } else {
                             // Back Navigation Link for Forgot Password mode
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -805,7 +826,7 @@ fun AuthScreen(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
                                         ),
-                                        color = Color(0xFF1F1F1F)
+                                         color = Color(0xFF1F1F1F)
                                     )
                                 }
                             }
@@ -813,41 +834,15 @@ fun AuthScreen(
                     }
                 }
 
-                // 2. Overlapping Circular Icon Badge matching purple-indigo gradient exactly
-                Box(
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF9333EA), // Purple
-                                    Color(0xFF3B82F6)  // Indigo Blue
-                                )
-                            )
-                        )
-                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)), CircleShape)
-                        .align(Alignment.TopCenter),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.School,
-                        contentDescription = "Logo Cap",
-                        tint = Color.White,
-                        modifier = Modifier.size(46.dp)
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Bottom Guest Access horizontal card below matching the layout precisely
+            // Compact Centered Guest Mode Button (Not Full Width)
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = glassCardBgColor,
-                border = BorderStroke(1.dp, glassCardBorderColor),
+                shape = CircleShape,
+                color = Color(0xFF1E1B4B).copy(alpha = 0.6f),
+                border = BorderStroke(1.5.dp, Brush.horizontalGradient(listOf(Color(0xFF818CF8), Color(0xFF06B6D4)))),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .wrapContentWidth()
                     .clickable {
                         if (authMode == AuthMode.SIGN_UP) {
                             authMode = AuthMode.SIGN_IN
@@ -858,50 +853,61 @@ fun AuthScreen(
                     .testTag(if (authMode == AuthMode.SIGN_UP) "go_to_signin_btn" else "continue_as_guest_btn")
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = if (authMode == AuthMode.SIGN_UP) Arrangement.Center else Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     if (authMode == AuthMode.SIGN_UP) {
                         Text(
                             text = androidx.compose.ui.text.buildAnnotatedString {
                                 append("আগেই অ্যাকাউন্ট আছে? ")
-                                withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFA78BFA), fontWeight = FontWeight.Bold)) {
+                                withStyle(
+                                    androidx.compose.ui.text.SpanStyle(
+                                        color = Color(0xFF38BDF8),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                ) {
                                     append("সাইন ইন করুন →")
                                 }
                             },
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                            color = Color(0xFF94A3B8)
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = Color(0xFFE2E8F0)
                         )
                     } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(listOf(Color(0xFF4F46E5), Color(0xFF06B6D4)))
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Explore,
                                 contentDescription = null,
-                                tint = Color(0xFF94A3B8),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "গেস্ট মোড",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFE2E8F0)
-                                )
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
+                        
+                        Spacer(modifier = Modifier.width(10.dp))
+                        
                         Text(
-                            text = "প্রবেশ",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
+                            text = "গেস্ট মোড",
+                            style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 14.sp,
-                                color = Color(0xFF94A3B8)
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                        
+                        Text(
+                            text = " — প্রবেশ →",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF38BDF8)
                             )
                         )
                     }
@@ -1097,4 +1103,3 @@ fun AuthScreen(
             )
         }
     }
-}

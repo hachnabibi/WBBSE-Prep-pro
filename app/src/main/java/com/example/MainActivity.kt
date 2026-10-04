@@ -191,7 +191,8 @@ fun DeshExamApp(
             viewModel.goBack()
         }
 
-        val isFullScreenMode = (currentScreen == AppScreen.ASSESSMENT) ||
+        val isFullScreenMode = (currentScreen == AppScreen.SPLASH) ||
+                (currentScreen == AppScreen.ASSESSMENT) ||
                 (currentScreen == AppScreen.RESULT) ||
                 (currentScreen == AppScreen.LEARN_TOPIC) ||
                 (currentScreen == AppScreen.VIDEO_LESSON) ||
@@ -307,6 +308,9 @@ fun DeshExamApp(
                 val screenModifier = Modifier.fillMaxSize()
 
                 when (currentScreen) {
+                AppScreen.SPLASH -> {
+                    SplashScreen(modifier = Modifier.fillMaxSize())
+                }
                 AppScreen.AUTH -> {
                     val isAuthLoading by viewModel.isAuthLoading.collectAsState()
                     val authError by viewModel.authErrorMessage.collectAsState()
@@ -347,8 +351,8 @@ fun DeshExamApp(
                         districts = districts,
                         districtSchoolsMap = districtSchoolsMap,
                         isLoadingDistricts = isLoadingDistricts,
-                        onCompleteOnboarding = { name, classLevel, district, school, targetExam, stream, studyGoals ->
-                            viewModel.completeOnboarding(name, classLevel, district, school, targetExam, stream, studyGoals)
+                        onCompleteOnboarding = { name, classLevel, district, school, targetExam, stream, studyGoals, phone, gender, dob ->
+                            viewModel.completeOnboarding(name, classLevel, district, school, targetExam, stream, studyGoals, phone, gender, dob)
                         },
                         onNavigateToAuth = { viewModel.navigateTo(AppScreen.AUTH) },
                         modifier = Modifier.fillMaxSize(),

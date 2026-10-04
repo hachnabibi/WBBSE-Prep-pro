@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class AppScreen {
+    SPLASH,
     AUTH,
     ONBOARDING,
     HOME,
@@ -364,7 +365,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     val aiCoachInsight: StateFlow<AiCoachInsight?> = repository.getAiCoachInsight()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.AUTH)
+    private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.SPLASH)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
     private val _previousScreen = MutableStateFlow(AppScreen.HOME)
@@ -512,9 +513,18 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             MadhyamikNotificationManager.createNotificationChannels(getApplication())
         } catch (_: Throwable) {}
 
-        // Auth state listener
+        // Auth state listener with background credential check & splash animation
         viewModelScope.launch {
+            var splashDone = false
+            launch {
+                delay(1000)
+                splashDone = true
+            }
             authRepository.authStateFlow.collect { user ->
+                if (!splashDone) {
+                    delay(1000)
+                    splashDone = true
+                }
                 if (user != null) {
                     _isGuestUser.value = user.isAnonymous
                     loadUserVideoProgress()
@@ -522,15 +532,26 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         restoreUserProgressFromCloud(user.uid)
                     }
                     val isCompleted = if (user.isAnonymous) {
-                        true // Guests don't need mandatory onboarding
+                        prefs.getBoolean("onboarding_completed_guest", false)
                     } else {
                         prefs.getBoolean("onboarding_completed_${user.uid}", false)
                     }
                     if (isCompleted) {
                         _currentScreen.value = AppScreen.HOME
                     } else {
+                        val currentName = studentProfile.value.name
+                        if (!user.displayName.isNullOrBlank() && (currentName.isBlank() || currentName == "Sourav Das")) {
+                            repository.updateStudentProfile(
+                                name = user.displayName!!,
+                                school = studentProfile.value.school,
+                                district = studentProfile.value.district,
+                                targetExam = studentProfile.value.targetExam
+                            )
+                        }
                         _currentScreen.value = AppScreen.ONBOARDING
                     }
+                } else {
+                    _currentScreen.value = AppScreen.AUTH
                 }
             }
         }
@@ -641,7 +662,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 _currentScreen.value = if (_previousScreen.value != AppScreen.SUBJECT_DETAIL && _previousScreen.value != AppScreen.HOME) _previousScreen.value else AppScreen.HOME
                 true
             }
-            AppScreen.AUTH, AppScreen.ONBOARDING, AppScreen.HOME -> false
+            AppScreen.SPLASH, AppScreen.AUTH, AppScreen.ONBOARDING, AppScreen.HOME -> false
         }
     }
 
@@ -885,10 +906,24 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         school: String,
         targetExam: String,
         stream: String = "all",
-        studyGoals: List<String> = emptyList()
+        studyGoals: List<String> = emptyList(),
+        phone: String = "",
+        gender: String = "male",
+        dob: String = ""
     ) {
         viewModelScope.launch {
-            val resolvedClassId = when {
+            val directMatch = AcademicClassProvider.ALL_CLASSES.find {
+                it.id.equals(classLevel, ignoreCase = true) ||
+                classLevel.startsWith(it.id) ||
+                classLevel.contains(it.id) ||
+                (it.nameBengali.isNotBlank() && classLevel.contains(it.nameBengali))
+            }
+            val resolvedClassId = directMatch?.id ?: when {
+                classLevel.contains("KG") || classLevel.contains("প্রাক-প্রাথমিক") -> "class_kg_wbbpe"
+                classLevel.contains("Class 1") || classLevel.contains("প্রথম") -> "class_1_wbbpe"
+                classLevel.contains("Class 2") || classLevel.contains("দ্বিতীয়") -> "class_2_wbbpe"
+                classLevel.contains("Class 3") || classLevel.contains("তৃতীয়") -> "class_3_wbbpe"
+                classLevel.contains("Class 4") || classLevel.contains("চতুর্থ") -> "class_4_wbbpe"
                 classLevel.contains("Class 5") || classLevel.contains("পঞ্চম") -> "class_5_wbbse"
                 classLevel.contains("Class 6") || classLevel.contains("ষষ্ঠ") -> "class_6_wbbse"
                 classLevel.contains("Class 7") || classLevel.contains("সপ্তম") -> "class_7_wbbse"
@@ -899,15 +934,30 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 else -> "class_10_wbbse"
             }
             val finalStream = if (resolvedClassId in listOf("class_11_wbchse", "class_12_wbchse")) stream else "all"
+            
             repository.updateStudentProfile(name, school, district, targetExam, resolvedClassId, finalStream, studyGoals)
+            val updatedProf = studentProfile.value.copy(
+                name = name,
+                school = school,
+                district = district,
+                targetExam = targetExam,
+                classId = resolvedClassId,
+                stream = finalStream,
+                studyGoals = studyGoals,
+                phoneNumber = phone,
+                gender = gender,
+                dateOfBirth = dob
+            )
+            repository.updateProfile(updatedProf)
+            
             val uid = authUserState.value?.uid ?: "guest"
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    val updatedProf = studentProfile.value
                     firestoreService.saveStudentProfile(uid, updatedProf)
                 } catch (_: Exception) {}
             }
             prefs.edit().putBoolean("onboarding_completed_$uid", true).apply()
+            prefs.edit().putBoolean("onboarding_completed_guest", true).apply()
             val newSubs = repository.getSubjectsForClassOnce(resolvedClassId)
             if (newSubs.isNotEmpty()) {
                 val firstSub = if (finalStream == "all") newSubs.first() else (newSubs.find { com.example.util.StreamHelper.matchesStream(it.stream, finalStream) } ?: newSubs.first())
@@ -931,7 +981,21 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             when (val res = authRepository.signInWithEmail(email, pass)) {
                 is AuthResult.Success -> {
                     _isGuestUser.value = false
-                    _currentScreen.value = AppScreen.HOME
+                    val nameToUse = res.user.displayName ?: res.user.email?.substringBefore("@") ?: ""
+                    if (nameToUse.isNotBlank() && (studentProfile.value.name.isBlank() || studentProfile.value.name == "Sourav Das")) {
+                        repository.updateStudentProfile(
+                            name = nameToUse,
+                            school = studentProfile.value.school,
+                            district = studentProfile.value.district,
+                            targetExam = studentProfile.value.targetExam
+                        )
+                    }
+                    val isCompleted = prefs.getBoolean("onboarding_completed_${res.user.uid}", false)
+                    if (isCompleted) {
+                        _currentScreen.value = AppScreen.HOME
+                    } else {
+                        _currentScreen.value = AppScreen.ONBOARDING
+                    }
                 }
                 is AuthResult.Error -> {
                     _authErrorMessage.value = if (_isBengali.value) res.messageBengali else res.messageEnglish
@@ -979,7 +1043,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun continueAsGuest() {
         _isGuestUser.value = true
-        _currentScreen.value = AppScreen.HOME
+        val isCompleted = prefs.getBoolean("onboarding_completed_guest", false)
+        if (isCompleted) {
+            _currentScreen.value = AppScreen.HOME
+        } else {
+            _currentScreen.value = AppScreen.ONBOARDING
+        }
     }
 
     fun clearAuthMessages() {
@@ -995,7 +1064,21 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             when (val res = authRepository.signInWithGoogleCredential(idToken, displayName, email)) {
                 is AuthResult.Success -> {
                     _isGuestUser.value = false
-                    _currentScreen.value = AppScreen.HOME
+                    val nameToUse = displayName ?: res.user.displayName ?: res.user.email?.substringBefore("@") ?: ""
+                    if (nameToUse.isNotBlank()) {
+                        repository.updateStudentProfile(
+                            name = nameToUse,
+                            school = studentProfile.value.school,
+                            district = studentProfile.value.district,
+                            targetExam = studentProfile.value.targetExam
+                        )
+                    }
+                    val isCompleted = prefs.getBoolean("onboarding_completed_${res.user.uid}", false)
+                    if (isCompleted) {
+                        _currentScreen.value = AppScreen.HOME
+                    } else {
+                        _currentScreen.value = AppScreen.ONBOARDING
+                    }
                 }
                 is AuthResult.Error -> {
                     _authErrorMessage.value = if (_isBengali.value) res.messageBengali else res.messageEnglish
