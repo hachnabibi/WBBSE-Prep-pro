@@ -2304,7 +2304,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             )
 
             try { database.deshExamDao().insertQuestions(listOf(entity)) } catch (_: Exception) {}
-            try { firestoreService.saveQuestion(fQ) } catch (_: Exception) {}
+            val qSaveResult = firestoreService.saveQuestion(fQ)
 
             val existing = _firestoreTestTemplates.value.find { it.id == testId }
             val existingQuestions = existing?.questions ?: emptyList()
@@ -2323,13 +2323,16 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 questions = updatedQuestions
             )
 
-            try {
-                firestoreService.saveTestTemplate(template)
-            } catch (_: Exception) {}
+            val templateSaveResult = firestoreService.saveTestTemplate(template)
 
             withContext(Dispatchers.Main) {
-                _firestoreTestTemplates.value = _firestoreTestTemplates.value.filter { it.id != testId } + template
-                onComplete(true, "✓ টেস্ট ও প্রশ্ন সফলভাবে ফায়ারবেসে সংরক্ষিত হয়েছে!")
+                if (templateSaveResult.isSuccess) {
+                    _firestoreTestTemplates.value = _firestoreTestTemplates.value.filter { it.id != testId } + template
+                    onComplete(true, "✓ টেস্ট ও প্রশ্ন সফলভাবে ফায়ারবেসে সংরক্ষিত হয়েছে!")
+                } else {
+                    val errMsg = templateSaveResult.exceptionOrNull()?.localizedMessage ?: qSaveResult.exceptionOrNull()?.localizedMessage ?: "Unknown Firestore error"
+                    onComplete(false, "❌ ফায়ারবেসে টেস্ট সেভ করতে ব্যর্থ হয়েছে: $errMsg")
+                }
             }
         }
     }
@@ -2403,11 +2406,15 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             } catch (_: Exception) {}
 
             // Save questions to Firestore
-            try {
+            val questionsResult = try {
                 if (firestoreQuestions.isNotEmpty()) {
                     firestoreService.saveQuestionsBatch(firestoreQuestions)
+                } else {
+                    Result.success(0)
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
 
             val template = FirestoreTestTemplate(
                 id = testId,
@@ -2422,13 +2429,20 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 questions = firestoreQuestions
             )
 
-            try {
+            val templateResult = try {
                 firestoreService.saveTestTemplate(template)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
 
             withContext(Dispatchers.Main) {
-                _firestoreTestTemplates.value = _firestoreTestTemplates.value + template
-                onComplete(true, "মোট ${firestoreQuestions.size}টি প্রশ্ন সহ টেস্ট সফলভাবে তৈরি ও ক্লাউডে সংরক্ষিত হয়েছে!", testId)
+                if (templateResult.isSuccess) {
+                    _firestoreTestTemplates.value = _firestoreTestTemplates.value + template
+                    onComplete(true, "মোট ${firestoreQuestions.size}টি প্রশ্ন সহ টেস্ট সফলভাবে তৈরি ও ক্লাউডে সংরক্ষিত হয়েছে!", testId)
+                } else {
+                    val errMsg = templateResult.exceptionOrNull()?.localizedMessage ?: questionsResult.exceptionOrNull()?.localizedMessage ?: "Unknown Firestore error"
+                    onComplete(false, "❌ ফায়ারবেসে টেস্ট সেভ করতে ব্যর্থ হয়েছে: $errMsg", null)
+                }
             }
         }
     }

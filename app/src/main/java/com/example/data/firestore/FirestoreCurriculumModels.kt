@@ -104,9 +104,13 @@ data class FirestoreClass(
     val isActive: Boolean = true,
     val orderIndex: Int = 0
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val nameBengali: String get() = nameBengaliValue.ifBlank { name }
+    @get:com.google.firebase.firestore.Exclude
     val nameEnglish: String get() = nameEnglishValue.ifBlank { name }
+    @get:com.google.firebase.firestore.Exclude
     val descriptionBengali: String get() = description
+    @get:com.google.firebase.firestore.Exclude
     val descriptionEnglish: String get() = description
 }
 
@@ -174,10 +178,13 @@ data class FirestoreSubject(
     val iconName: String = "Book",
     val orderIndex: Int = 0
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val nameBengali: String get() = name
+    @get:com.google.firebase.firestore.Exclude
     val nameEnglish: String get() = name
 
     val parsedColorHex: Long
+        @com.google.firebase.firestore.Exclude
         get() {
             return when (val raw = colorHex) {
                 is Number -> raw.toLong()
@@ -218,9 +225,13 @@ data class FirestoreChapter(
     val contentData: String? = null,
     val solutionData: String? = null
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val titleBengali: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val titleEnglish: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val descriptionBengali: String get() = description
+    @get:com.google.firebase.firestore.Exclude
     val descriptionEnglish: String get() = description
 }
 
@@ -243,9 +254,13 @@ data class FirestoreTopic(
     val videoUrl: String? = null,
     val playlistJson: String? = null
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val titleBengali: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val titleEnglish: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val summaryBengali: String get() = summary
+    @get:com.google.firebase.firestore.Exclude
     val summaryEnglish: String get() = summary
 }
 
@@ -295,10 +310,15 @@ data class FirestoreTestTemplate(
     var isPublished: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val published: Boolean get() = isPublished
+    @get:com.google.firebase.firestore.Exclude
     val titleBengali: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val titleEnglish: String get() = title
+    @get:com.google.firebase.firestore.Exclude
     val descriptionBengali: String get() = description
+    @get:com.google.firebase.firestore.Exclude
     val descriptionEnglish: String get() = description
 }
 
@@ -341,7 +361,9 @@ data class FirestoreTestAttempt(
     val submittedAt: Long = System.currentTimeMillis(),
     val answers: List<FirestoreUserAnswer> = emptyList()
 ) {
+    @get:com.google.firebase.firestore.Exclude
     val testTitleBengali: String get() = testTitle
+    @get:com.google.firebase.firestore.Exclude
     val testTitleEnglish: String get() = testTitle
 }
 
