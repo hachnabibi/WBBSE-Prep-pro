@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.components.VideoLessonPlayerDialog
 import com.example.ui.components.VideoPlayer
 import com.example.ui.theme.CorrectGreen
@@ -49,6 +51,19 @@ fun LearnTopicHeroBanner(
 ) {
     val isDark = isSystemInDarkTheme()
     val mastery = topic.masteryPercentage.coerceIn(0, 100)
+
+    var showTopicConceptDialog by remember { mutableStateOf(false) }
+    var topicConceptTitle by remember { mutableStateOf("") }
+    var topicConceptSummaryText by remember { mutableStateOf("") }
+
+    if (showTopicConceptDialog) {
+        com.example.ui.components.ConceptDetailDialog(
+            title = topicConceptTitle,
+            conceptSummary = topic.getSummary(isBengali),
+            keyPointsList = topic.keyPoints,
+            onDismiss = { showTopicConceptDialog = false }
+        )
+    }
     Card(
         shape = RoundedCornerShape(0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -66,11 +81,11 @@ fun LearnTopicHeroBanner(
                         )
                     )
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -81,24 +96,24 @@ fun LearnTopicHeroBanner(
                     // Left side: Circular Star Icon + Title & Topic Subtitle
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
                             color = Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = "Star",
                                     tint = ExamGold,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                             Text(
                                 text = "টপিক প্রস্তুতি ও অগ্রগতি",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -113,138 +128,94 @@ fun LearnTopicHeroBanner(
                         }
                     }
 
-                    // Right side circular percentage badge
+                    // Right side circular percentage badge (Gold border, transparent background, white text)
                     Surface(
                         shape = CircleShape,
-                        color = ExamGold.copy(alpha = 0.25f),
+                        color = Color.Transparent,
                         border = BorderStroke(1.5.dp, ExamGold),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(42.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = "$mastery%",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = ExamGold
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
                             )
                         }
                     }
                 }
 
-                // Centered Yellow Progress Bar (Partially filled)
-                LinearProgressIndicator(
-                    progress = { mastery / 100f },
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .align(Alignment.CenterHorizontally)
-                        .height(8.dp)
-                        .clip(CircleShape),
-                    color = ExamGold,
-                    trackColor = Color.White.copy(alpha = 0.3f)
-                )
-
-                // Quick Action Buttons: Content, Solution, & Video Class
-                Spacer(modifier = Modifier.height(2.dp))
+                // Topic Metadata Chips
                 Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    com.example.ui.components.StatMiniBadge(
+                        icon = Icons.AutoMirrored.Filled.Help,
+                        label = "${totalQuestions}টি প্রশ্ন"
+                    )
+                    com.example.ui.components.StatMiniBadge(
+                        icon = Icons.AutoMirrored.Filled.Assignment,
+                        label = "${totalSets} সেট প্র্যাকটিস"
+                    )
+                    com.example.ui.components.StatMiniBadge(
+                        icon = Icons.Default.PlayCircle,
+                        label = "ভিডিও ক্লাস"
+                    )
+                }
+
+                // Quick Action Gradient Chip Buttons: Concept, Content, Solution, Video, & Podcast Audio
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Content Button
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.White.copy(alpha = 0.22f),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(onClick = onViewContent)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 6.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                contentDescription = null,
-                                tint = Color(0xFFFBBF24),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = if (isBengali) "কন্টেন্ট" else "Content",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                ),
-                                color = Color.White
-                            )
+                    // 1. Concept Button
+                    com.example.ui.components.GradientChipButton(
+                        icon = Icons.Default.Lightbulb,
+                        label = if (isBengali) "কনসেপ্ট" else "Concept",
+                        gradientColors = listOf(Color(0xFFF59E0B), Color(0xFFD97706)),
+                        onClick = {
+                            topicConceptTitle = topic.getTitle(isBengali)
+                            topicConceptSummaryText = (topic.contentData ?: "").ifBlank { "📌 **মূল বিষয়বস্তু ও সারসংক্ষেপ:**\n\n${topic.getTitle(isBengali)} টপিকের গুরুত্বপূর্ণ বিষয়সমূহ, মূল তথ্য ও পরীক্ষার জন্য দরকারি টিপস নিয়ে সাজানো হয়েছে এই কনসেপ্ট ফাইল।" }
+                            showTopicConceptDialog = true
                         }
-                    }
+                    )
 
-                    // Solution Button
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.White.copy(alpha = 0.22f),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(onClick = onViewSolution)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 6.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lightbulb,
-                                contentDescription = null,
-                                tint = Color(0xFFFBBF24),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = if (isBengali) "সমাধান" else "Solution",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
+                    // 2. Content Button
+                    com.example.ui.components.GradientChipButton(
+                        icon = Icons.AutoMirrored.Filled.MenuBook,
+                        label = if (isBengali) "কন্টেন্ট" else "Content",
+                        gradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5)),
+                        onClick = onViewContent
+                    )
 
-                    // Video Class Button (New!)
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFEF4444).copy(alpha = 0.35f),
-                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.7f)),
-                        modifier = Modifier
-                            .weight(1.1f)
-                            .clickable(onClick = onViewVideo)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 6.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayCircle,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = if (isBengali) "ভিডিও ক্লাস" else "Video Class",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
+                    // 3. Solution Button
+                    com.example.ui.components.GradientChipButton(
+                        icon = Icons.AutoMirrored.Filled.Assignment,
+                        label = if (isBengali) "সমাধান" else "Solution",
+                        gradientColors = listOf(Color(0xFF10B981), Color(0xFF059669)),
+                        onClick = onViewSolution
+                    )
+
+                    // 4. Video Class Button
+                    com.example.ui.components.GradientChipButton(
+                        icon = Icons.Default.PlayCircle,
+                        label = if (isBengali) "ভিডিও ক্লাস" else "Video Class",
+                        gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626)),
+                        onClick = onViewVideo
+                    )
+
+                    // 5. Podcast / Audio Button
+                    com.example.ui.components.GradientChipButton(
+                        icon = Icons.Default.Headphones,
+                        label = if (isBengali) "পডকাস্ট অডিও" else "Podcast Audio",
+                        gradientColors = listOf(Color(0xFF8B5CF6), Color(0xFF06B6D4)),
+                        onClick = onViewContent
+                    )
                 }
             }
         }
@@ -373,39 +344,13 @@ fun LearnTopicScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("learn_topic_back_btn")
-                    ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = topic.getTitle(isBengali),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "টপিক স্টাডি ও কুইজ টেস্ট সিরিজ ($totalQuestions টি প্রশ্ন • $totalSets টি সেট)",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            ScreenHeaderBar(
+                title = topic.getTitle(isBengali),
+                subtitle = "টপিক স্টাডি ও কুইজ টেস্ট সিরিজ ($totalQuestions টি প্রশ্ন • $totalSets টি সেট)",
+                isBengali = isBengali,
+                showBackButton = true,
+                onBack = onBack
+            )
         },
         bottomBar = {
             Surface(
@@ -633,115 +578,6 @@ fun LearnTopicScreen(
                         }
                     }
                 }
-
-                // Summary Card
-            Card(
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFBEB)
-                ),
-                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFFDE68A)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Lightbulb,
-                            contentDescription = "Concept",
-                            tint = if (isDark) ExamGold else Color(0xFFD97706),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "মূল কনসেপ্ট ও সারসংক্ষেপ",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isDark) ExamGold else Color(0xFF92400E)
-                        )
-                    }
-
-                    Text(
-                        text = topic.getSummary(isBengali),
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 24.sp),
-                        color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF451A03)
-                    )
-                }
-            }
-
-            // Key Exam Points & Formulas
-            if (topic.keyPoints.isNotEmpty()) {
-                Text(
-                    text = "📌 পরীক্ষার জন্য গুরুত্বপূর্ণ পয়েন্ট ও সূত্র",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                topic.keyPoints.forEachIndexed { index, point ->
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(CorrectGreen.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${index + 1}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = CorrectGreen
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = point,
-                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // View Content and Solutions Button
-            Button(
-                onClick = {
-                    viewModel?.openContentSolution(
-                        title = if (isBengali) topic.titleBengali else topic.titleEnglish,
-                        content = finalContent,
-                        solution = finalSolution,
-                        initialTab = 0,
-                        topicId = topic.id
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "কন্টেন্ট ও সমাধান দেখুন",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
 
             // DYNAMIC AUTOMATIC TEST SETS SECTION
             Row(

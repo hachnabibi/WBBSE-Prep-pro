@@ -632,6 +632,31 @@ class FirestoreService(
     }
 
     /**
+     * Optimized composite query for tests by hierarchical nodes (subjectId, chapterId, topicId).
+     */
+    suspend fun getTestsByHierarchy(
+        subjectId: String? = null,
+        chapterId: String? = null,
+        topicId: String? = null,
+        classId: String? = null
+    ): Result<List<FirestoreTestTemplate>> = withContext(Dispatchers.IO) {
+        try {
+            var query: Query = firestore.collection(COLLECTION_TESTS).whereEqualTo("published", true)
+            if (!classId.isNullOrBlank()) query = query.whereEqualTo("classId", classId)
+            if (!subjectId.isNullOrBlank()) query = query.whereEqualTo("subjectId", subjectId)
+            if (!chapterId.isNullOrBlank()) query = query.whereEqualTo("chapterId", chapterId)
+            if (!topicId.isNullOrBlank()) query = query.whereEqualTo("topicId", topicId)
+
+            val snapshot = query.get().await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreTestTemplate::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying tests by hierarchy composite index: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Gets full-syllabus mock tests or previous year papers.
      */
     suspend fun getTestsByType(

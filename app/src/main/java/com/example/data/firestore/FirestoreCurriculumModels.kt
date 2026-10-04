@@ -289,9 +289,13 @@ data class FirestoreTestTemplate(
     val negativeMarkingPerQuestion: Double = 0.0,
     val xpReward: Int = 100,
     val questions: List<FirestoreQuestion> = emptyList(),
-    val isPublished: Boolean = true,
+    @get:com.google.firebase.firestore.PropertyName("published")
+    @set:com.google.firebase.firestore.PropertyName("published")
+    @field:com.google.firebase.firestore.PropertyName("published")
+    var isPublished: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    val published: Boolean get() = isPublished
     val titleBengali: String get() = title
     val titleEnglish: String get() = title
     val descriptionBengali: String get() = description

@@ -73,10 +73,19 @@ fun SubjectDetailScreen(
 
     val attachedFirestoreTests = remember(firestoreTestTemplates, subject) {
         firestoreTestTemplates.filter { test ->
-            test.subjectId.equals(subject.id, ignoreCase = true) ||
-            test.subjectId.equals(subject.code, ignoreCase = true) ||
-            test.id.contains(subject.id, ignoreCase = true) ||
-            test.id.contains(subject.code, ignoreCase = true)
+            val sId = subject.id.lowercase().trim()
+            val sCode = subject.code.lowercase().trim()
+            val testSubId = (test.subjectId ?: "").lowercase().trim()
+            val testId = test.id.lowercase().trim()
+
+            val matchesDirectSubject = testSubId.isNotBlank() && (testSubId == sId || testSubId == sCode || testSubId.contains(sId) || sId.contains(testSubId) || (sCode.length > 2 && testSubId.contains(sCode)))
+            val matchesTestId = (sId.length > 2 && testId.contains(sId)) || (sCode.length > 2 && testId.contains(sCode))
+            val matchesQuestions = test.questions.any { q ->
+                val qSub = q.subjectId.lowercase().trim()
+                qSub.isNotBlank() && (qSub == sId || qSub == sCode || qSub.contains(sId) || sId.contains(qSub) || (sCode.length > 2 && qSub.contains(sCode)))
+            }
+
+            matchesDirectSubject || matchesTestId || matchesQuestions
         }
     }
 

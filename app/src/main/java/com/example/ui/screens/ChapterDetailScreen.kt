@@ -3,10 +3,12 @@ package com.example.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,6 +50,17 @@ fun ChapterDetailScreen(
     val isDark = MaterialTheme.colorScheme.background.red < 0.3f
     val subjectColor = Color(subjectColorLong)
     var activeVideoLesson by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<VideoLesson?>(null) }
+    var showConceptDialog by remember { mutableStateOf(false) }
+    var conceptTitle by remember { mutableStateOf("") }
+    var conceptSummaryText by remember { mutableStateOf("") }
+
+    if (showConceptDialog) {
+        com.example.ui.components.ConceptDetailDialog(
+            title = conceptTitle,
+            conceptSummary = conceptSummaryText,
+            onDismiss = { showConceptDialog = false }
+        )
+    }
 
     val firestoreTestTemplates by (viewModel?.firestoreTestTemplates?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
 
@@ -57,9 +70,22 @@ fun ChapterDetailScreen(
 
     val attachedChapterTests = remember(firestoreTestTemplates, chapter) {
         firestoreTestTemplates.filter { test ->
-            test.chapterId.equals(chapter.id, ignoreCase = true) ||
-            test.id.contains(chapter.id, ignoreCase = true) ||
-            (test.chapterId.isNullOrBlank() && test.subjectId.equals(chapter.subjectId, ignoreCase = true))
+            val chId = chapter.id.lowercase().trim()
+            val chNumStr = "ch${chapter.chapterNumber}"
+            val chTitle = chapter.title.lowercase().trim()
+            val testChId = (test.chapterId ?: "").lowercase().trim()
+            val testSubId = (test.subjectId ?: "").lowercase().trim()
+            val testId = test.id.lowercase().trim()
+
+            val matchesDirectChapter = testChId.isNotBlank() && (testChId == chId || testChId.contains(chId) || chId.contains(testChId))
+            val matchesTestId = (chId.length > 2 && testId.contains(chId)) || testId.contains(chNumStr)
+            val matchesQuestions = test.questions.any { q ->
+                val qCh = q.chapterId.lowercase().trim()
+                qCh.isNotBlank() && (qCh == chId || qCh.contains(chId) || chId.contains(qCh))
+            }
+            val matchesSubjectFallback = (testChId.isBlank() || testChId == "null") && testSubId.isNotBlank() && (testSubId == chapter.subjectId.lowercase().trim() || chapter.subjectId.lowercase().trim().contains(testSubId))
+
+            matchesDirectChapter || matchesTestId || matchesQuestions || matchesSubjectFallback
         }
     }
 
@@ -91,70 +117,114 @@ fun ChapterDetailScreen(
                     masteryPercentage = chapter.masteryPercentage,
                     primaryColor = subjectColor,
                     bottomContent = {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Button(
-                                onClick = {
-                                    onViewContent(
-                                        if (isBengali) chapter.titleBengali else chapter.titleEnglish,
-                                        chapter.contentData,
-                                        chapter.solutionData
-                                    )
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
-                                shape = RoundedCornerShape(12.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "কন্টেন্ট ও নোটস",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                com.example.ui.components.StatMiniBadge(
+                                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                                    label = "${topics.size}টি টপিক"
+                                )
+                                com.example.ui.components.StatMiniBadge(
+                                    icon = Icons.AutoMirrored.Filled.Assignment,
+                                    label = "অধ্যায় মূল্যায়ন"
+                                )
+                                com.example.ui.components.StatMiniBadge(
+                                    icon = Icons.Default.Shield,
+                                    label = "বস ব্যাটল"
                                 )
                             }
 
-                            Button(
-                                onClick = {
-                                    try {
-                                        val firstTopic = topics.firstOrNull()
-                                        val topicId = firstTopic?.id ?: "chap_${chapter.id}"
-                                        val title = firstTopic?.let { if (isBengali) it.titleBengali else it.titleEnglish } ?: (if (isBengali) chapter.titleBengali else chapter.titleEnglish)
-                                        val lesson = VideoLessonProvider.getVideoForTopic(topicId, title, chapter.subjectId, firstTopic?.videoUrl, firstTopic?.playlistJson)
-                                        if (viewModel != null) {
-                                            viewModel.openVideoLessonForEntity(lesson, firstTopic)
-                                        } else {
-                                            activeVideoLesson = lesson
-                                        }
-                                    } catch (_: Exception) {
-                                        val fallback = VideoLessonProvider.getVideoForTopic(chapter.id)
-                                        if (viewModel != null) {
-                                            viewModel.openVideoLessonForEntity(fallback, topics.firstOrNull())
-                                        } else {
-                                            activeVideoLesson = fallback
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 2.dp)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 1. Concept Button
+                                com.example.ui.components.GradientChipButton(
+                                    icon = Icons.Default.Lightbulb,
+                                    label = "কনসেপ্ট",
+                                    gradientColors = listOf(Color(0xFFF59E0B), Color(0xFFD97706)),
+                                    onClick = {
+                                        conceptTitle = if (isBengali) chapter.titleBengali else chapter.titleEnglish
+                                        conceptSummaryText = chapter.contentData ?: "অধ্যায়ের বিস্তারিত মূল ধারণা ও পয়েন্ট সম্বলিত নোটস।"
+                                        showConceptDialog = true
+                                    }
+                                )
+
+                                // 2. Content Button
+                                com.example.ui.components.GradientChipButton(
+                                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                                    label = "কন্টেন্ট ও নোটস",
+                                    gradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5)),
+                                    onClick = {
+                                        onViewContent(
+                                            if (isBengali) chapter.titleBengali else chapter.titleEnglish,
+                                            chapter.contentData ?: "",
+                                            chapter.solutionData ?: ""
+                                        )
+                                    }
+                                )
+
+                                // 3. Solution Button
+                                com.example.ui.components.GradientChipButton(
+                                    icon = Icons.AutoMirrored.Filled.Assignment,
+                                    label = "সমাধান",
+                                    gradientColors = listOf(Color(0xFF10B981), Color(0xFF059669)),
+                                    onClick = {
+                                        onViewContent(
+                                            "সমাধান - ${if (isBengali) chapter.titleBengali else chapter.titleEnglish}",
+                                            (chapter.solutionData ?: "").ifBlank { "অধ্যায়ের বিস্তারিত সমাধান ও উত্তরপত্র শীঘ্রই যুক্ত করা হচ্ছে।" },
+                                            chapter.solutionData ?: ""
+                                        )
+                                    }
+                                )
+
+                                // 4. Video Class Button
+                                com.example.ui.components.GradientChipButton(
+                                    icon = Icons.Default.PlayCircle,
+                                    label = "ভিডিও ক্লাস",
+                                    gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626)),
+                                    onClick = {
+                                        try {
+                                            val firstTopic = topics.firstOrNull()
+                                            val topicId = firstTopic?.id ?: "chap_${chapter.id}"
+                                            val title = firstTopic?.let { if (isBengali) it.titleBengali else it.titleEnglish } ?: (if (isBengali) chapter.titleBengali else chapter.titleEnglish)
+                                            val lesson = VideoLessonProvider.getVideoForTopic(topicId, title, chapter.subjectId, firstTopic?.videoUrl, firstTopic?.playlistJson)
+                                            if (viewModel != null) {
+                                                viewModel.openVideoLessonForEntity(lesson, firstTopic)
+                                            } else {
+                                                activeVideoLesson = lesson
+                                            }
+                                        } catch (_: Exception) {
+                                            val fallback = VideoLessonProvider.getVideoForTopic(chapter.id)
+                                            if (viewModel != null) {
+                                                viewModel.openVideoLessonForEntity(fallback, topics.firstOrNull())
+                                            } else {
+                                                activeVideoLesson = fallback
+                                            }
                                         }
                                     }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFEF4444).copy(alpha = 0.35f),
-                                    contentColor = Color.White
-                                ),
-                                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.8f)),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "ভিডিও ক্লাস",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                )
+
+                                // 5. Podcast / Audio Button
+                                com.example.ui.components.GradientChipButton(
+                                    icon = Icons.Default.Headphones,
+                                    label = "পডকাস্ট অডিও",
+                                    gradientColors = listOf(Color(0xFF8B5CF6), Color(0xFF06B6D4)),
+                                    onClick = {
+                                        onViewContent(
+                                            "🎧 পডকাস্ট অডিও সামারি - ${if (isBengali) chapter.titleBengali else chapter.titleEnglish}",
+                                            "🔊 **অধ্যায় পডকাস্ট অডিও নোটস:**\n\nএই অধ্যায়ের গুরুত্বপূর্ণ সূত্র ও সংক্ষেপ আলোচনা অডিও লেকচার হিসেবে প্লে করার অপশন যুক্ত রয়েছে। মনোযোগ দিয়ে শুনুন এবং দ্রুত রিভিশন দিন!",
+                                            ""
+                                        )
+                                    }
                                 )
                             }
                         }

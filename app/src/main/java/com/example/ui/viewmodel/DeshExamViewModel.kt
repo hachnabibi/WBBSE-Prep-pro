@@ -1443,12 +1443,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             try {
                 val res = firestoreService.getAllTestTemplates()
                 val list = res.getOrDefault(emptyList())
-                val filtered = list.filter { item ->
-                    (classId.isNullOrBlank() || item.classId.isNullOrBlank() || item.classId.equals(classId, ignoreCase = true)) &&
-                    (subjectId.isNullOrBlank() || item.subjectId.isNullOrBlank() || item.subjectId.equals(subjectId, ignoreCase = true))
-                }
                 withContext(Dispatchers.Main) {
-                    _firestoreTestTemplates.value = if (filtered.isNotEmpty()) filtered else list
+                    _firestoreTestTemplates.value = list
                 }
             } catch (e: Exception) {
                 Log.e("DeshExamViewModel", "Error fetching test templates: ${e.message}")
