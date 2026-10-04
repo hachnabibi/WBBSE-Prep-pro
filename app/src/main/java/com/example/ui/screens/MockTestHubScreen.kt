@@ -4,11 +4,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +39,11 @@ import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.components.SubjectSvgIconProvider
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
+
+private fun Int.toBengaliDigits(): String {
+    val bengaliDigits = charArrayOf('০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯')
+    return this.toString().map { if (it in '0'..'9') bengaliDigits[it - '0'] else it }.joinToString("")
+}
 
 @Composable
 fun MockTestHubScreen(
@@ -365,291 +373,338 @@ fun MockTestHubScreen(
                 val userScore = subjectMockScores[sub.id]
                 val hasScore = userScore != null && userScore > 0
                 val chaptersCount = if (sub.totalChapters > 0) sub.totalChapters else 8
-                val userPercentile = if (hasScore) (80.0 + ((userScore.toDouble() / 90.0) * 19.5)).toInt() else 0
-                val progressFloat = if (hasScore) (userScore.toFloat() / 90f).coerceIn(0.1f, 1f) else (sub.completedChapters.toFloat() / chaptersCount.toFloat()).coerceIn(0.1f, 1f)
-
+                val scorePercent = if (hasScore) ((userScore.toFloat() / 90f) * 100).toInt().coerceIn(0, 100) else 0
+                val progressFloat = if (hasScore) (userScore.toFloat() / 90f).coerceIn(0f, 1f) else (sub.completedChapters.toFloat() / chaptersCount.toFloat()).coerceIn(0f, 1f)
                 val baseColor = Color(sub.colorHex)
-                val cardGradient = if (isDark) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            baseColor.copy(alpha = 0.28f),
-                            baseColor.copy(alpha = 0.16f),
-                            Color(0xFF0F172A).copy(alpha = 0.92f)
-                        )
-                    )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            baseColor.copy(alpha = 0.18f),
-                            baseColor.copy(alpha = 0.08f),
-                            Color.White
-                        )
-                    )
-                }
 
                 Card(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isDark) Color(0xFF1E293B) else Color.White
+                        containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.5.dp),
-                    border = BorderStroke(1.3.dp, baseColor.copy(alpha = if (isDark) 0.45f else 0.35f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else baseColor.copy(alpha = 0.35f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 10.dp, vertical = 2.dp)
                         .clickable { onOpenSubjectDetail?.invoke(sub.id) }
                         .testTag("subject_card_${sub.id}")
                 ) {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(cardGradient)
-                            .padding(16.dp)
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column(
+                        // 1. Top Row: Subject Icon + Title & Subtitle + Circular Progress / Score Ring
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Top Row: Subject Icon + Title + Score/Status Tag
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(baseColor.copy(alpha = if (isDark) 0.35f else 0.22f))
-                                            .border(1.dp, baseColor.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = SubjectSvgIconProvider.getIconForSubjectCode(sub.code),
-                                            contentDescription = sub.nameBengali,
-                                            tint = if (isDark) Color.White else baseColor,
-                                            modifier = Modifier.size(26.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = if (isBengali) sub.nameBengali else sub.nameEnglish,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = sub.textbookName ?: "WBBSE অনুমোদিত পাঠ্যক্রম",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-
-                                // Score / Level Tag
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (hasScore) baseColor.copy(alpha = if (isDark) 0.25f else 0.18f) else baseColor.copy(alpha = 0.10f),
-                                    border = BorderStroke(1.dp, if (hasScore) baseColor.copy(alpha = 0.5f) else baseColor.copy(alpha = 0.28f))
-                                ) {
-                                    Text(
-                                        text = if (hasScore) "$userScore / ৯০" else "নতুন টেস্ট",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = baseColor,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-
-                            // Middle Row: Metadata Chips (Chapters, Duration, Test Sets)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = baseColor.copy(alpha = if (isDark) 0.22f else 0.12f),
-                                    border = BorderStroke(0.8.dp, baseColor.copy(alpha = 0.28f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MenuBook,
-                                            contentDescription = null,
-                                            tint = baseColor,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "${chaptersCount}টি অধ্যায়",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = baseColor.copy(alpha = if (isDark) 0.22f else 0.12f),
-                                    border = BorderStroke(0.8.dp, baseColor.copy(alpha = 0.28f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Timer,
-                                            contentDescription = null,
-                                            tint = Color(0xFFEA580C),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "৩ঘণ্টা ১৫মি.",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = baseColor.copy(alpha = if (isDark) 0.22f else 0.12f),
-                                    border = BorderStroke(0.8.dp, baseColor.copy(alpha = 0.28f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Quiz,
-                                            contentDescription = null,
-                                            tint = baseColor,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "৫টি মডেল সেট",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Progress Bar (Syllabus / Mock Coverage)
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "প্রস্তুতির অগ্রগতি",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = if (hasScore) "সেরা স্কোর: $userScore/৯০ (${userPercentile}%ile)" else "এখনও পরীক্ষা দেওয়া হয়নি",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                        color = if (hasScore) baseColor else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                LinearProgressIndicator(
-                                    progress = { progressFloat },
-                                    color = baseColor,
-                                    trackColor = baseColor.copy(alpha = 0.20f),
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp))
+                                        .size(24.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(baseColor.copy(alpha = if (isDark) 0.35f else 0.18f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = SubjectSvgIconProvider.getIconForSubjectCode(sub.code),
+                                        contentDescription = sub.nameBengali,
+                                        tint = if (isDark) Color.White else baseColor,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (isBengali) sub.nameBengali else sub.nameEnglish,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = sub.textbookName ?: "WBBSE মাধ্যমিক সিলেবাস",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            // Circular Progress / Score Ring (32.dp)
+                            val ringProgress = if (hasScore) (userScore.toFloat() / 90f).coerceIn(0f, 1f) else progressFloat
+                            val ringColor = when {
+                                hasScore && scorePercent >= 80 -> Color(0xFF10B981) // Emerald Green
+                                hasScore && scorePercent >= 50 -> Color(0xFF3B82F6) // Blue
+                                hasScore -> Color(0xFFF59E0B)  // Amber
+                                progressFloat > 0 -> baseColor
+                                else -> if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1) // Slate
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .padding(1.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    progress = { 1f },
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                                    strokeWidth = 3.dp,
+                                    strokeCap = StrokeCap.Round
+                                )
+                                CircularProgressIndicator(
+                                    progress = { ringProgress },
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = ringColor,
+                                    strokeWidth = 3.dp,
+                                    strokeCap = StrokeCap.Round
+                                )
+                                Text(
+                                    text = if (hasScore) "${userScore.toBengaliDigits()}" else "${(progressFloat * 100).toInt().toBengaliDigits()}%",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp
+                                    ),
+                                    color = if (hasScore || progressFloat > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
 
-                            HorizontalDivider(color = baseColor.copy(alpha = 0.25f))
-
-                            // Action Buttons Row: 'অধ্যায় তালিকা' (Outlined) + 'মক টেস্ট শুরু' (Filled)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        // 2. Middle Row: Metadata Chips (Chapters, Marks, Time, Best Score / XP)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Chapters count chip
+                            Surface(
+                                shape = RoundedCornerShape(5.dp),
+                                color = if (isDark) Color(0xFF1E3A5F) else Color(0xFFEFF6FF)
                             ) {
-                                OutlinedButton(
-                                    onClick = { onOpenSubjectDetail?.invoke(sub.id) },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = baseColor.copy(alpha = if (isDark) 0.18f else 0.10f)
-                                    ),
-                                    border = BorderStroke(1.2.dp, baseColor.copy(alpha = 0.5f)),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = baseColor
+                                        tint = Color(0xFF3B82F6),
+                                        modifier = Modifier.size(10.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = "অধ্যায়সমূহ",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = baseColor,
-                                        maxLines = 1
+                                        text = "${chaptersCount.toBengaliDigits()}টি অধ্যায়",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                                        color = if (isDark) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
                                     )
                                 }
+                            }
 
-                                Button(
-                                    onClick = {
+                            // Marks chip
+                            Surface(
+                                shape = RoundedCornerShape(5.dp),
+                                color = if (isDark) Color(0xFF3730A3).copy(alpha = 0.4f) else Color(0xFFF5F3FF)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Quiz,
+                                        contentDescription = null,
+                                        tint = Color(0xFF8B5CF6),
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "৯০ মার্কস",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                                        color = if (isDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9)
+                                    )
+                                }
+                            }
+
+                            // Exam Time chip
+                            Surface(
+                                shape = RoundedCornerShape(5.dp),
+                                color = if (isDark) Color(0xFF451A03).copy(alpha = 0.4f) else Color(0xFFFFF7ED)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Timer,
+                                        contentDescription = null,
+                                        tint = Color(0xFFEA580C),
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "৩ঘণ্টা ১৫মি.",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                                        color = if (isDark) Color(0xFFFED7AA) else Color(0xFFC2410C)
+                                    )
+                                }
+                            }
+
+                            // Score or XP chip
+                            if (hasScore) {
+                                Surface(
+                                    shape = RoundedCornerShape(5.dp),
+                                    color = if (isDark) Color(0xFF064E3B).copy(alpha = 0.5f) else Color(0xFFECFDF5)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.EmojiEvents,
+                                            contentDescription = null,
+                                            tint = Color(0xFF10B981),
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = "সেরা: ${userScore.toBengaliDigits()}/৯০",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                            color = if (isDark) Color(0xFFA7F3D0) else Color(0xFF047857)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(5.dp),
+                                    color = if (isDark) Color(0xFF451A03).copy(alpha = 0.5f) else Color(0xFFFFFBEB)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bolt,
+                                            contentDescription = null,
+                                            tint = Color(0xFFF59E0B),
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text(
+                                            text = "+৫০০ XP",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                            color = if (isDark) Color(0xFFFDE68A) else Color(0xFFB45309)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. Bottom Row: 3 Action Chip Buttons (Chapters, Unit Tests, Start Mock)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 📖 Chapters Button
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = if (isDark) Color(0xFF1E3A5F).copy(alpha = 0.4f) else Color(0xFFEFF6FF),
+                                border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.5f)),
+                                modifier = Modifier.clickable { onOpenSubjectDetail?.invoke(sub.id) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                        contentDescription = "Chapters",
+                                        tint = Color(0xFF3B82F6),
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "অধ্যায়সমূহ",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                        color = if (isDark) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
+                                    )
+                                }
+                            }
+
+                            // 📝 Unit Test Button
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = if (isDark) Color(0xFF134E4A).copy(alpha = 0.4f) else Color(0xFFF0FDFA),
+                                border = BorderStroke(1.dp, Color(0xFF0D9488).copy(alpha = 0.5f)),
+                                modifier = Modifier.clickable { onOpenSubjectDetail?.invoke(sub.id) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Quiz,
+                                        contentDescription = "Unit Tests",
+                                        tint = Color(0xFF0D9488),
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "ইউনিট টেস্ট",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                        color = if (isDark) Color(0xFF99F6E4) else Color(0xFF0F766E)
+                                    )
+                                }
+                            }
+
+                            // 🚀 Start Mock Button
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(baseColor, baseColor.copy(alpha = 0.85f))
+                                        )
+                                    )
+                                    .clickable {
                                         onStartMockTest(
                                             AssessmentMode.MOCK_TEST,
                                             sub.id,
                                             "${if (isBengali) sub.nameBengali else sub.nameEnglish} পূর্ণাঙ্গ মক টেস্ট"
                                         )
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = baseColor,
-                                        contentColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                ) {
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color.White
+                                        contentDescription = "Start Mock",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = "মক টেস্ট শুরু",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        maxLines = 1
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                        color = Color.White
                                     )
                                 }
                             }

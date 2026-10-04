@@ -5,11 +5,13 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,8 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.ChapterEntity
@@ -756,23 +760,24 @@ fun ChapterDetailCard(
     onStartBossBattle: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 10.dp, vertical = 2.dp)
             .clickable { onOpenChapterDetails() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            // 1. Top Row: Chapter Number & Title (Left) + Circular Progress Indicator (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -784,7 +789,7 @@ fun ChapterDetailCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(
@@ -795,108 +800,254 @@ fun ChapterDetailCard(
                     ) {
                         Text(
                             text = if (isBengali) chapter.chapterNumber.toBengaliDigits() else "${chapter.chapterNumber}",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                             color = Color.White
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = chapter.title,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isBengali) chapter.titleBengali else chapter.titleEnglish,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.5.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // Circular Progress Percentage
+                val progressFloat = (chapter.masteryPercentage / 100f).coerceIn(0f, 1f)
+                val progressRingColor = when {
+                    chapter.masteryPercentage >= 80 -> Color(0xFF10B981) // Emerald Green
+                    chapter.masteryPercentage >= 50 -> Color(0xFF3B82F6) // Blue
+                    chapter.masteryPercentage > 0 -> Color(0xFFF59E0B)  // Amber
+                    else -> if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1) // Slate
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(1.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { 1f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                        strokeWidth = 3.dp,
+                        strokeCap = StrokeCap.Round
+                    )
+                    CircularProgressIndicator(
+                        progress = { progressFloat },
+                        modifier = Modifier.fillMaxSize(),
+                        color = progressRingColor,
+                        strokeWidth = 3.dp,
+                        strokeCap = StrokeCap.Round
+                    )
+                    Text(
+                        text = "${chapter.masteryPercentage.toBengaliDigits()}%",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.5.sp
+                        ),
+                        color = if (chapter.masteryPercentage > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 2. Middle: Info Chips (Topics Count, Boss Battle, Evaluation, XP)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Topic count chip
+                Surface(
+                    shape = RoundedCornerShape(5.dp),
+                    color = if (isDark) Color(0xFF1E3A5F) else Color(0xFFEFF6FF)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = Color(0xFF3B82F6),
+                            modifier = Modifier.size(10.dp)
                         )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = if (topicCount > 0) {
-                                "${if (isBengali) topicCount.toBengaliDigits() else topicCount}টি টপিক অন্তর্ভুক্ত"
-                            } else {
-                                chapter.description
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "${topicCount.toBengaliDigits()} টপিক",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                            color = if (isDark) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
                         )
                     }
                 }
 
-                IconButton(onClick = onOpenChapterDetails) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "Open Chapter",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Boss Battle chip
+                Surface(
+                    shape = RoundedCornerShape(5.dp),
+                    color = if (isDark) Color(0xFF451A03).copy(alpha = 0.5f) else Color(0xFFFFFBEB)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "বস ব্যাটল",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                            color = if (isDark) Color(0xFFFDE68A) else Color(0xFFB45309)
+                        )
+                    }
+                }
+
+                // Chapter Evaluation chip
+                Surface(
+                    shape = RoundedCornerShape(5.dp),
+                    color = if (isDark) Color(0xFF064E3B).copy(alpha = 0.5f) else Color(0xFFECFDF5)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Quiz,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "অধ্যায় মূল্যায়ন",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                            color = if (isDark) Color(0xFFA7F3D0) else Color(0xFF047857)
+                        )
+                    }
+                }
+
+                // XP Reward chip
+                Surface(
+                    shape = RoundedCornerShape(5.dp),
+                    color = if (isDark) Color(0xFF3730A3).copy(alpha = 0.4f) else Color(0xFFF5F3FF)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = Color(0xFF8B5CF6),
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = "+৩০০ XP",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = if (isDark) Color(0xFFC4B5FD) else Color(0xFF6D28D9)
+                        )
+                    }
                 }
             }
 
-            // Progress bar
+            // 3. Bottom Row: 3 Action Chip Buttons (Topics, Practice, Boss Battle)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                LinearProgressIndicator(
-                    progress = { chapter.masteryPercentage / 100f },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(6.dp)
-                        .clip(CircleShape),
-                    color = if (chapter.masteryPercentage >= 80) CorrectGreen else subjectColor,
-                    trackColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                )
-                Text(
-                    text = "${chapter.masteryPercentage}%",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Quick action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onStartChapterPractice,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, subjectColor)
+                // 📖 Topics & Notes Button
+                Surface(
+                    shape = RoundedCornerShape(7.dp),
+                    color = if (isDark) Color(0xFF1E3A5F).copy(alpha = 0.4f) else Color(0xFFEFF6FF),
+                    border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.5f)),
+                    modifier = Modifier.clickable { onOpenChapterDetails() }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = subjectColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "অনুশীলন",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = subjectColor
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = "Topics",
+                            tint = Color(0xFF3B82F6),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "টপিক ও নোটস",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                            color = if (isDark) Color(0xFF93C5FD) else Color(0xFF1D4ED8)
+                        )
+                    }
                 }
 
-                Button(
-                    onClick = onStartBossBattle,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ExamGold,
-                        contentColor = Color(0xFF78350F)
-                    )
+                // ⚡ Practice Button
+                Surface(
+                    shape = RoundedCornerShape(7.dp),
+                    color = if (isDark) Color(0xFF134E4A).copy(alpha = 0.4f) else Color(0xFFF0FDFA),
+                    border = BorderStroke(1.dp, Color(0xFF0D9488).copy(alpha = 0.5f)),
+                    modifier = Modifier.clickable { onStartChapterPractice() }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "বস চ্যালেঞ্জ",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Practice",
+                            tint = Color(0xFF0D9488),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "অনুশীলন",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                            color = if (isDark) Color(0xFF99F6E4) else Color(0xFF0F766E)
+                        )
+                    }
+                }
+
+                // 🛡️ Boss Battle Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                            )
+                        )
+                        .clickable { onStartBossBattle() }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = "Boss",
+                            tint = Color.White,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "বস ব্যাটল",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
