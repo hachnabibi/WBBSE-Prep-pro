@@ -365,7 +365,39 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     val aiCoachInsight: StateFlow<AiCoachInsight?> = repository.getAiCoachInsight()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _currentScreen = MutableStateFlow<AppScreen>(AppScreen.SPLASH)
+    private val prefs by lazy {
+        getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
+    }
+
+    private fun resolveInitialScreen(): AppScreen {
+        return try {
+            val p = getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
+            val guestCompleted = p.getBoolean("onboarding_completed_guest", false)
+            val isGuest = p.getBoolean("is_guest_user", false)
+            val hasOnboarded = p.getBoolean("has_completed_onboarding", false) || guestCompleted || isGuest
+            val user = authRepository.currentUserState
+            val isUserValid = (user != null && (user.isAnonymous || p.getBoolean("onboarding_completed_${user.uid}", false))) || guestCompleted || isGuest
+
+            if (isUserValid || hasOnboarded) {
+                val saved = p.getString("saved_last_screen", null)
+                if (!saved.isNullOrBlank()) {
+                    try {
+                        val screen = AppScreen.valueOf(saved)
+                        if (screen != AppScreen.SPLASH && screen != AppScreen.AUTH && screen != AppScreen.ONBOARDING && screen != AppScreen.ASSESSMENT && screen != AppScreen.RESULT) {
+                            return screen
+                        }
+                    } catch (_: Exception) {}
+                }
+                AppScreen.HOME
+            } else {
+                AppScreen.SPLASH
+            }
+        } catch (_: Throwable) {
+            AppScreen.SPLASH
+        }
+    }
+
+    private val _currentScreen = MutableStateFlow<AppScreen>(resolveInitialScreen())
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
     private val _previousScreen = MutableStateFlow(AppScreen.HOME)
@@ -394,10 +426,6 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private val _isBengali = MutableStateFlow(true)
     val isBengali: StateFlow<Boolean> = _isBengali.asStateFlow()
-
-    private val prefs by lazy {
-        getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
-    }
 
     private val _appSettings = MutableStateFlow(AppSettings())
     val appSettings: StateFlow<AppSettings> = _appSettings.asStateFlow()
@@ -433,10 +461,15 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         loadLocalDatabaseStats()
         loadWeakTopics()
 
-        // Sync & update database from assets so that any subject/chapter/question changes reflect immediately
+        // Sync & update database from assets only when needed (first launch or version update) to avoid startup lag
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.syncDatabaseWithAssets()
+                val currentAssetVersion = 6
+                val lastSyncedVersion = prefs.getInt("pref_asset_sync_version", 0)
+                if (lastSyncedVersion < currentAssetVersion || database.deshExamDao().getAllSubjectsOnce().isEmpty()) {
+                    repository.syncDatabaseWithAssets()
+                    prefs.edit().putInt("pref_asset_sync_version", currentAssetVersion).apply()
+                }
             } catch (e: Exception) {
                 Log.w("DeshExamViewModel", "Database asset sync failed: ${e.message}")
             }
@@ -516,14 +549,17 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
         // Auth state listener with background credential check & splash animation
         viewModelScope.launch {
-            var splashDone = false
-            launch {
-                delay(1000)
-                splashDone = true
+            val isAlreadyResolved = _currentScreen.value != AppScreen.SPLASH
+            var splashDone = isAlreadyResolved
+            if (!splashDone) {
+                launch {
+                    delay(800)
+                    splashDone = true
+                }
             }
             authRepository.authStateFlow.collect { user ->
                 if (!splashDone) {
-                    delay(1000)
+                    delay(800)
                     splashDone = true
                 }
                 if (user != null) {
@@ -538,7 +574,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         prefs.getBoolean("onboarding_completed_${user.uid}", false)
                     }
                     if (isCompleted) {
-                        _currentScreen.value = AppScreen.HOME
+                        try {
+                            prefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                        } catch (_: Throwable) {}
+                        if (_currentScreen.value == AppScreen.SPLASH || _currentScreen.value == AppScreen.AUTH) {
+                            _currentScreen.value = AppScreen.HOME
+                        }
                     } else {
                         val currentName = studentProfile.value.name
                         if (!user.displayName.isNullOrBlank() && (currentName.isBlank() || currentName == "Sourav Das")) {
@@ -549,11 +590,46 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                                 targetExam = studentProfile.value.targetExam
                             )
                         }
-                        _currentScreen.value = AppScreen.ONBOARDING
+                        if (_currentScreen.value == AppScreen.SPLASH || _currentScreen.value == AppScreen.AUTH) {
+                            _currentScreen.value = AppScreen.ONBOARDING
+                        }
                     }
                 } else {
-                    _currentScreen.value = AppScreen.AUTH
+                    if (!_isGuestUser.value) {
+                        _currentScreen.value = AppScreen.AUTH
+                    }
                 }
+            }
+        }
+
+        // Restore active topic or chapter entity if resuming from background
+        viewModelScope.launch {
+            try {
+                val savedTopicId = prefs.getString("saved_last_topic_id", null)
+                if (!savedTopicId.isNullOrBlank() && _activeTopicStudy.value == null) {
+                    val topic = repository.getTopicById(savedTopicId)
+                    if (topic != null) {
+                        _activeTopicStudy.value = topic
+                    }
+                }
+                val savedChapterId = prefs.getString("saved_last_chapter_id", null)
+                if (!savedChapterId.isNullOrBlank() && _selectedChapterEntity.value == null) {
+                    val chapter = database.deshExamDao().getChapterById(savedChapterId)
+                    if (chapter != null) {
+                        _selectedChapterEntity.value = chapter
+                        _selectedChapterId.value = chapter.id
+                    }
+                }
+                val savedSubjectId = prefs.getString("saved_last_subject_id", null)
+                if (!savedSubjectId.isNullOrBlank() && _selectedSubjectEntity.value == null) {
+                    val subject = repository.getSubjectById(savedSubjectId)
+                    if (subject != null) {
+                        _selectedSubjectEntity.value = subject
+                        _selectedSubjectId.value = subject.id
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Error restoring saved navigation targets: ${e.message}")
             }
         }
 
@@ -605,7 +681,16 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         if (_currentScreen.value != screen) {
             _previousScreen.value = _currentScreen.value
             _currentScreen.value = screen
+            saveCurrentScreenState(screen)
         }
+    }
+
+    private fun saveCurrentScreenState(screen: AppScreen) {
+        try {
+            if (screen != AppScreen.SPLASH && screen != AppScreen.AUTH && screen != AppScreen.ONBOARDING && screen != AppScreen.ASSESSMENT && screen != AppScreen.RESULT) {
+                prefs.edit().putString("saved_last_screen", screen.name).apply()
+            }
+        } catch (_: Throwable) {}
     }
 
     fun navigateToInternetArchiveSearch(query: String) {
@@ -757,6 +842,15 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             authRepository.signOut()
             _isGuestUser.value = true
+            try {
+                prefs.edit()
+                    .remove("saved_last_screen")
+                    .remove("has_completed_onboarding")
+                    .remove("saved_last_topic_id")
+                    .remove("saved_last_chapter_id")
+                    .remove("saved_last_subject_id")
+                    .apply()
+            } catch (_: Throwable) {}
             _currentScreen.value = AppScreen.AUTH
         }
     }
@@ -768,6 +862,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun openSubjectDetail(subject: SubjectEntity) {
         _selectedSubjectEntity.value = subject
         _selectedSubjectId.value = subject.id
+        try {
+            prefs.edit().putString("saved_last_subject_id", subject.id).apply()
+        } catch (_: Throwable) {}
         navigateTo(AppScreen.SUBJECT_DETAIL)
     }
 
@@ -791,6 +888,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun openChapterDetail(chapter: ChapterEntity) {
         _selectedChapterEntity.value = chapter
         _selectedChapterId.value = chapter.id
+        try {
+            prefs.edit().putString("saved_last_chapter_id", chapter.id).apply()
+        } catch (_: Throwable) {}
         navigateTo(AppScreen.CHAPTER_DETAIL)
     }
 
@@ -799,6 +899,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             val topic = repository.getTopicById(topicId)
             if (topic != null) {
                 _activeTopicStudy.value = topic
+                try {
+                    prefs.edit().putString("saved_last_topic_id", topicId).apply()
+                } catch (_: Throwable) {}
                 navigateTo(AppScreen.LEARN_TOPIC)
             }
         }

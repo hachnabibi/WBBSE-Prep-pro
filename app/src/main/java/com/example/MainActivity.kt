@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     companion object {
         var onRazorpaySuccess: ((String) -> Unit)? = null
+        var hasShownAppOpenAdThisSession = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,18 +144,17 @@ fun DeshExamApp(
         // Permission result handled
     }
 
-    var hasShownAppOpenAd by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val activity = context as? Activity
-        if (activity != null && !hasShownAppOpenAd) {
+        if (activity != null && !MainActivity.hasShownAppOpenAdThisSession) {
             var attempts = 0
-            while (attempts < 6 && !AdMobManager.hasAppOpenAd()) {
-                delay(500L)
+            while (attempts < 4 && !AdMobManager.hasAppOpenAd()) {
+                delay(400L)
                 attempts++
             }
             if (AdMobManager.hasAppOpenAd()) {
                 AdMobManager.showAppOpenAd(activity) {
-                    hasShownAppOpenAd = true
+                    MainActivity.hasShownAppOpenAdThisSession = true
                 }
             }
         }

@@ -353,58 +353,6 @@ fun LearnTopicScreen(
                 onBack = onBack
             )
         },
-        bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(16.dp)
-                ) {
-                    val firstAvailableSet = (1..totalSets).firstOrNull { (setScores[it] ?: -1) < 60 && (setUnlocks[it] == true) } ?: 1
-                    val isFirstSetUnlocked = setUnlocks[firstAvailableSet] == true
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
-                                )
-                            )
-                            .clickable {
-                                onStartPractice(
-                                    AssessmentMode.PRACTICE,
-                                    topic.id,
-                                    "${topic.getTitle(true)} - অনুশীলন সেট $firstAvailableSet",
-                                    firstAvailableSet
-                                )
-                            }
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Start",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "অনুশীলন শুরু করো (সেট $firstAvailableSet) • +১০০ XP",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-        },
         modifier = modifier
     ) { innerPadding ->
         Column(
@@ -691,7 +639,7 @@ fun LearnTopicScreen(
                                                 }
                                             )
                                         )
-                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                        .padding(horizontal = 7.dp, vertical = 2.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -703,7 +651,7 @@ fun LearnTopicScreen(
 
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "অনুশীলন কুইজ সেট $setIdx",
+                                    text = "অনুশীলন কুইজ",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = if (isUnlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
@@ -772,7 +720,7 @@ fun LearnTopicScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         if (isUnlocked) {
                             Box(
@@ -795,7 +743,7 @@ fun LearnTopicScreen(
                                             setIdx
                                         )
                                     }
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -804,7 +752,7 @@ fun LearnTopicScreen(
                                         isAttempted -> "আবার চেষ্টা"
                                         else -> "কুইজ শুরু"
                                     },
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                     color = Color.White
                                 )
                             }
@@ -824,7 +772,7 @@ fun LearnTopicScreen(
                                         Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
                                         RoundedCornerShape(8.dp)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                                    .padding(horizontal = 9.dp, vertical = 5.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -832,12 +780,12 @@ fun LearnTopicScreen(
                                         imageVector = Icons.Default.Lock,
                                         contentDescription = "Locked",
                                         tint = Color(0xFFD97706),
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(12.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = "লকড",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                         color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
                                     )
                                 }
@@ -947,12 +895,12 @@ fun LearnTopicScreen(
                                         1
                                     )
                                 }
-                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = if (mockScore >= 0) ("পুনরায় মক") else ("মক টেস্ট শুরু"),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                 color = Color.White
                             )
                         }
@@ -972,7 +920,7 @@ fun LearnTopicScreen(
                                     Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
                                     RoundedCornerShape(8.dp)
                                 )
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -980,12 +928,12 @@ fun LearnTopicScreen(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Locked",
                                     tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = "লকড",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                     color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
                                 )
                             }
@@ -1072,7 +1020,7 @@ fun LearnTopicScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     if (isSpeedUnlocked) {
                         Box(
@@ -1091,12 +1039,12 @@ fun LearnTopicScreen(
                                         1
                                     )
                                 }
-                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = if (speedScore >= 0) ("পুনরায় স্পিড") else ("স্পিড চ্যালেঞ্জ"),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                 color = Color.White
                             )
                         }
@@ -1116,7 +1064,7 @@ fun LearnTopicScreen(
                                     Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
                                     RoundedCornerShape(8.dp)
                                 )
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1124,12 +1072,12 @@ fun LearnTopicScreen(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Locked",
                                     tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = "লকড",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                     color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
                                 )
                             }

@@ -51,12 +51,14 @@ abstract class DeshExamDatabase : RoomDatabase() {
                     .build()
                 INSTANCE = instance
                 
-                // Immediately trigger asset sync in background
+                // Trigger asset sync in background only if database is empty
                 scope.launch(Dispatchers.IO) {
                     try {
-                        populateDataFromAssets(context.applicationContext, instance.deshExamDao())
+                        if (instance.deshExamDao().getAllSubjectsOnce().isEmpty()) {
+                            populateDataFromAssets(context.applicationContext, instance.deshExamDao())
+                        }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error during initial database populate: ${e.message}", e)
+                        Log.e(TAG, "Error during initial database populate check: ${e.message}", e)
                     }
                 }
                 instance
@@ -80,7 +82,11 @@ abstract class DeshExamDatabase : RoomDatabase() {
                 super.onOpen(db)
                 scope.launch(Dispatchers.IO) {
                     INSTANCE?.let { database ->
-                        populateDataFromAssets(context, database.deshExamDao())
+                        try {
+                            if (database.deshExamDao().getAllSubjectsOnce().isEmpty()) {
+                                populateDataFromAssets(context, database.deshExamDao())
+                            }
+                        } catch (_: Exception) {}
                     }
                 }
             }
