@@ -100,7 +100,14 @@ fun OnboardingScreen(
     var school by rememberSaveable { mutableStateOf(profile.school) }
 
     // Storing multiple goals as comma separated string for easy saveable
-    var selectedGoalsStr by rememberSaveable { mutableStateOf(profile.studyGoals.joinToString(",")) }
+    val defaultGoalsStr = remember(profile.studyGoals) {
+        if (profile.studyGoals.isNotEmpty()) {
+            profile.studyGoals.joinToString(",")
+        } else {
+            "study_daily,prepare_exams,mock_practice,syllabus_completion"
+        }
+    }
+    var selectedGoalsStr by rememberSaveable { mutableStateOf(defaultGoalsStr) }
     val selectedGoals = remember(selectedGoalsStr) {
         if (selectedGoalsStr.isBlank()) emptyList<String>() else selectedGoalsStr.split(",")
     }
@@ -188,6 +195,10 @@ fun OnboardingScreen(
                                 district = district,
                                 onDistrictChange = { newDist ->
                                     district = newDist
+                                    val defaultBlocks = com.example.util.WestBengalData.getBlocksForDistrict(newDist)
+                                    if (defaultBlocks.isNotEmpty()) {
+                                        block = defaultBlocks.first()
+                                    }
                                     val suggestedSchools = districtSchoolsMap[newDist] ?: emptyList()
                                     if (suggestedSchools.isNotEmpty()) {
                                         school = suggestedSchools.first()
@@ -196,11 +207,17 @@ fun OnboardingScreen(
                                     }
                                 },
                                 block = block,
-                                onBlockChange = { block = it },
+                                onBlockChange = { newBlock ->
+                                    block = newBlock
+                                    val blockSchools = com.example.util.WestBengalData.getSchoolsForBlock(newBlock, district)
+                                    if (blockSchools.isNotEmpty()) {
+                                        school = blockSchools.first()
+                                    }
+                                },
                                 school = school,
                                 onSchoolChange = { school = it },
                                 districts = districts,
-                                availableSchools = districtSchoolsMap[district] ?: emptyList(),
+                                availableSchools = com.example.util.WestBengalData.getSchoolsForBlock(block, district),
                                 isLoadingDistricts = isLoadingDistricts,
                                 isBengali = isBengali,
                                 onNext = { currentStep++ }
@@ -223,6 +240,11 @@ fun OnboardingScreen(
                                 classLevel = classLevel,
                                 district = district,
                                 school = school,
+                                phone = phone,
+                                gender = gender,
+                                dob = dob,
+                                targetExam = targetExam,
+                                selectedGoals = selectedGoals,
                                 isBengali = isBengali,
                                 onFinish = {
                                     onCompleteOnboarding(
@@ -1012,7 +1034,7 @@ fun Step3LocationAndSchool(
                 // 2. BLOCK SELECTOR / INPUT
                 var blockExpanded by remember { mutableStateOf(false) }
                 val defaultBlocks = remember(district) {
-                    listOf("সদর ব্লক (Sadar Block)", "১ম ব্লক / থানা অঞ্চল", "২য় ব্লক / গ্রামীণ অঞ্চল", "পৌরসভা / ম্যুনিসিপ্যালিটি", "অন্যান্য ব্লক")
+                    com.example.util.WestBengalData.getBlocksForDistrict(district)
                 }
                 
                 Column {
@@ -1165,6 +1187,37 @@ fun Step3LocationAndSchool(
                             }
                         }
                     }
+
+                    // Add Custom School Option if searching for a school not listed
+                    if (searchQuery.isNotBlank() && !availableSchools.contains(searchQuery)) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            onClick = {
+                                com.example.util.WestBengalData.addSchoolToBlock(block, district, searchQuery)
+                                onSchoolChange(searchQuery)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppActiveSurface.copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, Color(0xFF818CF8)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "‘$searchQuery’ নতুন স্কুল হিসেবে যোগ করুন",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = Color(0xFF38BDF8),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1268,27 +1321,63 @@ fun Step5Goals(
         listOf(
             GoalOptionData(
                 id = "study_daily",
-                titleEn = "Study Daily",
-                subtitleBn = "প্রতিদিন পড়াশোনা করতে চাই",
+                titleEn = "Daily Routine & Revision",
+                subtitleBn = "প্রতিদিন নিয়মিত রিভিশন ও রুটিন ধরে রাখা",
                 icon = Icons.Default.EventAvailable
             ),
             GoalOptionData(
                 id = "prepare_exams",
-                titleEn = "Prepare for Board Exams",
-                subtitleBn = "পরীক্ষার প্রস্তুতি নিতে চাই",
+                titleEn = "Board Exam Preparation",
+                subtitleBn = "মাধ্যমিক/উচ্চমাধ্যমিক পরীক্ষার সেরা প্রস্তুতি",
                 icon = Icons.Default.Assignment
             ),
             GoalOptionData(
                 id = "top_marks",
-                titleEn = "Score Top Marks",
-                subtitleBn = "ভালো ফলাফল করতে চাই",
+                titleEn = "Score Top Marks & Ranks",
+                subtitleBn = "পরীক্ষায় সর্বোচ্চ নম্বর ও সেরা র‍্যাংক অর্জন",
                 icon = Icons.Default.EmojiEvents
             ),
             GoalOptionData(
                 id = "improve_weak",
-                titleEn = "Improve Weak Subjects",
-                subtitleBn = "দুর্বল বিষয়গুলোতে উন্নতি করতে চাই",
+                titleEn = "Master Difficult Subjects",
+                subtitleBn = "গণিত, বিজ্ঞান ও ইংরেজি আয়ত্ত করা",
                 icon = Icons.Default.Psychology
+            ),
+            GoalOptionData(
+                id = "mock_practice",
+                titleEn = "Solve Mock Tests & Test Papers",
+                subtitleBn = "টেস্ট পেপার ও বিগত বছরের প্রশ্ন সলভ করা",
+                icon = Icons.Default.Quiz
+            ),
+            GoalOptionData(
+                id = "competitive_exams",
+                titleEn = "Competitive Exam Prep (JEE / NEET / NTSE)",
+                subtitleBn = "স্কুলের পাশাপাশি কম্পিটিটিভ পরীক্ষার প্রস্তুতি",
+                icon = Icons.Default.School
+            ),
+            GoalOptionData(
+                id = "doubt_clearing",
+                titleEn = "Instant Doubt Clearing",
+                subtitleBn = "যেকোনো কঠিন প্রশ্নের দ্রুত সঠিক উত্তর পাওয়া",
+                icon = Icons.Default.HelpOutline
+            ),
+            GoalOptionData(
+                id = "time_management",
+                titleEn = "Smart Time Management",
+                subtitleBn = "পড়াশোনার সময় ও রুটিন সঠিকভাবে পরিচালনা",
+                icon = Icons.Default.Timer
+            ),
+            GoalOptionData(
+                id = "syllabus_completion",
+                titleEn = "Early Syllabus Completion",
+                subtitleBn = "পরীক্ষার আগেই পুরো সিলেবাস শেষ করা",
+                icon = Icons.Default.MenuBook
+            ),
+            GoalOptionData(
+                id = "handwritten_notes",
+                titleEn = "Topper's Notes & Suggestions",
+                subtitleBn = "হাতে লেখা স্টাডি নোটস ও বিষয়ভিত্তিক সাজেশন",
+                icon = Icons.Default.Description
             )
         )
     }
@@ -1365,6 +1454,11 @@ fun Step6Complete(
     classLevel: String,
     district: String,
     school: String,
+    phone: String = "",
+    gender: String = "",
+    dob: String = "",
+    targetExam: String = "",
+    selectedGoals: List<String> = emptyList(),
     isBengali: Boolean,
     onFinish: () -> Unit
 ) {
@@ -1413,16 +1507,42 @@ fun Step6Complete(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                SummaryItem(Icons.Default.Person, "নাম", name)
-                SummaryItem(Icons.Default.School, "শ্রেণি ও বোর্ড", classLevel)
-                SummaryItem(Icons.Default.LocationOn, "জেলা", district)
-                SummaryItem(Icons.Default.LocationCity, "বিদ্যালয়", school)
+                SummaryItem(Icons.Default.Person, if (isBengali) "নাম" else "Name", name)
+                if (phone.isNotBlank()) {
+                    SummaryItem(Icons.Default.Phone, if (isBengali) "মোবাইল নম্বর" else "Mobile", phone)
+                }
+                if (dob.isNotBlank() || gender.isNotBlank()) {
+                    val genderLabel = when (gender.lowercase()) {
+                        "male" -> "পুরুষ"
+                        "female" -> "মহিলা"
+                        "other" -> "অন্যান্য"
+                        else -> gender
+                    }
+                    val dobGenderStr = listOfNotNull(
+                        dob.ifBlank { null },
+                        genderLabel.ifBlank { null }
+                    ).joinToString(" • ")
+                    SummaryItem(Icons.Default.Badge, if (isBengali) "জন্মতারিখ ও লিঙ্গ" else "DOB & Gender", dobGenderStr)
+                }
+                SummaryItem(Icons.Default.School, if (isBengali) "শ্রেণি ও বোর্ড" else "Class & Board", classLevel)
+                if (targetExam.isNotBlank()) {
+                    SummaryItem(Icons.Default.Star, if (isBengali) "টার্গেট পরীক্ষা" else "Target Exam", targetExam)
+                }
+                SummaryItem(Icons.Default.LocationOn, if (isBengali) "জেলা" else "District", district)
+                SummaryItem(Icons.Default.LocationCity, if (isBengali) "বিদ্যালয়" else "School", school)
+                if (selectedGoals.isNotEmpty()) {
+                    SummaryItem(
+                        Icons.Default.TrackChanges,
+                        if (isBengali) "পড়াশোনার লক্ষ্য" else "Study Goals",
+                        if (isBengali) "${selectedGoals.size}টি লক্ষ্য নির্বাচন করা হয়েছে" else "${selectedGoals.size} Goals Selected"
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "আপনার personalized learning journey এখন শুরু হতে চলেছে।",
+                text = if (isBengali) "আপনার পার্সোনালাইজড পড়াশোনা ও প্রস্তুতির অভিজ্ঞতা এখন শুরু হতে চলেছে।" else "Your personalized learning journey is about to begin.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppTextSecondary,
                 textAlign = TextAlign.Center
