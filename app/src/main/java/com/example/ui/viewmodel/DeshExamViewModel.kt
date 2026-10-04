@@ -158,7 +158,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private val database = DeshExamDatabase.getDatabase(application, viewModelScope)
     val repository = DeshExamRepository(database.deshExamDao(), application)
-    val authRepository = FirebaseAuthRepository()
+    val authRepository = FirebaseAuthRepository(application.applicationContext)
     val firestoreService = FirestoreService()
 
     private val _weakTopics = MutableStateFlow<List<com.example.data.local.TopicMistakeCount>>(emptyList())
@@ -397,6 +397,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private var lastRestoredUid: String? = null
+    private val _screenBackStack = ArrayDeque<AppScreen>()
+    val screenBackStack: List<AppScreen> get() = _screenBackStack.toList()
+
     private val _currentScreen = MutableStateFlow<AppScreen>(resolveInitialScreen())
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
@@ -547,37 +551,56 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             MadhyamikNotificationManager.createNotificationChannels(getApplication())
         } catch (_: Throwable) {}
 
-        // Auth state listener with background credential check & splash animation
+        // Auth state listener with background credential check & smooth session restoration
         viewModelScope.launch {
             val isAlreadyResolved = _currentScreen.value != AppScreen.SPLASH
             var splashDone = isAlreadyResolved
             if (!splashDone) {
                 launch {
-                    delay(800)
+                    delay(600)
                     splashDone = true
                 }
             }
             authRepository.authStateFlow.collect { user ->
                 if (!splashDone) {
-                    delay(800)
+                    delay(600)
                     splashDone = true
                 }
                 if (user != null) {
                     _isGuestUser.value = user.isAnonymous
-                    loadUserVideoProgress()
-                    if (!user.isAnonymous) {
-                        restoreUserProgressFromCloud(user.uid)
+
+                    // Prevent redundant network loading and cloud re-sync on every emission / app resume
+                    if (lastRestoredUid != user.uid) {
+                        lastRestoredUid = user.uid
+                        loadUserVideoProgress()
+                        if (!user.isAnonymous) {
+                            restoreUserProgressFromCloud(user.uid)
+                        }
                     }
+
                     val isCompleted = if (user.isAnonymous) {
                         prefs.getBoolean("onboarding_completed_guest", false)
                     } else {
                         prefs.getBoolean("onboarding_completed_${user.uid}", false)
                     }
+
                     if (isCompleted) {
                         try {
                             prefs.edit().putBoolean("has_completed_onboarding", true).apply()
                         } catch (_: Throwable) {}
-                        if (_currentScreen.value == AppScreen.SPLASH || _currentScreen.value == AppScreen.AUTH) {
+
+                        // Prevent forced auth-checks or resetting screen when app is resumed
+                        if (_currentScreen.value == AppScreen.SPLASH) {
+                            val saved = prefs.getString("saved_last_screen", null)
+                            val restoredScreen = saved?.let {
+                                try {
+                                    val s = AppScreen.valueOf(it)
+                                    if (s != AppScreen.SPLASH && s != AppScreen.AUTH && s != AppScreen.ONBOARDING && s != AppScreen.ASSESSMENT && s != AppScreen.RESULT) s else null
+                                } catch (_: Throwable) { null }
+                            }
+                            _currentScreen.value = restoredScreen ?: AppScreen.HOME
+                        } else if (_currentScreen.value == AppScreen.AUTH) {
+                            // User just signed in from Auth screen
                             _currentScreen.value = AppScreen.HOME
                         }
                     } else {
@@ -596,19 +619,20 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     }
                 } else {
                     // User is unauthenticated / logged out
+                    lastRestoredUid = null
                     _isGuestUser.value = true
                     if (_currentScreen.value == AppScreen.SPLASH) {
                         val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
                         _currentScreen.value = if (hasCompleted) AppScreen.HOME else AppScreen.AUTH
                     }
-                    // Crucial: If current screen is already AUTH, never redirect to HOME!
+                    // Crucial: If current screen is already AUTH or any sub-screen, do not force-navigate
                 }
             }
         }
 
         // Fail-safe: Under no circumstances should the app stay stuck on SPLASH screen
         viewModelScope.launch {
-            delay(1200)
+            delay(1000)
             if (_currentScreen.value == AppScreen.SPLASH) {
                 forceExitSplash()
             }
@@ -665,7 +689,18 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
             val currentUser = authRepository.currentUserState
             val isUserValid = (currentUser != null && (currentUser.isAnonymous || prefs.getBoolean("onboarding_completed_${currentUser.uid}", false))) || guestCompleted || hasCompleted
-            _currentScreen.value = if (isUserValid) AppScreen.HOME else AppScreen.AUTH
+            if (isUserValid) {
+                val saved = prefs.getString("saved_last_screen", null)
+                val target = saved?.let {
+                    try {
+                        val s = AppScreen.valueOf(it)
+                        if (s != AppScreen.SPLASH && s != AppScreen.AUTH && s != AppScreen.ONBOARDING && s != AppScreen.ASSESSMENT && s != AppScreen.RESULT) s else null
+                    } catch (_: Throwable) { null }
+                } ?: AppScreen.HOME
+                _currentScreen.value = target
+            } else {
+                _currentScreen.value = AppScreen.AUTH
+            }
         }
     }
 
@@ -701,7 +736,17 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun navigateTo(screen: AppScreen) {
         if (_currentScreen.value != screen) {
-            _previousScreen.value = _currentScreen.value
+            val from = _currentScreen.value
+            if (screen == AppScreen.HOME || screen == AppScreen.AUTH || screen == AppScreen.SPLASH) {
+                _screenBackStack.clear()
+            } else {
+                if (from != AppScreen.SPLASH && from != AppScreen.AUTH && from != AppScreen.ONBOARDING) {
+                    if (_screenBackStack.lastOrNull() != from) {
+                        _screenBackStack.addLast(from)
+                    }
+                }
+            }
+            _previousScreen.value = from
             _currentScreen.value = screen
             saveCurrentScreenState(screen)
         }
@@ -722,55 +767,62 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun goBack(): Boolean {
-        return when (_currentScreen.value) {
-            AppScreen.ASSESSMENT -> {
-                exitAssessment()
-                true
-            }
-            AppScreen.RESULT -> {
-                _latestResult.value = null
-                _currentScreen.value = AppScreen.HOME
-                true
-            }
+        val curr = _currentScreen.value
+        if (curr == AppScreen.HOME || curr == AppScreen.AUTH || curr == AppScreen.SPLASH || curr == AppScreen.ONBOARDING) {
+            return false
+        }
+
+        if (curr == AppScreen.ASSESSMENT) {
+            exitAssessment()
+            return true
+        }
+
+        if (curr == AppScreen.RESULT) {
+            _latestResult.value = null
+            _screenBackStack.removeAll { it == AppScreen.ASSESSMENT || it == AppScreen.RESULT }
+            val target = _screenBeforeAssessment.value ?: _screenBackStack.removeLastOrNull() ?: AppScreen.HOME
+            _screenBeforeAssessment.value = null
+            _previousScreen.value = curr
+            _currentScreen.value = target
+            saveCurrentScreenState(target)
+            return true
+        }
+
+        if (_screenBackStack.isNotEmpty()) {
+            val target = _screenBackStack.removeLast()
+            _previousScreen.value = curr
+            _currentScreen.value = target
+            saveCurrentScreenState(target)
+            return true
+        }
+
+        return when (curr) {
             AppScreen.CHAPTER_DETAIL -> {
+                _previousScreen.value = curr
                 _currentScreen.value = AppScreen.SUBJECT_DETAIL
                 true
             }
             AppScreen.LEARN_TOPIC -> {
+                _previousScreen.value = curr
                 _currentScreen.value = if (_previousScreen.value == AppScreen.CHAPTER_DETAIL) AppScreen.CHAPTER_DETAIL else AppScreen.JOURNEY
                 true
             }
             AppScreen.VIDEO_LESSON -> {
-                _currentScreen.value = if (_previousScreen.value != AppScreen.VIDEO_LESSON) _previousScreen.value else AppScreen.LEARN_TOPIC
+                _previousScreen.value = curr
+                _currentScreen.value = AppScreen.LEARN_TOPIC
                 true
             }
-            AppScreen.CONTENT_SOLUTION -> {
-                navigateTo(_previousScreen.value)
-                true
-            }
-            AppScreen.SETTINGS -> {
-                _currentScreen.value = if (_previousScreen.value != AppScreen.SETTINGS) _previousScreen.value else AppScreen.HOME
-                true
-            }
-            AppScreen.EDIT_PROFILE -> {
+            AppScreen.SETTINGS, AppScreen.EDIT_PROFILE -> {
+                _previousScreen.value = curr
                 _currentScreen.value = AppScreen.PROFILE
                 true
             }
-            AppScreen.INTERNET_ARCHIVE_SEARCH -> {
-                _currentScreen.value = AppScreen.TEXTBOOKS
+            else -> {
+                _previousScreen.value = curr
+                _currentScreen.value = AppScreen.HOME
+                saveCurrentScreenState(AppScreen.HOME)
                 true
             }
-            AppScreen.JOURNEY, AppScreen.MOCK, AppScreen.LEADERBOARD, AppScreen.BATTLE, AppScreen.AI_COACH, AppScreen.PROFILE,
-            AppScreen.FLASHCARDS, AppScreen.PYQ_EXPLORER, AppScreen.OMR_PRACTICE, AppScreen.TOPPERS_GUIDE,
-            AppScreen.CERTIFICATE, AppScreen.DOUBT_SOLVER, AppScreen.MULTIPLAYER_BATTLE,
-            AppScreen.AUDIO_PODCASTS, AppScreen.STUDY_PLANNER, AppScreen.BOOKMARK_HUB, AppScreen.STUDY_SQUADS,
-            AppScreen.PROGRESS_DASHBOARD, AppScreen.PDF_NOTES, AppScreen.PYQ_PDF_DOWNLOAD, AppScreen.ORIGINAL_PYQ_PDF_DOWNLOAD,
-            AppScreen.TEXTBOOKS, AppScreen.LIVE_QUIZ, AppScreen.LIVE_MOCK_TEST, AppScreen.ADMIN_PANEL, AppScreen.WALLET, AppScreen.MEMBERSHIP, AppScreen.WEAKNESS_INSIGHT,
-            AppScreen.SUBJECT_DETAIL -> {
-                _currentScreen.value = if (_previousScreen.value != AppScreen.SUBJECT_DETAIL && _previousScreen.value != AppScreen.HOME) _previousScreen.value else AppScreen.HOME
-                true
-            }
-            AppScreen.SPLASH, AppScreen.AUTH, AppScreen.ONBOARDING, AppScreen.HOME -> false
         }
     }
 
@@ -864,11 +916,21 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             authRepository.signOut()
             _isGuestUser.value = true
+            _screenBackStack.clear()
+            _previousScreen.value = AppScreen.AUTH
+            _screenBeforeAssessment.value = null
+            _activeTopicStudy.value = null
+            _selectedChapterEntity.value = null
+            _selectedSubjectEntity.value = null
+            _latestResult.value = null
+            _celebratingBadge.value = null
+            lastRestoredUid = null
             try {
                 prefs.edit()
                     .remove("saved_last_screen")
                     .remove("has_completed_onboarding")
                     .remove("onboarding_completed_guest")
+                    .remove("is_guest_user")
                     .remove("saved_last_topic_id")
                     .remove("saved_last_chapter_id")
                     .remove("saved_last_subject_id")
@@ -882,9 +944,6 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     targetExam = "Madhyamik 2026"
                 )
             } catch (_: Throwable) {}
-            _activeTopicStudy.value = null
-            _selectedChapterEntity.value = null
-            _selectedSubjectEntity.value = null
             _currentScreen.value = AppScreen.AUTH
         }
     }

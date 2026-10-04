@@ -83,6 +83,10 @@ fun AuthScreen(
     var localError by remember { mutableStateOf<String?>(null) }
     var showSha1Dialog by remember { mutableStateOf(false) }
     var showNoAccountDialog by remember { mutableStateOf(false) }
+    var isGoogleLoading by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
+    var selectedTermsTab by remember { mutableStateOf(0) }
+    var termsAccepted by remember { mutableStateOf(false) }
 
     // Form inputs
     var name by remember { mutableStateOf("") }
@@ -91,6 +95,7 @@ fun AuthScreen(
     var targetExam by remember { mutableStateOf("WBBSE Madhyamik 2026") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
     var districtExpanded by remember { mutableStateOf(false) }
@@ -118,16 +123,20 @@ fun AuthScreen(
     val inputBgColor = Color(0xFF0F172A).copy(alpha = 0.3f)
     val inputBorderColor = Color.White.copy(alpha = 0.12f)
 
-    // Text Field Color styling to achieve the sleek translucent inputs
+    // Text Field Color styling to achieve sleek translucent inputs with clear contrast
     val modernTextFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = inputBgColor,
         unfocusedContainerColor = inputBgColor,
         focusedBorderColor = Color(0xFFA78BFA), // Pastel Violet Focus border
         unfocusedBorderColor = inputBorderColor,
         focusedLabelColor = Color(0xFFA78BFA),
-        unfocusedLabelColor = Color(0xFF94A3B8),
+        unfocusedLabelColor = Color(0xFFCBD5E1),
+        focusedPlaceholderColor = Color(0xFF94A3B8),
+        unfocusedPlaceholderColor = Color(0xFF64748B),
         focusedLeadingIconColor = Color(0xFFA78BFA),
         unfocusedLeadingIconColor = Color(0xFF94A3B8),
+        focusedTrailingIconColor = Color(0xFFA78BFA),
+        unfocusedTrailingIconColor = Color(0xFF94A3B8),
         focusedTextColor = Color.White,
         unfocusedTextColor = Color.White,
         cursorColor = Color(0xFFA78BFA)
@@ -178,7 +187,7 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp, vertical = 14.dp)
+                .padding(horizontal = 24.dp, vertical = 20.dp)
                 .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -187,7 +196,7 @@ fun AuthScreen(
             // 1. App Logo Badge
             Box(
                 modifier = Modifier
-                    .size(66.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -204,29 +213,29 @@ fun AuthScreen(
                     imageVector = Icons.Default.School,
                     contentDescription = "Logo Cap",
                     tint = Color.White,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier.size(42.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // 2. Form Column directly on layout (No outer Card)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("auth_form_container"),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Segmented Toggle control with Gradient Active Tab
                 if (authMode != AuthMode.FORGOT_PASSWORD) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
+                            .height(50.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF1E293B).copy(alpha = 0.5f))
                             .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), CircleShape)
-                            .padding(3.dp),
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         val isSignIn = authMode == AuthMode.SIGN_IN
@@ -409,24 +418,25 @@ fun AuthScreen(
 
                         // Form input fields
                         AnimatedVisibility(visible = authMode == AuthMode.SIGN_UP) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 // Full Name Field
                                 OutlinedTextField(
                                     value = name,
                                     onValueChange = { name = it },
-                                    placeholder = { Text("আপনার সম্পূর্ণ নাম", fontSize = 13.sp, color = Color(0xFF64748B)) },
+                                    label = { Text("আপনার নাম") },
+                                    placeholder = { Text("আপনার পুরো নাম লিখুন") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(22.dp))
                                     },
                                     singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     colors = modernTextFieldColors,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(46.dp)
+                                        .heightIn(min = 58.dp)
                                         .testTag("input_full_name")
                                 )
                             }
@@ -436,12 +446,13 @@ fun AuthScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("আপনার ইমেইল বা ফোন", fontSize = 13.sp, color = Color(0xFF64748B)) },
+                            label = { Text("ইমেইল বা ফোন") },
+                            placeholder = { Text("আপনার ইমেইল বা ফোন নম্বর লিখুন") },
                             leadingIcon = {
-                                Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(22.dp))
                             },
                             singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
                                 imeAction = if (authMode == AuthMode.FORGOT_PASSWORD) ImeAction.Done else ImeAction.Next
@@ -453,39 +464,84 @@ fun AuthScreen(
                                     if (authMode == AuthMode.FORGOT_PASSWORD) onForgotPassword(email)
                                 }
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = modernTextFieldColors,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(46.dp)
+                                .heightIn(min = 58.dp)
                                 .testTag("input_email")
                         )
 
-                        // Password Field matching clean layout
+                        // Password Field matching "পাসওয়ার্ড দিন" layout
                         if (authMode != AuthMode.FORGOT_PASSWORD) {
                             OutlinedTextField(
                                 value = password,
                                 onValueChange = { password = it },
-                                placeholder = { Text("পাসওয়ার্ড", fontSize = 13.sp, color = Color(0xFF64748B)) },
+                                label = { Text("পাসওয়ার্ড") },
+                                placeholder = { Text("পাসওয়ার্ড লিখুন (কমপক্ষে ৬ অক্ষর)") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(22.dp))
                                 },
                                 trailingIcon = {
                                     IconButton(
-                                        onClick = { showPassword = !showPassword },
-                                        modifier = Modifier.size(24.dp)
+                                        onClick = { showPassword = !showPassword }
                                     ) {
                                         Icon(
                                             imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                             contentDescription = if (showPassword) "Hide password" else "Show password",
-                                            modifier = Modifier.size(18.dp),
-                                            tint = Color(0xFF64748B)
+                                            modifier = Modifier.size(20.dp),
+                                            tint = Color(0xFF94A3B8)
                                         )
                                     }
                                 },
                                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                                 singleLine = true,
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = if (authMode == AuthMode.SIGN_UP) ImeAction.Next else ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                                    onDone = {
+                                        focusManager.clearFocus()
+                                        onSignIn(email, password)
+                                    }
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = modernTextFieldColors,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 58.dp)
+                                    .testTag("input_password")
+                            )
+                        }
+
+                        // Confirm Password (SignUp Mode)
+                        if (authMode == AuthMode.SIGN_UP) {
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it },
+                                label = { Text("পাসওয়ার্ড নিশ্চিতকরণ") },
+                                placeholder = { Text("একই পাসওয়ার্ড পুনরায় লিখুন") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(22.dp))
+                                },
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = { showPassword = !showPassword }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                            contentDescription = if (showPassword) "Hide password" else "Show password",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = Color(0xFF94A3B8)
+                                        )
+                                    }
+                                },
+                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Password,
                                     imeAction = ImeAction.Done
@@ -493,35 +549,24 @@ fun AuthScreen(
                                 keyboardActions = KeyboardActions(
                                     onDone = {
                                         focusManager.clearFocus()
-                                        if (authMode == AuthMode.SIGN_IN) {
-                                            onSignIn(email, password)
-                                        } else if (authMode == AuthMode.SIGN_UP) {
-                                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                                                localError = if (isBengali) "নাম, ইমেইল ও পাসওয়ার্ড প্রদান করুন" else "Please enter name, email and password"
-                                            } else {
-                                                onSignUp(name, school, district, targetExam, email, password)
-                                            }
+                                        if (password == confirmPassword) {
+                                            onSignUp(name, school, district, targetExam, email, password)
                                         }
                                     }
                                 ),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = modernTextFieldColors,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(46.dp)
-                                    .testTag("input_password")
+                                    .heightIn(min = 58.dp)
+                                    .testTag("input_confirm_password")
                             )
-                        }
-
-                        // Terms and Conditions Policy (SignUp Mode) with minimized margin
-                        if (authMode == AuthMode.SIGN_UP) {
-                            var termsAccepted by remember { mutableStateOf(true) }
+                            
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 1.dp, bottom = 1.dp)
-                                    .clickable { termsAccepted = !termsAccepted }
+                                    .padding(top = 2.dp, bottom = 0.dp)
                             ) {
                                 Checkbox(
                                     checked = termsAccepted,
@@ -530,25 +575,55 @@ fun AuthScreen(
                                         checkedColor = Color(0xFFA78BFA),
                                         uncheckedColor = Color(0xFF64748B)
                                     ),
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp).padding(end = 8.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = androidx.compose.ui.text.buildAnnotatedString {
-                                        append("আমি ব্যবহারের ")
-                                        withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFA78BFA), textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)) {
-                                            append("শর্তাবলী")
-                                        }
-                                        append(" ও ")
-                                        withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFA78BFA), textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)) {
-                                            append("গোপনীয়তা নীতি")
-                                        }
-                                        append(" মেনে নিচ্ছি")
-                                    },
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = Color(0xFF94A3B8),
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
-                                )
+                                ) {
+                                    Text(
+                                        text = "আমি ব্যবহারের ",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                    Text(
+                                        text = "শর্তাবলী",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                        ),
+                                        color = Color(0xFFA78BFA),
+                                        modifier = Modifier.clickable {
+                                            selectedTermsTab = 0
+                                            showTermsDialog = true
+                                        }
+                                    )
+                                    Text(
+                                        text = " ও ",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                    Text(
+                                        text = "গোপনীয়তা নীতি",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                        ),
+                                        color = Color(0xFFA78BFA),
+                                        modifier = Modifier.clickable {
+                                            selectedTermsTab = 1
+                                            showTermsDialog = true
+                                        }
+                                    )
+                                    Text(
+                                        text = " মেনে নিচ্ছি",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                }
                             }
                         }
 
@@ -575,231 +650,256 @@ fun AuthScreen(
                             }
                         }
 
-                        // Gradient Action Button matching image
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (isLoading) {
-                                        Brush.horizontalGradient(listOf(Color(0xFF64748B), Color(0xFF64748B)))
-                                    } else {
-                                        Brush.horizontalGradient(
-                                            listOf(
-                                                Color(0xFF9333EA), // Purple
-                                                Color(0xFF3B82F6)  // Blue
+                        // Compact Action Buttons & Social Auth Section
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Gradient Action Button matching image
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (isLoading) {
+                                            Brush.horizontalGradient(listOf(Color(0xFF64748B), Color(0xFF64748B)))
+                                        } else {
+                                            Brush.horizontalGradient(
+                                                listOf(
+                                                    Color(0xFF9333EA), // Purple
+                                                    Color(0xFF3B82F6)  // Blue
+                                                )
                                             )
-                                        )
-                                    }
-                                )
-                                .clickable(enabled = !isLoading) {
-                                    focusManager.clearFocus()
-                                    when (authMode) {
-                                        AuthMode.SIGN_IN -> onSignIn(email, password)
-                                        AuthMode.SIGN_UP -> {
-                                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                                                localError = if (isBengali) "নাম, ইমেইল ও পাসওয়ার্ড প্রদান করুন" else "Please enter name, email and password"
-                                            } else {
+                                        }
+                                    )
+                                    .clickable(enabled = !isLoading && !isGoogleLoading) {
+                                        focusManager.clearFocus()
+                                        when (authMode) {
+                                            AuthMode.SIGN_IN -> onSignIn(email, password)
+                                            AuthMode.SIGN_UP -> {
+                                                if (!termsAccepted) {
+                                                    localError = if (isBengali) "অনুগ্রহ করে শর্তাবলী ও গোপনীয়তা নীতি মেনে নিয়ে চেকবক্সে টিক দিন।" else "Please accept the Terms & Privacy Policy to proceed."
+                                                    return@clickable
+                                                }
                                                 onSignUp(name, school, district, targetExam, email, password)
                                             }
+                                            AuthMode.FORGOT_PASSWORD -> onForgotPassword(email)
                                         }
-                                        AuthMode.FORGOT_PASSWORD -> onForgotPassword(email)
                                     }
-                                }
-                                .testTag("auth_submit_btn"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(22.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-                                ) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(
-                                        text = when (authMode) {
-                                            AuthMode.SIGN_IN -> "সাইন ইন"
-                                            AuthMode.SIGN_UP -> "অ্যাকাউন্ট তৈরি করুন"
-                                            AuthMode.FORGOT_PASSWORD -> "রিসেট লিংক পাঠান"
-                                        },
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
-                                            letterSpacing = 0.5.sp
-                                        ),
+                                    .testTag("auth_submit_btn"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
                                         color = Color.White,
-                                        modifier = Modifier.padding(start = 18.dp)
+                                        modifier = Modifier.size(22.dp),
+                                        strokeWidth = 2.dp
                                     )
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                                    ) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        Text(
+                                            text = when (authMode) {
+                                                AuthMode.SIGN_IN -> "সাইন ইন"
+                                                AuthMode.SIGN_UP -> "অ্যাকাউন্ট তৈরি করুন"
+                                                AuthMode.FORGOT_PASSWORD -> "রিসেট লিংক পাঠান"
+                                            },
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                                letterSpacing = 0.5.sp
+                                            ),
+                                            color = Color.White,
+                                            modifier = Modifier.padding(start = 18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        // Divider matching the "বা" in image with compact margin
-                        if (authMode != AuthMode.FORGOT_PASSWORD) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 1.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    color = Color.White.copy(alpha = 0.08f)
-                                )
-                                Text(
-                                    text = "বা",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    ),
-                                    color = Color(0xFF64748B),
-                                    modifier = Modifier.padding(horizontal = 10.dp)
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.weight(1f),
-                                    color = Color.White.copy(alpha = 0.08f)
-                                )
-                            }
-
-                            // Google Sign In button matching pure white design
-                            Surface(
-                                onClick = {
-                                    val googleIdOption = GetGoogleIdOption.Builder()
-                                        .setFilterByAuthorizedAccounts(false)
-                                        .setServerClientId("461242639157-dbbqm1tkbdh82q2djn8r3se8vced5119.apps.googleusercontent.com")
-                                        .setAutoSelectEnabled(false)
-                                        .build()
-
-                                    val request = GetCredentialRequest.Builder()
-                                        .addCredentialOption(googleIdOption)
-                                        .build()
-
-                                    scope.launch {
-                                        try {
-                                            localError = null
-                                            val result = credentialManager.getCredential(
-                                                request = request,
-                                                context = context
-                                            )
-                                            val credential = result.credential
-                                            if (credential is GoogleIdTokenCredential) {
-                                                onGoogleSignIn(
-                                                    credential.idToken,
-                                                    credential.displayName,
-                                                    credential.id
-                                                )
-                                            }
-                                        } catch (e: GetCredentialCancellationException) {
-                                            localError = null
-                                        } catch (e: NoCredentialException) {
-                                            showNoAccountDialog = true
-                                            localError = if (isBengali) {
-                                                "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে একটি গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
-                                            } else {
-                                                "No Google account found on this device. Please add a Google account or use Demo Login."
-                                            }
-                                        } catch (e: GetCredentialException) {
-                                            val errorMsg = e.message.orEmpty()
-                                            if (errorMsg.contains("No credentials available", ignoreCase = true) || errorMsg.contains("28434")) {
-                                                showNoAccountDialog = true
-                                                localError = if (isBengali) {
-                                                    "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
-                                                } else {
-                                                    "No Google account found on this device. Please add a Google account or use Demo Login."
-                                                }
-                                            } else if (errorMsg.contains("10") || errorMsg.contains("Developer console is not set up correctly", ignoreCase = true)) {
-                                                showSha1Dialog = true
-                                                localError = if (isBengali) {
-                                                    "গুগল সাইন-ইন সেটআপ প্রয়োজন: ফায়ারবেস কনসোলে অ্যাপের SHA-1 ফিঙ্গারপ্রিন্ট যোগ করতে হবে।"
-                                                } else {
-                                                    "Google Sign-In setup needed: Add app's SHA-1 fingerprint to Firebase Console."
-                                                }
-                                            } else if (errorMsg.contains("cancel", ignoreCase = true) || errorMsg.contains("16")) {
-                                                localError = null
-                                            } else {
-                                                localError = if (isBengali) {
-                                                    "গুগল সাইন-ইন বাতিল বা ব্যর্থ হয়েছে: ${e.message}"
-                                                } else {
-                                                    "Google Sign-In cancelled or failed: ${e.message}"
-                                                }
-                                            }
-                                        } catch (e: Exception) {
-                                            val errorMsg = e.localizedMessage.orEmpty()
-                                            if (errorMsg.contains("No credentials available", ignoreCase = true) || errorMsg.contains("28434")) {
-                                                showNoAccountDialog = true
-                                                localError = if (isBengali) {
-                                                    "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
-                                                } else {
-                                                    "No Google account found on this device. Please add a Google account or use Demo Login."
-                                                }
-                                            } else if (errorMsg.contains("10") || errorMsg.contains("Developer console is not set up correctly", ignoreCase = true)) {
-                                                showSha1Dialog = true
-                                                localError = if (isBengali) {
-                                                    "গুগল সাইন-ইন সেটআপ প্রয়োজন: ফায়ারবেস কনসোলে অ্যাপের SHA-1 ফিঙ্গারপ্রিন্ট যোগ করতে হবে।"
-                                                } else {
-                                                    "Google Sign-In setup needed: Add app's SHA-1 fingerprint to Firebase Console."
-                                                }
-                                            } else {
-                                                localError = if (isBengali) {
-                                                    "ত্রুটি: ${e.localizedMessage ?: "Unknown error"}"
-                                                } else {
-                                                    "Error: ${e.localizedMessage ?: "Unknown error"}"
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                 enabled = !isLoading,
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFDADCE0)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp)
-                                    .testTag("google_signin_btn")
-                            ) {
+                            // Divider matching the "বা" in image with tight gap
+                            if (authMode != AuthMode.FORGOT_PASSWORD) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 14.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.ic_google_logo),
-                                        contentDescription = "Google Logo",
-                                        modifier = Modifier.size(18.dp)
+                                    HorizontalDivider(
+                                        modifier = Modifier.weight(1f),
+                                        color = Color.White.copy(alpha = 0.12f)
                                     )
-                                    Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = "Google দিয়ে সাইন ইন করুন",
-                                        style = MaterialTheme.typography.labelLarge.copy(
+                                        text = "বা",
+                                        style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 13.5.sp
+                                            fontSize = 12.sp
                                         ),
-                                         color = Color(0xFF1F1F1F)
+                                        color = Color(0xFF64748B),
+                                        modifier = Modifier.padding(horizontal = 12.dp)
                                     )
+                                    HorizontalDivider(
+                                        modifier = Modifier.weight(1f),
+                                        color = Color.White.copy(alpha = 0.12f)
+                                    )
+                                }
+
+                                // Google Sign In / Sign Up button matching pure white design
+                                Surface(
+                                    onClick = {
+                                        if (isGoogleLoading || isLoading) return@Surface
+                                        isGoogleLoading = true
+                                        val googleIdOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId("461242639157-dbbqm1tkbdh82q2djn8r3se8vced5119.apps.googleusercontent.com")
+                                            .setAutoSelectEnabled(false)
+                                            .build()
+
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleIdOption)
+                                            .build()
+
+                                        scope.launch {
+                                            try {
+                                                localError = null
+                                                val result = credentialManager.getCredential(
+                                                    request = request,
+                                                    context = context
+                                                )
+                                                val credential = result.credential
+                                                if (credential is GoogleIdTokenCredential) {
+                                                    onGoogleSignIn(
+                                                        credential.idToken,
+                                                        credential.displayName,
+                                                        credential.id
+                                                    )
+                                                }
+                                            } catch (e: GetCredentialCancellationException) {
+                                                localError = null
+                                            } catch (e: NoCredentialException) {
+                                                showNoAccountDialog = true
+                                                localError = if (isBengali) {
+                                                    "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে একটি গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
+                                                } else {
+                                                    "No Google account found on this device. Please add a Google account or use Demo Login."
+                                                }
+                                            } catch (e: GetCredentialException) {
+                                                val errorMsg = e.message.orEmpty()
+                                                if (errorMsg.contains("No credentials available", ignoreCase = true) || errorMsg.contains("28434")) {
+                                                    showNoAccountDialog = true
+                                                    localError = if (isBengali) {
+                                                        "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
+                                                    } else {
+                                                        "No Google account found on this device. Please add a Google account or use Demo Login."
+                                                    }
+                                                } else if (errorMsg.contains("10") || errorMsg.contains("Developer console is not set up correctly", ignoreCase = true)) {
+                                                    showSha1Dialog = true
+                                                    localError = if (isBengali) {
+                                                        "গুগল সাইন-ইন সেটআপ প্রয়োজন: ফায়ারবেস কনসোলে অ্যাপের SHA-1 ফিঙ্গারপ্রিন্ট যোগ করতে হবে।"
+                                                    } else {
+                                                        "Google Sign-In setup needed: Add app's SHA-1 fingerprint to Firebase Console."
+                                                    }
+                                                } else if (errorMsg.contains("cancel", ignoreCase = true) || errorMsg.contains("16")) {
+                                                    localError = null
+                                                } else {
+                                                    localError = if (isBengali) {
+                                                        "গুগল সাইন-ইন বাতিল বা ব্যর্থ হয়েছে: ${e.message}"
+                                                    } else {
+                                                        "Google Sign-In cancelled or failed: ${e.message}"
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                val errorMsg = e.localizedMessage.orEmpty()
+                                                if (errorMsg.contains("No credentials available", ignoreCase = true) || errorMsg.contains("28434")) {
+                                                    showNoAccountDialog = true
+                                                    localError = if (isBengali) {
+                                                        "ডিভাইসে কোনো গুগল অ্যাকাউন্ট পাওয়া যায়নি। ফোনে গুগল অ্যাকাউন্ট যোগ করুন অথবা টেস্ট সাইন-ইন ব্যবহার করুন।"
+                                                    } else {
+                                                        "No Google account found on this device. Please add a Google account or use Demo Login."
+                                                    }
+                                                } else if (errorMsg.contains("10") || errorMsg.contains("Developer console is not set up correctly", ignoreCase = true)) {
+                                                    showSha1Dialog = true
+                                                    localError = if (isBengali) {
+                                                        "গুগল সাইন-ইন সেটআপ প্রয়োজন: ফায়ারবেস কনসোলে অ্যাপের SHA-1 ফিঙ্গারপ্রিন্ট যোগ করতে হবে।"
+                                                    } else {
+                                                        "Google Sign-In setup needed: Add app's SHA-1 fingerprint to Firebase Console."
+                                                    }
+                                                } else {
+                                                    localError = if (isBengali) {
+                                                        "ত্রুটি: ${e.localizedMessage ?: "Unknown error"}"
+                                                    } else {
+                                                        "Error: ${e.localizedMessage ?: "Unknown error"}"
+                                                    }
+                                                }
+                                            } finally {
+                                                isGoogleLoading = false
+                                            }
+                                        }
+                                    },
+                                    enabled = !isLoading && !isGoogleLoading,
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color.White,
+                                    border = BorderStroke(1.dp, Color(0xFFDADCE0)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .testTag("google_signin_btn")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (isGoogleLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color(0xFF4285F4)
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Text(
+                                                text = if (isBengali) "গুগল অ্যাকাউন্ট খোঁজা হচ্ছে..." else "Fetching Google account...",
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp
+                                                ),
+                                                color = Color(0xFF1F1F1F)
+                                            )
+                                        } else {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_google_logo),
+                                                contentDescription = "Google Logo",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = if (authMode == AuthMode.SIGN_UP) "Google দিয়ে সাইন আপ করুন" else "Google দিয়ে সাইন ইন করুন",
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp
+                                                ),
+                                                color = Color(0xFF1F1F1F)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Compact Centered Guest Mode Button (Not Full Width)
             Surface(
@@ -818,7 +918,7 @@ fun AuthScreen(
                     .testTag(if (authMode == AuthMode.SIGN_UP) "go_to_signin_btn" else "continue_as_guest_btn")
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -879,7 +979,7 @@ fun AuthScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Beautiful interactive sparkling 4-pointed star drawn in SVG Canvas to match bottom-right corner decoration
             Row(
@@ -1065,6 +1165,301 @@ fun AuthScreen(
                         Text("বন্ধ করুন")
                     }
                 }
+            )
+        }
+
+        // Terms of Service and Privacy Policy Dialog
+        if (showTermsDialog) {
+            AlertDialog(
+                onDismissRequest = { showTermsDialog = false },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color(0xFF0F172A),
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF7C3AED).copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    tint = Color(0xFFA78BFA),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = if (isBengali) "শর্তাবলী ও নীতিমালা" else "Terms & Privacy Policy",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = if (isBengali) "দেশ এক্সাম মাধ্যমিক প্ল্যাটফর্ম" else "Desh Exam Madhyamik Platform",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { showTermsDialog = false },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 420.dp)
+                    ) {
+                        // Tab Selector
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF1E293B))
+                                .padding(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Terms Tab
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (selectedTermsTab == 0) Color(0xFF7C3AED) else Color.Transparent
+                                    )
+                                    .clickable { selectedTermsTab = 0 },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isBengali) "ব্যবহারের শর্তাবলী" else "Terms of Service",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (selectedTermsTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp
+                                    ),
+                                    color = if (selectedTermsTab == 0) Color.White else Color(0xFF94A3B8)
+                                )
+                            }
+
+                            // Privacy Tab
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (selectedTermsTab == 1) Color(0xFF3B82F6) else Color.Transparent
+                                    )
+                                    .clickable { selectedTermsTab = 1 },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isBengali) "গোপনীয়তা নীতি" else "Privacy Policy",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (selectedTermsTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp
+                                    ),
+                                    color = if (selectedTermsTab == 1) Color.White else Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Scrollable Document Content
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (selectedTermsTab == 0) {
+                                // TERMS OF SERVICE
+                                TermsSectionItem(
+                                    number = "১",
+                                    title = if (isBengali) "যোগ্যতা ও অ্যাকাউন্ট নিরাপত্তা" else "Eligibility & Account Security",
+                                    desc = if (isBengali)
+                                        "দেশ এক্সাম প্ল্যাটফর্মটি পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ (WBBSE) মাধ্যমিক দশম শ্রেণির ছাত্রছাত্রীদের পড়াশোনা ও প্রস্তুতির জন্য তৈরি। অ্যাকাউন্টের তথ্যের নির্ভুলতা বজায় রাখা শিক্ষার্থীর দায়িত্ব।"
+                                    else
+                                        "Desh Exam is created for WBBSE Madhyamik Class 10 students for educational preparation. Each student is expected to maintain valid account details securely."
+                                )
+                                TermsSectionItem(
+                                    number = "২",
+                                    title = if (isBengali) "পাঠ্যসূচি ও স্টাডি কনটেন্ট ব্যবহার" else "Curriculum & Study Materials",
+                                    desc = if (isBengali)
+                                        "অ্যাপে উপলব্ধ সমস্ত নোট, সাজেশন, বিগত বছরের প্রশ্নপত্র (PYQs), অধ্যায়ভিত্তিক কুইজ এবং ভিডিও লেসন সম্পূর্ণভাবে ব্যক্তিগত পড়াশোনার জন্য। এই কনটেন্ট বাণিজ্যিক উদ্দেশ্যে পুনঃবিক্রি, অনুলিপি বা অননুমোদিত বিতরণ কঠোরভাবে নিষিদ্ধ।"
+                                    else
+                                        "All notes, suggestions, PYQs, and video lessons are intended strictly for personal study. Any commercial redistribution or unauthorized copying is prohibited."
+                                )
+                                TermsSectionItem(
+                                    number = "৩",
+                                    title = if (isBengali) "মক টেস্ট ও লিডারবোর্ড সততা" else "Mock Test & Fair Leaderboard",
+                                    desc = if (isBengali)
+                                        "লাইভ মক টেস্ট, ডেইলি ১০ কুইজ এবং কুইজ ব্যাটেলে সৎভাবে অংশগ্রহণ আবশ্যক। কোনো অসদুপায় বা অটোমেশন টুলস ব্যবহার করলে অ্যাকাউন্টের লিডারবোর্ড রেঙ্ক বাতিল হতে পারে।"
+                                    else
+                                        "Students must participate honestly in live mock tests and daily quizzes. Any cheating or automated manipulation may result in ranking disqualification."
+                                )
+                                TermsSectionItem(
+                                    number = "৪",
+                                    title = if (isBengali) "AI স্টাডি কোচ ও সন্দেহ সমাধান" else "AI Study Coach & Assistance",
+                                    desc = if (isBengali)
+                                        "AI সহায়তাকারী টুল এবং স্টাডি টিপস শিক্ষার্থীদের দ্রুত সহায়তা করার জন্য সরবরাহ করা হয়েছে। জটিল ও সংশয়পূর্ণ বিষয়ে সরকারি পাঠ্যবই ও শিক্ষক-শিক্ষিকাদের নির্দেশনা চূড়ান্ত।"
+                                    else
+                                        "AI assistance is provided to guide learning. For final examination reference, standard WBBSE textbooks and school teachers' guidance are authoritative."
+                                )
+                                TermsSectionItem(
+                                    number = "৫",
+                                    title = if (isBengali) "সেবা পরিমার্জন ও পরিবর্তন" else "Service Amendments",
+                                    desc = if (isBengali)
+                                        "পরীক্ষার নতুন সিলেবাস ও পর্ষদের নির্দেশিকা অনুসারে যে কোনো সময় অ্যাপের স্টাডি কনটেন্ট পরিমার্জিত বা হালনাগাদ করা হতে পারে।"
+                                    else
+                                        "Course content and test series may be regularly updated in alignment with official WBBSE board notifications."
+                                )
+                            } else {
+                                // PRIVACY POLICY
+                                TermsSectionItem(
+                                    number = "১",
+                                    title = if (isBengali) "সংগৃহীত শিক্ষার্থীর তথ্য" else "Information Collected",
+                                    desc = if (isBengali)
+                                        "শিক্ষার্থীর নাম, ইমেইল অথবা মোবাইল নম্বর, জেলা এবং স্কুলের নাম সংগ্রহ করা হয় কেবল প্রোফাইল তৈরি, ব্যাজ প্রদান ও রাজ্যভিত্তিক লিডারবোর্ডের জন্য।"
+                                    else
+                                        "Student name, email or phone number, district, and school information are collected solely for personalizing progress, certificates, and state leaderboards."
+                                )
+                                TermsSectionItem(
+                                    number = "২",
+                                    title = if (isBengali) "তথ্যের ব্যবহার ও প্রগ্রেস ট্র্যাকিং" else "Data Usage & Progress Analytics",
+                                    desc = if (isBengali)
+                                        "আপনার অধ্যায়ভিত্তিক পড়াশোনার অগ্রগতি, দুর্বল বিষয়ের বিশ্লেষণ (Weak Topics), টেস্ট স্কোর এবং রিভিশন স্ট্রিম সাজাতে এই তথ্য ব্যবহৃত হয়।"
+                                    else
+                                        "We analyze chapter progress, weak topics, and test scores solely to provide smart revision schedules and study recommendations."
+                                )
+                                TermsSectionItem(
+                                    number = "৩",
+                                    title = if (isBengali) "ক্লাউড নিরাপত্তা ও এনক্রিপশন" else "Cloud Security & Encryption",
+                                    desc = if (isBengali)
+                                        "ফায়ারবেস অথেনটিকেশন ও ক্লাউড ফায়ারস্টোরের শীর্ষস্থানীয় এনক্রিপশন প্রযুক্তির মাধ্যমে শিক্ষার্থীর সকল তথ্য নিরাপদে সংরক্ষিত থাকে। অফলাইন ডিভাইসে রুম ডেটাবেসে ক্যাশ সুরক্ষিত থাকে।"
+                                    else
+                                        "Data is securely stored using industry-standard Firebase authentication and cloud encryption protocols, with offline caching on device."
+                                )
+                                TermsSectionItem(
+                                    number = "৪",
+                                    title = if (isBengali) "তৃতীয় পক্ষের সাথে শেয়ার না করা" else "Strict No-Third-Party Sharing",
+                                    desc = if (isBengali)
+                                        "আমরা কোনো বাণিজ্যিক বিজ্ঞাপনদাতা বা বহিরাগত মার্কেটিং সংস্থার কাছে শিক্ষার্থীদের ব্যক্তিগত তথ্য বা ফোন নম্বর বিক্রি করি না।"
+                                    else
+                                        "We strictly do not sell, rent, or trade student personal data or contact details to any third-party advertisers."
+                                )
+                                TermsSectionItem(
+                                    number = "৫",
+                                    title = if (isBengali) "শিক্ষার্থীর নিয়ন্ত্রণ ও ডেটা অধিকার" else "Student Rights & Data Control",
+                                    desc = if (isBengali)
+                                        "শিক্ষার্থী যেকোনো সময় প্রোফাইল সেকশন থেকে নিজের বিবরণ সম্পাদনা করতে পারেন অথবা সম্পূর্ণ ডেটা রিসেট করার স্বাধীনতা উপভোগ করেন।"
+                                    else
+                                        "Students retain full control to edit their profile details or request progress reset directly from within the app settings."
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            termsAccepted = true
+                            showTermsDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF7C3AED)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isBengali) "আমি সম্মত ও গ্রহণ করছি" else "I Agree & Accept",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTermsDialog = false }) {
+                        Text(
+                            text = if (isBengali) "বন্ধ করুন" else "Close",
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TermsSectionItem(number: String, title: String, desc: String) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF1E293B).copy(alpha = 0.6f),
+        border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFA78BFA).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = number,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = Color(0xFFA78BFA)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
+                color = Color(0xFFCBD5E1)
             )
         }
     }

@@ -1,5 +1,7 @@
 package com.example.data.auth
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -10,7 +12,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -27,7 +28,13 @@ sealed class AuthResult {
     data class Error(val messageBengali: String, val messageEnglish: String) : AuthResult()
 }
 
-class FirebaseAuthRepository {
+class FirebaseAuthRepository(context: Context? = null) {
+
+    private val prefs: SharedPreferences? = try {
+        context?.getSharedPreferences("firebase_auth_session_persistence", Context.MODE_PRIVATE)
+    } catch (_: Throwable) {
+        null
+    }
 
     private val auth: FirebaseAuth? by lazy {
         try {
@@ -44,14 +51,86 @@ class FirebaseAuthRepository {
         get() = _offlineUserState.value
         set(value) {
             _offlineUserState.value = value
+            if (value != null) {
+                persistSession(value)
+            } else {
+                clearSession()
+            }
         }
+
+    init {
+        // Fast synchronous restoration of session
+        val persisted = loadPersistedSession()
+        if (persisted != null) {
+            _offlineUserState.value = persisted
+        }
+        try {
+            val fbUser = auth?.currentUser?.toUserState()
+            if (fbUser != null) {
+                _offlineUserState.value = fbUser
+                persistSession(fbUser)
+            }
+        } catch (e: Throwable) {
+            Log.w("FirebaseAuthRepo", "Could not check current Firebase user at init: ${e.message}")
+        }
+    }
+
+    fun persistSession(user: AuthUserState) {
+        _offlineUserState.value = user
+        try {
+            prefs?.edit()
+                ?.putString("session_uid", user.uid)
+                ?.putString("session_email", user.email ?: "")
+                ?.putString("session_display_name", user.displayName ?: "")
+                ?.putBoolean("session_is_anonymous", user.isAnonymous)
+                ?.putString("session_photo_url", user.photoUrl ?: "")
+                ?.putBoolean("session_is_active", true)
+                ?.putLong("session_saved_at", System.currentTimeMillis())
+                ?.apply()
+        } catch (e: Throwable) {
+            Log.e("FirebaseAuthRepo", "Failed to persist session: ${e.message}")
+        }
+    }
+
+    fun clearSession() {
+        _offlineUserState.value = null
+        try {
+            prefs?.edit()?.clear()?.apply()
+        } catch (_: Throwable) { }
+    }
+
+    private fun loadPersistedSession(): AuthUserState? {
+        try {
+            val p = prefs ?: return null
+            if (!p.getBoolean("session_is_active", false)) return null
+            val uid = p.getString("session_uid", null) ?: return null
+            val email = p.getString("session_email", null)?.ifEmpty { null }
+            val displayName = p.getString("session_display_name", null)?.ifEmpty { null }
+            val isAnonymous = p.getBoolean("session_is_anonymous", false)
+            val photoUrl = p.getString("session_photo_url", null)?.ifEmpty { null }
+            return AuthUserState(
+                uid = uid,
+                email = email,
+                displayName = displayName,
+                isAnonymous = isAnonymous,
+                photoUrl = photoUrl
+            )
+        } catch (_: Throwable) {
+            return null
+        }
+    }
 
     val currentUserState: AuthUserState?
         get() {
             return try {
-                auth?.currentUser?.toUserState() ?: _offlineUserState.value
+                val fbUser = auth?.currentUser?.toUserState()
+                if (fbUser != null) {
+                    fbUser
+                } else {
+                    _offlineUserState.value ?: loadPersistedSession()
+                }
             } catch (e: Throwable) {
-                _offlineUserState.value
+                _offlineUserState.value ?: loadPersistedSession()
             }
         }
 
@@ -69,7 +148,18 @@ class FirebaseAuthRepository {
 
         try {
             val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-                trySend(firebaseAuth.currentUser?.toUserState() ?: _offlineUserState.value)
+                val fbUser = firebaseAuth.currentUser?.toUserState()
+                if (fbUser != null) {
+                    persistSession(fbUser)
+                    trySend(fbUser)
+                } else {
+                    val fallback = _offlineUserState.value
+                    if (fallback != null) {
+                        trySend(fallback)
+                    } else {
+                        trySend(null)
+                    }
+                }
             }
             fbAuth.addAuthStateListener(listener)
             val job = CoroutineScope(Dispatchers.Default).launch {
@@ -113,7 +203,9 @@ class FirebaseAuthRepository {
             val result = fbAuth.signInWithCredential(credential).await()
             val user = result.user
             if (user != null) {
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error(
                     messageBengali = "গুগল সাইন-ইন ব্যর্থ হয়েছে।",
@@ -153,7 +245,9 @@ class FirebaseAuthRepository {
                 user.updateProfile(profileUpdates).await()
             }
             if (user != null) {
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error(
                     messageBengali = "সাইন আপ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।",
@@ -186,7 +280,9 @@ class FirebaseAuthRepository {
             val result = fbAuth.signInWithEmailAndPassword(email.trim(), pass.trim()).await()
             val user = result.user
             if (user != null) {
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error(
                     messageBengali = "লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।",
@@ -199,7 +295,7 @@ class FirebaseAuthRepository {
         }
     }
 
-    suspend fun sendPasswordReset(email: String): AuthResult {
+    suspend fun sendPasswordResetEmail(email: String): AuthResult {
         val fbAuth = auth
         if (fbAuth == null) {
             return AuthResult.Success(
@@ -228,6 +324,8 @@ class FirebaseAuthRepository {
         }
     }
 
+    suspend fun sendPasswordReset(email: String): AuthResult = sendPasswordResetEmail(email)
+
     suspend fun signInAnonymously(): AuthResult {
         val fbAuth = auth
         if (fbAuth == null) {
@@ -245,7 +343,9 @@ class FirebaseAuthRepository {
             val result = fbAuth.signInAnonymously().await()
             val user = result.user
             if (user != null) {
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error(
                     messageBengali = "অতিথি হিসেবে প্রবেশ করতে ব্যর্থ হয়েছে।",
@@ -261,8 +361,10 @@ class FirebaseAuthRepository {
     suspend fun updateDisplayName(name: String): AuthResult {
         val fbAuth = auth
         if (fbAuth == null) {
-            localOfflineUser = localOfflineUser?.copy(displayName = name.trim())
-            return AuthResult.Success(localOfflineUser ?: AuthUserState("offline", null, name, false))
+            val updated = localOfflineUser?.copy(displayName = name.trim()) ?: AuthUserState("offline", null, name, false)
+            localOfflineUser = updated
+            persistSession(updated)
+            return AuthResult.Success(updated)
         }
 
         return try {
@@ -272,7 +374,9 @@ class FirebaseAuthRepository {
                     .setDisplayName(name.trim())
                     .build()
                 user.updateProfile(profileUpdates).await()
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error("ব্যবহারকারী লগইন করা নেই।", "No authenticated user.")
             }
@@ -292,7 +396,9 @@ class FirebaseAuthRepository {
             val user = fbAuth.currentUser
             if (user != null) {
                 user.updatePassword(newPass.trim()).await()
-                AuthResult.Success(user.toUserState())
+                val userState = user.toUserState()
+                persistSession(userState)
+                AuthResult.Success(userState)
             } else {
                 AuthResult.Error("ব্যবহারকারী লগইন করা নেই।", "No authenticated user.")
             }
@@ -306,7 +412,7 @@ class FirebaseAuthRepository {
         try {
             auth?.signOut()
         } catch (_: Throwable) { }
-        localOfflineUser = null
+        clearSession()
     }
 
     private fun FirebaseUser.toUserState(): AuthUserState {

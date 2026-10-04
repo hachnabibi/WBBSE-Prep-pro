@@ -188,7 +188,7 @@ fun DeshExamApp(
         fontSizeScale = settings.fontSizeScale
     ) {
         // Handle system back button smoothly
-        BackHandler(enabled = currentScreen != AppScreen.HOME) {
+        BackHandler(enabled = currentScreen != AppScreen.HOME && currentScreen != AppScreen.AUTH && currentScreen != AppScreen.SPLASH) {
             viewModel.goBack()
         }
 
