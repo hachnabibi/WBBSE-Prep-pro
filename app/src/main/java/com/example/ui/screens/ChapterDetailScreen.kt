@@ -49,6 +49,20 @@ fun ChapterDetailScreen(
     val subjectColor = Color(subjectColorLong)
     var activeVideoLesson by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<VideoLesson?>(null) }
 
+    val firestoreTestTemplates by (viewModel?.firestoreTestTemplates?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
+
+    LaunchedEffect(chapter.id) {
+        viewModel?.fetchFirestoreTestTemplates(chapter.classId, chapter.subjectId)
+    }
+
+    val attachedChapterTests = remember(firestoreTestTemplates, chapter) {
+        firestoreTestTemplates.filter { test ->
+            test.chapterId.equals(chapter.id, ignoreCase = true) ||
+            test.id.contains(chapter.id, ignoreCase = true) ||
+            (test.chapterId.isNullOrBlank() && test.subjectId.equals(chapter.subjectId, ignoreCase = true))
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -433,6 +447,114 @@ fun ChapterDetailScreen(
                 }
 
 
+            }
+
+            // ATTACHED CHAPTER TESTS (From Admin Dashboard / Firestore)
+            if (attachedChapterTests.isNotEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "🔥 অধ্যায়ভিত্তিক অনলাইন টেস্টসমূহ (${attachedChapterTests.size}টি)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "অ্যাডমিন তৈরি অনলাইন মক টেস্ট দিয়ে এই অধ্যায়ের প্রস্তুতি পরখ করো।",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                itemsIndexed(attachedChapterTests) { _, test ->
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(1.dp, Color(0xFF4F46E5).copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF4F46E5),
+                                        modifier = Modifier.padding(end = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = test.testType.ifBlank { "CHAPTER TEST" },
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF0284C7).copy(alpha = 0.2f),
+                                        border = BorderStroke(0.5.dp, Color(0xFF0284C7))
+                                    ) {
+                                        Text(
+                                            text = "${test.durationMinutes} মি. • ${test.totalMarks} নম্বর",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                            color = Color(0xFF38BDF8),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = test.title,
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                if (test.description.isNotBlank()) {
+                                    Text(
+                                        text = test.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Button(
+                                onClick = {
+                                    onStartAssessment(
+                                        AssessmentMode.MOCK_TEST,
+                                        test.id,
+                                        test.title
+                                    )
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4F46E5),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text("টেস্ট দাও", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

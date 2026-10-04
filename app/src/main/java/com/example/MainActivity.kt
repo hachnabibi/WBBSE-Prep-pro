@@ -695,6 +695,7 @@ fun DeshExamApp(
                                 viewModel.openTopicStudy(topicId)
                             },
                             getTestScore = { testId -> viewModel.getSubjectTestScore(testId) },
+                            viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
                     }

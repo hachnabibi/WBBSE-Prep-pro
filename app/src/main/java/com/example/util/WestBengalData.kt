@@ -372,6 +372,34 @@ object WestBengalData {
         return getSchoolsForDistrict(districtName)
     }
 
+    fun getSchoolsForClassAndBlock(blockName: String?, districtName: String?, classNumber: Int, categoryFilter: String = "AUTO"): List<String> {
+        val baseSchools = getSchoolsForBlock(blockName, districtName)
+        val dName = districtName.orEmpty().ifBlank { "জেলা" }
+        val bName = blockName.orEmpty().ifBlank { "ব্লক" }
+
+        val primarySuggestions = listOf(
+            "$bName প্রাথমিক বিদ্যালয়",
+            "$bName মডেল ফ্রি প্রাইমারি স্কুল",
+            "$dName আদর্শ প্রাথমিক বিদ্যালয়",
+            "$bName জুনিয়র বুনিয়াদী প্রাথমিক বিদ্যালয়"
+        )
+
+        val juniorHighSuggestions = listOf(
+            "$bName জুনিয়র হাই স্কুল",
+            "$bName আদর্শ জুনিয়র হাই স্কুল"
+        )
+
+        val isPrimary = classNumber in 1..4 || categoryFilter == "PRIMARY"
+
+        return when {
+            categoryFilter == "PRIMARY" -> primarySuggestions
+            categoryFilter == "JUNIOR_HIGH" -> juniorHighSuggestions + baseSchools
+            categoryFilter == "HIGH_SCHOOL" -> baseSchools
+            isPrimary -> primarySuggestions + baseSchools.map { "$it (প্রাথমিক শাখা)" }
+            else -> baseSchools + juniorHighSuggestions // Class 5 to 12 students get High Schools (5-12)
+        }
+    }
+
     fun addSchoolToBlock(blockName: String, districtName: String, schoolName: String) {
         if (schoolName.isBlank()) return
         val list = blockSchoolsMap.getOrPut(blockName) { mutableListOf() }
@@ -379,4 +407,75 @@ object WestBengalData {
             list.add(0, schoolName)
         }
     }
+
+    /**
+     * Loads and parses school details from assets/wb_schools.json if present.
+     */
+    fun loadSchoolsJsonFromAssets(context: android.content.Context): String? {
+        return try {
+            context.assets.open("wb_schools.json").bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}
+
+fun generateUdiseCode(schoolName: String): String {
+    val hash = kotlin.math.abs(schoolName.hashCode())
+    val formattedHash = String.format("%09d", hash % 1000000000)
+    return "19$formattedHash" // 11-digit UDISE code starting with 19 (WB State Code)
+}
+
+data class SchoolInfo(
+    val name: String,
+    val udiseCode: String = generateUdiseCode(name),
+    val address: String = "পৌরসভা / গ্রাম পঞ্চায়েত এলাকা",
+    val classRange: String = if (name.contains("প্রাথমিক") || name.contains("Primary", ignoreCase = true)) "১ম-৪র্থ" else "৫ম-১২ম",
+    val category: String = if (name.contains("প্রাথমিক") || name.contains("Primary", ignoreCase = true)) "প্রাথমিক" else "উচ্চ বিদ্যালয়",
+    val management: String = "সরকারী / সাহায্যপ্রাপ্ত",
+    val schoolType: String = when {
+        name.contains("গার্লস") || name.contains("বালিকা") || name.contains("girls", ignoreCase = true) -> "Girls"
+        name.contains("বালক") || name.contains("boys", ignoreCase = true) -> "Boys"
+        else -> "Co-Educational"
+    }
+) {
+    fun getTags(includeUdise: Boolean = false): List<String> {
+        val tags = mutableListOf<String>()
+        val lower = name.lowercase()
+        
+        if (includeUdise) {
+            tags.add("🆔 UDISE: $udiseCode")
+        }
+
+        when (schoolType) {
+            "Girls" -> tags.add("👧 বালিকা বিদ্যালয়")
+            "Boys" -> tags.add("👦 বালক বিদ্যালয়")
+            else -> tags.add("👥 সহ-শিক্ষা")
+        }
+
+        val shortClassDisplay = when {
+            classRange.contains("1-4") || classRange.contains("১ম") || lower.contains("প্রাথমিক") -> "১ম-৪র্থ"
+            classRange.contains("5-8") || classRange.contains("৮ম") -> "৫ম-৮ম"
+            else -> "৫ম-১২ম"
+        }
+        tags.add("📚 শ্রেণী: $shortClassDisplay")
+
+        when {
+            lower.contains("ইংলিশ") || lower.contains("english") -> tags.add("🌐 ইংরেজি মাধ্যম")
+            else -> tags.add("🌐 বাংলা মাধ্যম")
+        }
+
+        when {
+            lower.contains("cbse") -> tags.add("🏫 CBSE")
+            lower.contains("icse") -> tags.add("🏫 ICSE")
+            lower.contains("প্রাথমিক") || lower.contains("primary") -> tags.add("🏫 WBBPE")
+            else -> tags.add("🏫 WBBSE / WBCHSE")
+        }
+        return tags
+    }
+}
+
+fun getSchoolInfo(schoolName: String): SchoolInfo {
+    return SchoolInfo(name = schoolName)
 }

@@ -56,13 +56,29 @@ fun SubjectDetailScreen(
     onStartAssessment: (AssessmentMode, String, String) -> Unit,
     onLearnTopic: (String, String) -> Unit,
     getTestScore: ((String) -> Int)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: com.example.ui.viewmodel.DeshExamViewModel? = null
 ) {
     BackHandler { onBack() }
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Chapters, 1: Tests, 2: PYQs, 3: Key Notes
     val isDark = MaterialTheme.colorScheme.background.red < 0.3f
     val subjectColor = Color(subject.colorHex)
+
+    val firestoreTestTemplates by (viewModel?.firestoreTestTemplates?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
+
+    LaunchedEffect(subject.id) {
+        viewModel?.fetchFirestoreTestTemplates(subject.classId, subject.id)
+    }
+
+    val attachedFirestoreTests = remember(firestoreTestTemplates, subject) {
+        firestoreTestTemplates.filter { test ->
+            test.subjectId.equals(subject.id, ignoreCase = true) ||
+            test.subjectId.equals(subject.code, ignoreCase = true) ||
+            test.id.contains(subject.id, ignoreCase = true) ||
+            test.id.contains(subject.code, ignoreCase = true)
+        }
+    }
 
     val subjectCodeEnum = remember(subject.code) {
         SubjectCode.values().find { it.id == subject.code } ?: SubjectCode.PHYSICAL_SCIENCE
@@ -253,6 +269,119 @@ fun SubjectDetailScreen(
 
                 1 -> {
                     // SUBJECT TESTS
+                    if (attachedFirestoreTests.isNotEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "🔥 অ্যাডমিন প্রস্তুতকৃত অনলাইন মক টেস্ট (${attachedFirestoreTests.size}টি)",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "বিষয়ভিত্তিক অনলাইন মক টেস্ট ও মূল্যায়ন দিয়ে সরাসরি নিজের প্রস্তুতি যাচাই করো।",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        items(attachedFirestoreTests) { test ->
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                                ),
+                                border = BorderStroke(1.dp, Color(0xFF4F46E5).copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF4F46E5),
+                                                modifier = Modifier.padding(end = 6.dp)
+                                            ) {
+                                                Text(
+                                                    text = test.testType.ifBlank { "ONLINE MOCK" },
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                                    color = Color.White,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF0284C7).copy(alpha = 0.2f),
+                                                border = BorderStroke(0.5.dp, Color(0xFF0284C7))
+                                            ) {
+                                                Text(
+                                                    text = "${test.durationMinutes} মি. • ${test.totalMarks} মার্কস",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                                    color = Color(0xFF38BDF8),
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = test.title,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+
+                                        if (test.description.isNotBlank()) {
+                                            Text(
+                                                text = test.description,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Button(
+                                        onClick = {
+                                            onStartAssessment(
+                                                AssessmentMode.MOCK_TEST,
+                                                test.id,
+                                                test.title
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF4F46E5),
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text("টেস্ট দাও", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
                     item {
                         Text(
                             text = "${subject.name} - স্পেশাল টেস্ট সিরিজ",

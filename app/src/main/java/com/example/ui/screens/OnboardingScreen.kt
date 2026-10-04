@@ -216,6 +216,7 @@ fun OnboardingScreen(
                                 },
                                 school = school,
                                 onSchoolChange = { school = it },
+                                selectedClassNumber = selectedClassNumber,
                                 districts = districts,
                                 availableSchools = com.example.util.WestBengalData.getSchoolsForBlock(block, district),
                                 isLoadingDistricts = isLoadingDistricts,
@@ -928,6 +929,7 @@ fun Step3LocationAndSchool(
     onBlockChange: (String) -> Unit,
     school: String,
     onSchoolChange: (String) -> Unit,
+    selectedClassNumber: Int = 10,
     districts: List<String>,
     availableSchools: List<String>,
     isLoadingDistricts: Boolean,
@@ -972,7 +974,7 @@ fun Step3LocationAndSchool(
                 
                 Column {
                     Text(
-                        text = "১. জেলা (District)",
+                        text = "১. জেলা",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -1039,7 +1041,7 @@ fun Step3LocationAndSchool(
                 
                 Column {
                     Text(
-                        text = "২. ব্লক / থানা (Block / Sub-division)",
+                        text = "২. ব্লক / থানা",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -1091,20 +1093,87 @@ fun Step3LocationAndSchool(
                     }
                 }
                 
-                // 3. SCHOOL SEARCH & SELECTOR
+                // 3. SCHOOL SEARCH & SELECTOR WITH TYPE AUTO-FILTERING
                 var searchQuery by remember { mutableStateOf("") }
-                val filteredSchools = remember(searchQuery, availableSchools) {
-                    if (searchQuery.isBlank()) availableSchools
-                    else availableSchools.filter { it.contains(searchQuery, ignoreCase = true) }
+                var activeCategoryFilter by remember { mutableStateOf("AUTO") }
+
+                val classCategoryBadge = remember(selectedClassNumber, activeCategoryFilter) {
+                    when {
+                        activeCategoryFilter == "PRIMARY" || (activeCategoryFilter == "AUTO" && selectedClassNumber in 1..4) -> "🟢 ১ম-৪র্থ"
+                        activeCategoryFilter == "JUNIOR_HIGH" -> "🔵 ৫ম-৮ম"
+                        else -> "🟣 ৫ম-১২ম"
+                    }
+                }
+
+                val schoolsForCategory = remember(block, district, selectedClassNumber, activeCategoryFilter) {
+                    com.example.util.WestBengalData.getSchoolsForClassAndBlock(block, district, selectedClassNumber, activeCategoryFilter)
+                }
+
+                val filteredSchools = remember(searchQuery, schoolsForCategory) {
+                    if (searchQuery.isBlank()) schoolsForCategory
+                    else schoolsForCategory.filter { it.contains(searchQuery, ignoreCase = true) }
                 }
                 
                 Column {
-                    Text(
-                        text = "৩. বিদ্যালয় (School)",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = AppTextPrimary,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "৩. বিদ্যালয়",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = AppTextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2E1065).copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, Color(0xFF818CF8))
+                        ) {
+                            Text(
+                                text = classCategoryBadge,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                color = Color(0xFF38BDF8),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    // School Type Category Filter Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val filters = listOf(
+                            "AUTO" to "অটো",
+                            "PRIMARY" to "১ম-৪র্থ",
+                            "HIGH_SCHOOL" to "৫ম-১২ম",
+                            "JUNIOR_HIGH" to "৫ম-৮ম"
+                        )
+                        filters.forEach { (key, label) ->
+                            val isSelected = activeCategoryFilter == key
+                            Surface(
+                                onClick = { activeCategoryFilter = key },
+                                shape = CircleShape,
+                                color = if (isSelected) Color(0xFF4F46E5).copy(alpha = 0.8f) else AppInput.copy(alpha = 0.4f),
+                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF818CF8) else Color(0x22FFFFFF))
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    ),
+                                    color = if (isSelected) Color.White else AppTextSecondary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
                     
                     OutlinedTextField(
                         value = searchQuery.ifEmpty { school },
@@ -1148,8 +1217,10 @@ fun Step3LocationAndSchool(
                             Column(
                                 modifier = Modifier.verticalScroll(rememberScrollState())
                             ) {
-                                filteredSchools.forEach { s ->
+                                 filteredSchools.forEach { s ->
                                     val isSelected = school == s
+                                    val schoolTags = remember(s) { com.example.util.getSchoolInfo(s).getTags() }
+                                    
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1158,28 +1229,49 @@ fun Step3LocationAndSchool(
                                                 searchQuery = "" // reset search so school name displays
                                             }
                                             .background(if (isSelected) AppPrimaryAccent.copy(alpha = 0.25f) else Color.Transparent)
-                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.School,
                                             contentDescription = null,
                                             tint = if (isSelected) AppPrimaryAccent else AppTextSecondary,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = s,
-                                            color = if (isSelected) AppPrimaryAccent else AppTextPrimary,
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                fontSize = 13.sp
-                                            ),
-                                            maxLines = 1,
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = s,
+                                                color = if (isSelected) AppPrimaryAccent else AppTextPrimary,
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    fontSize = 13.sp
+                                                ),
+                                                maxLines = 1
+                                            )
+                                            Spacer(modifier = Modifier.height(3.dp))
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                schoolTags.take(3).forEach { tag ->
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = Color(0xFF1E293B).copy(alpha = 0.8f),
+                                                        border = BorderStroke(0.5.dp, Color(0x22FFFFFF))
+                                                    ) {
+                                                        Text(
+                                                            text = tag,
+                                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                            color = AppTextSecondary,
+                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                         if (isSelected) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(18.dp))
                                         }
                                     }
                                     HorizontalDivider(color = Color(0x22FFFFFF), thickness = 0.5.dp)

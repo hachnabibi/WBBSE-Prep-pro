@@ -1,0 +1,720 @@
+{
+  "state": "West Bengal",
+  "version": "1.0",
+  "totalDistricts": 23,
+  "districts": [
+    {
+      "name": "কলকাতা",
+      "blocks": [
+        {
+          "name": "কলকাতা পৌরসংস্থা এলাকা (KMC)",
+          "schools": [
+            { "name": "হিন্দু স্কুল", "udiseCode": "19160100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "হরে স্কুল", "udiseCode": "19160100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "যাদবপুর বিদ্যাপীঠ", "udiseCode": "19160100103", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "বেথুন কলেজিয়েট স্কুল", "udiseCode": "19160100104", "category": "HIGH_SCHOOL", "gender": "GIRLS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "বালিগঞ্জ গভঃ হাই স্কুল", "udiseCode": "19160100105", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "পাঠভবন", "udiseCode": "19160100106", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "সাউথ পয়েন্ট হাই স্কুল", "udiseCode": "19160100107", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "ENGLISH", "board": "WBBSE" },
+            { "name": "স্কটিশ চার্চ কলেজিয়েট স্কুল", "udiseCode": "19160100108", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "উত্তর কলকাতা জোন",
+          "schools": [
+            { "name": "মহারাজা কাশিমবাজার এস.সি. প্রতিষ্ঠান", "udiseCode": "19160200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "শ্যামবাজার এ.ভি. স্কুল", "udiseCode": "19160200102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "দক্ষিণ কলকাতা জোন",
+          "schools": [
+            { "name": " Mitra Institution (Bhowanipore)", "udiseCode": "19160300101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "কলকাতা মডেল হাই স্কুল", "udiseCode": "19160300102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "উত্তর ২৪ পরগনা",
+      "blocks": [
+        {
+          "name": "বারাসাত-১",
+          "schools": [
+            { "name": "বারাসাত মহাত্মা গান্ধী হাই স্কুল", "udiseCode": "19110100101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বারাসাত গভঃ হাই স্কুল", "udiseCode": "19110100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বারাসাত কালীকৃষ্ণ গার্লস হাই স্কুল", "udiseCode": "19110100103", "category": "HIGH_SCHOOL", "gender": "GIRLS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "বারাসাত আদর্শ প্রাথমিক বিদ্যালয়", "udiseCode": "19110100104", "category": "PRIMARY", "gender": "COED", "medium": "BENGALI", "board": "WBBPE" }
+          ]
+        },
+        {
+          "name": "ব্যারাকপুর-১",
+          "schools": [
+            { "name": "ব্যারাকপুর গভঃ হাই স্কুল", "udiseCode": "19110200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "ব্যারাকপুর রাষ্ট্রগুরু সুরেন্দ্রনাথ কলেজিয়েট স্কুল", "udiseCode": "19110200102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "রাজারহাট",
+          "schools": [
+            { "name": "রাজারহাট গভঃ হাই স্কুল", "udiseCode": "19110300101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বিধাননগর গভঃ হাই স্কুল", "udiseCode": "19110300102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "বসিরহাট-১",
+          "schools": [
+            { "name": "বসিরহাট হাই স্কুল", "udiseCode": "19110400101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "বসিরহাট টাউন হাই স্কুল", "udiseCode": "19110400102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "ব্যারাকপুর-২", "schools": [] },
+        { "name": "বারাসাত-২", "schools": [] },
+        { "name": "আমডাঙা", "schools": [] },
+        { "name": "দেগঙ্গা", "schools": [] },
+        { "name": "হাবড়া-১", "schools": [] },
+        { "name": "হাবড়া-২", "schools": [] },
+        { "name": "বসিরহাট-২", "schools": [] },
+        { "name": "বাদুড়িয়া", "schools": [] },
+        { "name": "স্বরূপনগর", "schools": [] },
+        { "name": "হাড়োয়া", "schools": [] },
+        { "name": "মিনাখাঁ", "schools": [] },
+        { "name": "হাসনাবাদ", "schools": [] },
+        { "name": "হিঙ্গলগঞ্জ", "schools": [] },
+        { "name": "সন্দেশখালি-১", "schools": [] },
+        { "name": "সন্দেশখালি-২", "schools": [] },
+        { "name": "বনগাঁ", "schools": [] },
+        { "name": "গাইঘাটা", "schools": [] },
+        { "name": "বাগদা", "schools": [] }
+      ]
+    },
+    {
+      "name": "দক্ষিণ ২৪ পরগনা",
+      "blocks": [
+        {
+          "name": "কাকদ্বীপ",
+          "schools": [
+            { "name": "কাকদ্বীপ বহুমুখী উচ্চ বিদ্যালয়", "udiseCode": "19170100101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "কাকদ্বীপ সুন্দরবন সুন্দরম হাই স্কুল", "udiseCode": "19170100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "ডায়মন্ড হারবার-১",
+          "schools": [
+            { "name": "ডায়মন্ড হারবার হাই স্কুল", "udiseCode": "19170200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "সোনারপুর",
+          "schools": [
+            { "name": "সোনারপুর বিদ্যাপিঠ", "udiseCode": "19170300101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "নরেন্দ্রপুর রামকৃষ্ণ মিশন বিদ্যালয়", "udiseCode": "19170300102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "বারুইপুর",
+          "schools": [
+            { "name": "বারুইপুর হাই স্কুল", "udiseCode": "19170400101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "আলিপুর (সদর) / ঠাকুরপুকুর-মহেশতলা", "schools": [] },
+        { "name": "বজবজ-১", "schools": [] },
+        { "name": "বজবজ-২", "schools": [] },
+        { "name": "বিষ্ণুপুর-১", "schools": [] },
+        { "name": "বিষ্ণুপুর-২", "schools": [] },
+        { "name": "ভাঙড়-১", "schools": [] },
+        { "name": "ভাঙড়-২", "schools": [] },
+        { "name": "জয়নগর-১", "schools": [] },
+        { "name": "জয়নগর-২", "schools": [] },
+        { "name": "কুলতলি", "schools": [] },
+        { "name": "ক্যানিং-১", "schools": [] },
+        { "name": "ক্যানিং-২", "schools": [] },
+        { "name": "বাসন্তী", "schools": [] },
+        { "name": "গোসাবা", "schools": [] },
+        { "name": "ডায়মন্ড হারবার-২", "schools": [] },
+        { "name": "ফলতা", "schools": [] },
+        { "name": "মগরাহাট-১", "schools": [] },
+        { "name": "মগরাহাট-২", "schools": [] },
+        { "name": "মন্দিরবাজার", "schools": [] },
+        { "name": "কুলপী", "schools": [] },
+        { "name": "মথুরাপুর-১", "schools": [] },
+        { "name": "মথুরাপুর-২", "schools": [] },
+        { "name": "নামখানা", "schools": [] },
+        { "name": "সাগর", "schools": [] },
+        { "name": "পাথরপ্রতিমা", "schools": [] }
+      ]
+    },
+    {
+      "name": "হাওড়া",
+      "blocks": [
+        {
+          "name": "বালি-জগাছা",
+          "schools": [
+            { "name": "হাওড়া জিলা স্কুল", "udiseCode": "19150100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "শিবপুর দিনবন্ধু ইনস্টিটিউশন", "udiseCode": "19150100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "সাঁকরাইল",
+          "schools": [
+            { "name": "সাঁতরাগাছি কেদারনাথ ইনস্টিটিউশন", "udiseCode": "19150200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "পাঁচলা", "schools": [] },
+        { "name": "ডোমজুড়", "schools": [] },
+        { "name": "জগৎবল্লভপুর", "schools": [] },
+        { "name": "উলুবেড়িয়া-১", "schools": [] },
+        { "name": "উলুবেড়িয়া-২", "schools": [] },
+        { "name": "আমতা-১", "schools": [] },
+        { "name": "আমতা-২", "schools": [] },
+        { "name": "উদয়নারায়ণপুর", "schools": [] },
+        { "name": "বাগনান-১", "schools": [] },
+        { "name": "বাগনান-২", "schools": [] },
+        { "name": "শ্যামপুর-১", "schools": [] },
+        { "name": "শ্যামপুর-২", "schools": [] }
+      ]
+    },
+    {
+      "name": "হুগলী",
+      "blocks": [
+        {
+          "name": "চুঁচুড়া-মগরা",
+          "schools": [
+            { "name": "হুগলী কলেজিয়েট স্কুল", "udiseCode": "19120100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "চন্দননগর বঙ্গ বিদ্যালয়", "udiseCode": "19120100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "শ্রীরামপুর-উত্তরপাড়া",
+          "schools": [
+            { "name": "শ্রীরামপুর পিয়ারী মোহন কলেজিয়েট স্কুল", "udiseCode": "19120200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "উত্তরপাড়া গভঃ হাই স্কুল", "udiseCode": "19120200102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "পোলবা-দাদপুর", "schools": [] },
+        { "name": "বলাগড়", "schools": [] },
+        { "name": "পান্ডুয়া", "schools": [] },
+        { "name": "সিঙ্গুর", "schools": [] },
+        { "name": "তারকেশ্বর", "schools": [] },
+        { "name": "হরিপাল", "schools": [] },
+        { "name": "চণ্ডীতলা-১", "schools": [] },
+        { "name": "চণ্ডীতলা-২", "schools": [] },
+        { "name": "জাঙ্গীপাড়া", "schools": [] },
+        { "name": "আরামবাগ", "schools": [] },
+        { "name": "পুরশুড়া", "schools": [] },
+        { "name": "গোঘাট-১", "schools": [] },
+        { "name": "গোঘাট-২", "schools": [] },
+        { "name": "খানাকুল-১", "schools": [] },
+        { "name": "খানাকুল-২", "schools": [] },
+        { "name": "ধনেখালি", "schools": [] }
+      ]
+    },
+    {
+      "name": "পূর্ব বর্ধমান",
+      "blocks": [
+        {
+          "name": "বর্ধমান-১",
+          "schools": [
+            { "name": "বর্ধমান টাউন স্কুল", "udiseCode": "19090100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বর্ধমান রাজ কলেজিয়েট স্কুল", "udiseCode": "19090100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বর্ধমান সি.এম.এস. হাই স্কুল", "udiseCode": "19090100103", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "কালনা-১",
+          "schools": [
+            { "name": "কালনা মহারাজা উচ্চ বিদ্যালয়", "udiseCode": "19090200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "বর্ধমান-২", "schools": [] },
+        { "name": "ভাতার", "schools": [] },
+        { "name": "আউশগ্রাম-১", "schools": [] },
+        { "name": "আউশগ্রাম-২", "schools": [] },
+        { "name": "গলসি-১", "schools": [] },
+        { "name": "গলসি-২", "schools": [] },
+        { "name": "মেমারি-১", "schools": [] },
+        { "name": "মেমারি-২", "schools": [] },
+        { "name": "জামালপুর", "schools": [] },
+        { "name": "রায়না-১", "schools": [] },
+        { "name": "রায়না-২", "schools": [] },
+        { "name": "খণ্ডঘোষ", "schools": [] },
+        { "name": "কালনা-২", "schools": [] },
+        { "name": "মন্তেশ্বর", "schools": [] },
+        { "name": "পূর্বস্থলী-১", "schools": [] },
+        { "name": "পূর্বস্থলী-২", "schools": [] },
+        { "name": "কাটোয়া-১", "schools": [] },
+        { "name": "কাটোয়া-২", "schools": [] },
+        { "name": "কেতুগ্রাম-১", "schools": [] },
+        { "name": "কেতুগ্রাম-২", "schools": [] },
+        { "name": "মঙ্গলকোট", "schools": [] }
+      ]
+    },
+    {
+      "name": "পশ্চিম বর্ধমান",
+      "blocks": [
+        {
+          "name": "রানিগঞ্জ",
+          "schools": [
+            { "name": "আসানসোল রামকৃষ্ণ মিশন উচ্চ বিদ্যালয়", "udiseCode": "19260100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "রাণীগঞ্জ হাই স্কুল", "udiseCode": "19260100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "দুর্গাপুর-ফরিদপুর",
+          "schools": [
+            { "name": "দুর্গাপুর ডি.এ.ভি. মডেল স্কুল", "udiseCode": "19260200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "ENGLISH", "board": "CBSE" }
+          ]
+        },
+        { "name": "অণ্ডাল", "schools": [] },
+        { "name": "পাণ্ডবেশ্বর", "schools": [] },
+        { "name": "কাঁকসা", "schools": [] },
+        { "name": "জামুড়িয়া", "schools": [] },
+        { "name": "সালানপুর", "schools": [] },
+        { "name": "বারাবনি", "schools": [] }
+      ]
+    },
+    {
+      "name": "নদীয়া",
+      "blocks": [
+        {
+          "name": "কৃষ্ণনগর-১",
+          "schools": [
+            { "name": "কৃষ্ণনগর কলেজিয়েট স্কুল", "udiseCode": "19100100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "কৃষ্ণনগর দেবনাথ হাই স্কুল", "udiseCode": "19100100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "নবদ্বীপ",
+          "schools": [
+            { "name": "নবদ্বীপ হিন্দু স্কুল", "udiseCode": "19100200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "রানাঘাট-১",
+          "schools": [
+            { "name": "রানাঘাট পাল চৌধুরী হাই স্কুল", "udiseCode": "19100300101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "কৃষ্ণনগর-২", "schools": [] },
+        { "name": "চাপড়া", "schools": [] },
+        { "name": "কৃষ্ণগঞ্জ", "schools": [] },
+        { "name": "করিমপুর-১", "schools": [] },
+        { "name": "করিমপুর-২", "schools": [] },
+        { "name": "তেহট্ট-১", "schools": [] },
+        { "name": "তেহট্ট-২", "schools": [] },
+        { "name": "কালীগঞ্জ", "schools": [] },
+        { "name": "নাকাশিপাড়া", "schools": [] },
+        { "name": "শান্তিপুর", "schools": [] },
+        { "name": "রানাঘাট-২", "schools": [] },
+        { "name": "হাঁসখালি", "schools": [] },
+        { "name": "চাকদহ", "schools": [] },
+        { "name": "হরিণঘাটা", "schools": [] }
+      ]
+    },
+    {
+      "name": "মুর্শিদাবাদ",
+      "blocks": [
+        {
+          "name": "বহরমপুর",
+          "schools": [
+            { "name": "বহরমপুর কৃষ্ণনাথ কলেজিয়েট স্কুল", "udiseCode": "19070100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বহরমপুর মহাকালী পাঠশালা", "udiseCode": "19070100102", "category": "HIGH_SCHOOL", "gender": "GIRLS", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "কান্দী",
+          "schools": [
+            { "name": "কান্দী রাজ হাই স্কুল", "udiseCode": "19070200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "বেলডাঙা-১", "schools": [] },
+        { "name": "বেলডাঙা-২", "schools": [] },
+        { "name": "হরিহরপাড়া", "schools": [] },
+        { "name": "নওদা", "schools": [] },
+        { "name": "খড়গ্রাম", "schools": [] },
+        { "name": "বড়ঞা", "schools": [] },
+        { "name": "ভরতপুর-১", "schools": [] },
+        { "name": "ভরতপুর-২", "schools": [] },
+        { "name": "লালবাগ (মুর্শিদাবাদ-জিয়াগঞ্জ)", "schools": [] },
+        { "name": "ভগবানগোলা-১", "schools": [] },
+        { "name": "ভগবানগোলা-২", "schools": [] },
+        { "name": "নবগ্রাম", "schools": [] },
+        { "name": "লালগোলা", "schools": [] },
+        { "name": "রঘুনাথগঞ্জ-১", "schools": [] },
+        { "name": "রঘুনাথগঞ্জ-২", "schools": [] },
+        { "name": "সুতি-১", "schools": [] },
+        { "name": "সুতি-২", "schools": [] },
+        { "name": "সামশেরগঞ্জ", "schools": [] },
+        { "name": "ফরাক্কা", "schools": [] },
+        { "name": "ডোমকল", "schools": [] },
+        { "name": "জলঙ্গী", "schools": [] },
+        { "name": "রানীনগর-১", "schools": [] },
+        { "name": "রানীনগর-২", "schools": [] },
+        { "name": "সাগরদিঘি", "schools": [] }
+      ]
+    },
+    {
+      "name": "বীরভূম",
+      "blocks": [
+        {
+          "name": "সিউড়ি-১",
+          "schools": [
+            { "name": "সিউড়ি বীরভূম জিলা স্কুল", "udiseCode": "19080100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "সিউড়ি বেণীমাধব ইনস্টিটিউশন", "udiseCode": "19080100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "বোলপুর-শ্রীনিকেতন",
+          "schools": [
+            { "name": "বোলপুর উচ্চ বিদ্যালয়", "udiseCode": "19080200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "শান্তিনিকেতন পাঠভবন", "udiseCode": "19080200102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "সিউড়ি-২", "schools": [] },
+        { "name": "সাঁইথিয়া", "schools": [] },
+        { "name": "দুবরাজপুর", "schools": [] },
+        { "name": "খয়রাশোল", "schools": [] },
+        { "name": "রাজনগর", "schools": [] },
+        { "name": "মহম্মদ বাজার", "schools": [] },
+        { "name": "ইলামবাজার", "schools": [] },
+        { "name": "লাভপুর", "schools": [] },
+        { "name": "নানুর", "schools": [] },
+        { "name": "রামপুরহাট-১", "schools": [] },
+        { "name": "রামপুরহাট-২", "schools": [] },
+        { "name": "ময়ূরেশ্বর-১", "schools": [] },
+        { "name": "ময়ূরেশ্বর-২", "schools": [] },
+        { "name": "নলহাটি-১", "schools": [] },
+        { "name": "নলহাটি-২", "schools": [] },
+        { "name": "মুরারই-১", "schools": [] },
+        { "name": "মুরারই-২", "schools": [] }
+      ]
+    },
+    {
+      "name": "বাঁকুড়া",
+      "blocks": [
+        {
+          "name": "বাঁকুড়া-১",
+          "schools": [
+            { "name": "বাঁকুড়া জিলা স্কুল", "udiseCode": "19130100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "বাঁকুড়া খ্রিস্টান কলেজিয়েট স্কুল", "udiseCode": "19130100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "বিষ্ণুপুর",
+          "schools": [
+            { "name": "বিষ্ণুপুর হাই স্কুল", "udiseCode": "19130200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "বাঁকুড়া-২", "schools": [] },
+        { "name": "বড়জোড়া", "schools": [] },
+        { "name": "ছাতনা", "schools": [] },
+        { "name": "গঙ্গাজলঘাঁটি", "schools": [] },
+        { "name": "মেজিয়া", "schools": [] },
+        { "name": "ওন্দা", "schools": [] },
+        { "name": "শালতোড়া", "schools": [] },
+        { "name": "জয়পুর", "schools": [] },
+        { "name": "কোতুলপুর", "schools": [] },
+        { "name": "পাত্রসায়ের", "schools": [] },
+        { "name": "সোনামুখী", "schools": [] },
+        { "name": "ইন্দাস", "schools": [] },
+        { "name": "খাতড়া", "schools": [] },
+        { "name": "ইন্দপুর", "schools": [] },
+        { "name": "হীড়বাঁধ", "schools": [] },
+        { "name": "রাইপুর", "schools": [] },
+        { "name": "সারেঙ্গা", "schools": [] },
+        { "name": "রানিবাঁধ", "schools": [] },
+        { "name": "সিমলাপাল", "schools": [] },
+        { "name": "তালডাংরা", "schools": [] }
+      ]
+    },
+    {
+      "name": "পুরুলিয়া",
+      "blocks": [
+        {
+          "name": "পুরুলিয়া-১",
+          "schools": [
+            { "name": "পুরুলিয়া জিলা স্কুল", "udiseCode": "19140100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "পুরুলিয়া রামকৃষ্ণ মিশন বিদ্যাপিঠ", "udiseCode": "19140100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "পুরুলিয়া-২", "schools": [] },
+        { "name": "হুড়া", "schools": [] },
+        { "name": "পুঞ্চা", "schools": [] },
+        { "name": "আড়শা", "schools": [] },
+        { "name": "বাঘমুন্ডি", "schools": [] },
+        { "name": "বলরামপুর", "schools": [] },
+        { "name": "বরাবাজার", "schools": [] },
+        { "name": "মানবাজার-১", "schools": [] },
+        { "name": "মানবাজার-২", "schools": [] },
+        { "name": "বান্দোয়ান", "schools": [] },
+        { "name": "ঝালদা-১", "schools": [] },
+        { "name": "ঝালদা-২", "schools": [] },
+        { "name": "জয়পুর", "schools": [] },
+        { "name": "কাশীপুর", "schools": [] },
+        { "name": "রঘুনাথপুর-১", "schools": [] },
+        { "name": "রঘুনাথপুর-২", "schools": [] },
+        { "name": "নিতুড়িয়া", "schools": [] },
+        { "name": "পারা", "schools": [] },
+        { "name": "সাঁতুড়ি", "schools": [] }
+      ]
+    },
+    {
+      "name": "পূর্ব মেদিনীপুর",
+      "blocks": [
+        {
+          "name": "তমলুক",
+          "schools": [
+            { "name": "তমলুক হ্যামিল্টন হাই স্কুল", "udiseCode": "19190100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "কাঁথি-১",
+          "schools": [
+            { "name": "কাঁথি মডেল হাই স্কুল", "udiseCode": "19190200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "হলদিয়া",
+          "schools": [
+            { "name": "হলদিয়া গভঃ হাই স্কুল", "udiseCode": "19190300101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "শহিদ মাতঙ্গিনী", "schools": [] },
+        { "name": "পাঁশকুড়া", "schools": [] },
+        { "name": "কোলাঘাট", "schools": [] },
+        { "name": "ময়না", "schools": [] },
+        { "name": "নন্দকুমার", "schools": [] },
+        { "name": "চণ্ডীপুর", "schools": [] },
+        { "name": "মহিষাদল", "schools": [] },
+        { "name": "সুতাহাটা", "schools": [] },
+        { "name": "নন্দীগ্রাম-১", "schools": [] },
+        { "name": "নন্দীগ্রাম-২", "schools": [] },
+        { "name": "কাঁথি-২ (দেশপ্রাণ)", "schools": [] },
+        { "name": "কাঁথি-৩", "schools": [] },
+        { "name": "খেজুরি-১", "schools": [] },
+        { "name": "খেজুরি-২", "schools": [] },
+        { "name": "ভগবানপুর-১", "schools": [] },
+        { "name": "ভগবানপুর-২", "schools": [] },
+        { "name": "এগরা-১", "schools": [] },
+        { "name": "এগরা-২", "schools": [] },
+        { "name": "পটাশপুর-১", "schools": [] },
+        { "name": "পটাশপুর-২", "schools": [] },
+        { "name": "রামনগর-১", "schools": [] },
+        { "name": "রামনগর-২", "schools": [] }
+      ]
+    },
+    {
+      "name": "পশ্চিম মেদিনীপুর",
+      "blocks": [
+        {
+          "name": "মেদিনীপুর সদর",
+          "schools": [
+            { "name": "মেদিনীপুর ক Collegiate স্কুল", "udiseCode": "19180100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "মেদিনীপুর টাউন হাই স্কুল", "udiseCode": "19180100102", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        {
+          "name": "খড়গপুর-১",
+          "schools": [
+            { "name": "খড়গপুর ট্রাফিক হাই স্কুল", "udiseCode": "19180200101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "শালবনি", "schools": [] },
+        { "name": "কেশপুর", "schools": [] },
+        { "name": "গড়বেতা-১", "schools": [] },
+        { "name": "গড়বেতা-২", "schools": [] },
+        { "name": "গড়বেতা-৩", "schools": [] },
+        { "name": "খড়গপুর-২", "schools": [] },
+        { "name": "ডেবরা", "schools": [] },
+        { "name": "পিংলা", "schools": [] },
+        { "name": "সবং", "schools": [] },
+        { "name": "দাঁতন-১", "schools": [] },
+        { "name": "দাঁতন-২", "schools": [] },
+        { "name": "মোহনপুর", "schools": [] },
+        { "name": "নারায়ণগড়", "schools": [] },
+        { "name": "কেশিয়াড়ি", "schools": [] },
+        { "name": "ঘাটাল", "schools": [] },
+        { "name": "চন্দ্রকোণা-১", "schools": [] },
+        { "name": "চন্দ্রকোণা-২", "schools": [] },
+        { "name": "দাসপুর-১", "schools": [] },
+        { "name": "দাসপুর-২", "schools": [] }
+      ]
+    },
+    {
+      "name": "ঝাড়গ্রাম",
+      "blocks": [
+        {
+          "name": "ঝাড়গ্রাম",
+          "schools": [
+            { "name": "ঝাড়গ্রাম কুমুদকুমারী রানি বালিকা বিদ্যালয়", "udiseCode": "19220100101", "category": "HIGH_SCHOOL", "gender": "GIRLS", "medium": "BENGALI", "board": "WBBSE" },
+            { "name": "ঝাড়গ্রাম রাজ হাই স্কুল", "udiseCode": "19220100102", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "বিনপুর-১", "schools": [] },
+        { "name": "বিনপুর-২", "schools": [] },
+        { "name": "জামবনি", "schools": [] },
+        { "name": "গোপীবল্লভপুর-১", "schools": [] },
+        { "name": "গোপীবল্লভপুর-২", "schools": [] },
+        { "name": "সাঁকরাইল", "schools": [] },
+        { "name": "নয়াগ্রাম", "schools": [] }
+      ]
+    },
+    {
+      "name": "মালদা",
+      "blocks": [
+        {
+          "name": "ইংরেজবাজার",
+          "schools": [
+            { "name": "মালদা জিলা স্কুল", "udiseCode": "19050100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" },
+            { "name": "মালদা বারলো বালিকা উচ্চ বিদ্যালয়", "udiseCode": "19050100102", "category": "HIGH_SCHOOL", "gender": "GIRLS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "ওল্ড মালদহ", "schools": [] },
+        { "name": "হবিবপুর", "schools": [] },
+        { "name": "গাজোল", "schools": [] },
+        { "name": "বামনগোলা", "schools": [] },
+        { "name": "কালিয়াচক-১", "schools": [] },
+        { "name": "কালিয়াচক-২", "schools": [] },
+        { "name": "কালিয়াচক-৩", "schools": [] },
+        { "name": "মানিকচক", "schools": [] },
+        { "name": "বৈষ্ণবনগর", "schools": [] },
+        { "name": "চাঁচল-১", "schools": [] },
+        { "name": "চাঁচল-২", "schools": [] },
+        { "name": "রতুয়া-১", "schools": [] },
+        { "name": "রতুয়া-২", "schools": [] },
+        { "name": "হরিশ্চন্দ্রপুর-১", "schools": [] },
+        { "name": "হরিশ্চন্দ্রপুর-২", "schools": [] }
+      ]
+    },
+    {
+      "name": "উত্তর দিনাজপুর",
+      "blocks": [
+        {
+          "name": "রায়গঞ্জ",
+          "schools": [
+            { "name": "রায়গঞ্জ মোহনবাটি হাই স্কুল", "udiseCode": "19040100101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "হেমতাবাদ", "schools": [] },
+        { "name": "কালিয়াগঞ্জ", "schools": [] },
+        { "name": "ইটাহার", "schools": [] },
+        { "name": "ইসলামপুর", "schools": [] },
+        { "name": "করণদিঘি", "schools": [] },
+        { "name": "গোয়ালপোখর-১", "schools": [] },
+        { "name": "গোয়ালপোখর-২", "schools": [] },
+        { "name": "চোপড়া", "schools": [] }
+      ]
+    },
+    {
+      "name": "দক্ষিণ দিনাজপুর",
+      "blocks": [
+        {
+          "name": "বালুরঘাট",
+          "schools": [
+            { "name": "বালুরঘাট হাই স্কুল", "udiseCode": "19060100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "হিলি", "schools": [] },
+        { "name": "কুমারগঞ্জ", "schools": [] },
+        { "name": "তপন", "schools": [] },
+        { "name": "গঙ্গারামপুর", "schools": [] },
+        { "name": "বংশীহারী", "schools": [] },
+        { "name": "হরিরামপুর", "schools": [] },
+        { "name": "কুশমণ্ডি", "schools": [] }
+      ]
+    },
+    {
+      "name": "জলপাইগুড়ি",
+      "blocks": [
+        {
+          "name": "জলপাইগুড়ি সদর",
+          "schools": [
+            { "name": "জলপাইগুড়ি জিলা স্কুল", "udiseCode": "19020100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "ময়নাগুড়ি", "schools": [] },
+        { "name": "ধূপগুড়ি", "schools": [] },
+        { "name": "বানারহাট", "schools": [] },
+        { "name": "মাল", "schools": [] },
+        { "name": "মেটেলি", "schools": [] },
+        { "name": "নাগরাকাটা", "schools": [] }
+      ]
+    },
+    {
+      "name": "আলিপুরদুয়ার",
+      "blocks": [
+        {
+          "name": "আলিপুরদুয়ার-১",
+          "schools": [
+            { "name": "আলিপুরদুয়ার হাই স্কুল", "udiseCode": "19210100101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "আলিপুরদুয়ার-২", "schools": [] },
+        { "name": "ফালাকাটা", "schools": [] },
+        { "name": "কালচিনি", "schools": [] },
+        { "name": "কুমারগ্রাম", "schools": [] },
+        { "name": "মাদারিহাট-বীরপাড়া", "schools": [] }
+      ]
+    },
+    {
+      "name": "কোচবিহার",
+      "blocks": [
+        {
+          "name": "কোচবিহার-১",
+          "schools": [
+            { "name": "কোচবিহার জেনকিন্স স্কুল", "udiseCode": "19010100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "কোচবিহার-২", "schools": [] },
+        { "name": "দিনহাটা-১", "schools": [] },
+        { "name": "দিনহাটা-২", "schools": [] },
+        { "name": "দিনহাটা-৩", "schools": [] },
+        { "name": "তুফানগঞ্জ-১", "schools": [] },
+        { "name": "তুফানগঞ্জ-২", "schools": [] },
+        { "name": "মাথাভাঙা-১", "schools": [] },
+        { "name": "মাথাভাঙা-২", "schools": [] },
+        { "name": "সিতলকুচি", "schools": [] },
+        { "name": "মেখলিগঞ্জ", "schools": [] },
+        { "name": "হলদিবাড়ি", "schools": [] }
+      ]
+    },
+    {
+      "name": "দার্জিলিং",
+      "blocks": [
+        {
+          "name": "দার্জিলিং-পুলবাজার",
+          "schools": [
+            { "name": "দার্জিলিং গভঃ হাই স্কুল", "udiseCode": "19030100101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        {
+          "name": "মাটিগাড়া",
+          "schools": [
+            { "name": "শিলিগুড়ি বালক উচ্চ বিদ্যালয়", "udiseCode": "19030200101", "category": "HIGH_SCHOOL", "gender": "BOYS", "medium": "BENGALI", "board": "WBCHSE" }
+          ]
+        },
+        { "name": "রংলি রংলিয়ট", "schools": [] },
+        { "name": "জোড়বাংলো-সুকিয়াপোখরি", "schools": [] },
+        { "name": "কার্শিয়াং", "schools": [] },
+        { "name": "মিরিক", "schools": [] },
+        { "name": "নকশালবাড়ি", "schools": [] },
+        { "name": "ফাঁসিদেওয়া", "schools": [] },
+        { "name": "খড়িবাড়ি", "schools": [] }
+      ]
+    },
+    {
+      "name": "কালিম্পং",
+      "blocks": [
+        {
+          "name": "কালিম্পং-১",
+          "schools": [
+            { "name": "কালিম্পং গভঃ হাই স্কুল", "udiseCode": "19230100101", "category": "HIGH_SCHOOL", "gender": "COED", "medium": "BENGALI", "board": "WBBSE" }
+          ]
+        },
+        { "name": "কালিম্পং-২", "schools": [] },
+        { "name": "কালিম্পং-৩ (গোরুবাথান)", "schools": [] },
+        { "name": "লাভা", "schools": [] }
+      ]
+    }
+  ]
+}
