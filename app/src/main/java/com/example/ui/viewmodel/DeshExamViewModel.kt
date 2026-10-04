@@ -369,6 +369,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
     private val _previousScreen = MutableStateFlow(AppScreen.HOME)
+    private val _screenBeforeAssessment = MutableStateFlow<AppScreen?>(null)
 
     private val _selectedChapterId = MutableStateFlow("")
     val selectedChapterId: StateFlow<String> = _selectedChapterId.asStateFlow()
@@ -1113,6 +1114,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         customTitle: String? = null,
         setNumber: Int = 1
     ) {
+        if (_currentScreen.value != AppScreen.ASSESSMENT && _currentScreen.value != AppScreen.RESULT) {
+            _screenBeforeAssessment.value = _currentScreen.value
+        }
         viewModelScope.launch {
             val cid = studentProfile.value.classId.ifBlank { "class_10_wbbse" }
             val session = repository.createAssessmentSession(mode, targetId, customTitle, setNumber, cid)
@@ -1344,12 +1348,14 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun exitAssessment() {
         stopTimer()
         _assessmentState.value = AssessmentUiState()
-        _currentScreen.value = AppScreen.HOME
+        val target = _screenBeforeAssessment.value ?: _previousScreen.value ?: AppScreen.HOME
+        _currentScreen.value = if (target != AppScreen.ASSESSMENT && target != AppScreen.RESULT) target else AppScreen.HOME
     }
 
     fun dismissResult() {
         _latestResult.value = null
-        _currentScreen.value = AppScreen.HOME
+        val target = _screenBeforeAssessment.value ?: _previousScreen.value ?: AppScreen.HOME
+        _currentScreen.value = if (target != AppScreen.ASSESSMENT && target != AppScreen.RESULT) target else AppScreen.HOME
     }
 
     fun getTopicSetScore(topicId: String, setNumber: Int): Int = repository.getTopicSetScore(topicId, setNumber)

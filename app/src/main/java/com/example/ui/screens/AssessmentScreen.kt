@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -267,7 +268,7 @@ fun AssessmentScreen(
                     color = cardBgColorUi,
                     shadowElevation = 8.dp,
                     border = BorderStroke(1.dp, borderColorUi),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -277,55 +278,105 @@ fun AssessmentScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                        // 1. 50:50 Button (Cyan pill)
+                        Button(
                             onClick = { 
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (!state.isFiftyFiftyUsed) showRewardedAdForFiftyFifty = true 
                             },
                             enabled = !state.isFiftyFiftyUsed && !state.isAnswerChecked,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, if (state.isFiftyFiftyUsed) borderColorUi else ExamCyan),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (state.isFiftyFiftyUsed) Color.Transparent else ExamCyan.copy(alpha = 0.08f), contentColor = ExamCyan),
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF06B6D4),
+                                contentColor = Color.White,
+                                disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.35f),
+                                disabledContentColor = Color.White.copy(alpha = 0.6f)
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
                         ) {
-                            Icon(Icons.Default.FilterAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.PieChart,
+                                contentDescription = "50:50",
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("৫০:৫০", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = "50:50",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                         }
 
-                        OutlinedButton(
+                        // 2. +30s Button (Amber/Gold pill)
+                        Button(
                             onClick = { 
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (!isExtraTimeUsed) showRewardedAdForExtraTime = true 
                             },
                             enabled = !isExtraTimeUsed,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, if (isExtraTimeUsed) borderColorUi else ExamGold),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isExtraTimeUsed) Color.Transparent else ExamGold.copy(alpha = 0.08f), contentColor = ExamGold),
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFBBF24),
+                                contentColor = Color(0xFF1E293B),
+                                disabledContainerColor = Color(0xFFFBBF24).copy(alpha = 0.35f),
+                                disabledContentColor = Color(0xFF1E293B).copy(alpha = 0.5f)
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
                         ) {
-                            Icon(Icons.Default.MoreTime, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.MoreTime,
+                                contentDescription = "+30s",
+                                modifier = Modifier.size(18.dp),
+                                tint = Color(0xFF1E293B)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("+৩০ সে.", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = "+30s",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFF1E293B)
+                            )
                         }
 
-                        OutlinedButton(
+                        // 3. Skip Button (Rose/Pink pill)
+                        Button(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 if (!isSkipUsed) { isSkipUsed = true; onUseSkip?.invoke() }
                             },
                             enabled = !isSkipUsed && !state.isAnswerChecked,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, if (isSkipUsed) borderColorUi else ExamFlame),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (isSkipUsed) Color.Transparent else ExamFlame.copy(alpha = 0.08f), contentColor = ExamFlame),
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE11D48),
+                                contentColor = Color.White,
+                                disabledContainerColor = Color(0xFFE11D48).copy(alpha = 0.35f),
+                                disabledContentColor = Color.White.copy(alpha = 0.6f)
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp)
                         ) {
-                            Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Skip",
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (isBengali) "স্কিপ" else "Skip", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = "Skip",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }
