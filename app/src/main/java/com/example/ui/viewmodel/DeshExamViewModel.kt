@@ -595,17 +595,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                 } else {
-                    val guestCompleted = prefs.getBoolean("onboarding_completed_guest", false)
-                    val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
-                    if (guestCompleted || hasCompleted) {
-                        if (_currentScreen.value == AppScreen.SPLASH || _currentScreen.value == AppScreen.AUTH) {
-                            _currentScreen.value = AppScreen.HOME
-                        }
-                    } else {
-                        if (_currentScreen.value == AppScreen.SPLASH) {
-                            _currentScreen.value = AppScreen.AUTH
-                        }
+                    // User is unauthenticated / logged out
+                    _isGuestUser.value = true
+                    if (_currentScreen.value == AppScreen.SPLASH) {
+                        val hasCompleted = prefs.getBoolean("has_completed_onboarding", false)
+                        _currentScreen.value = if (hasCompleted) AppScreen.HOME else AppScreen.AUTH
                     }
+                    // Crucial: If current screen is already AUTH, never redirect to HOME!
                 }
             }
         }
@@ -872,11 +868,23 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 prefs.edit()
                     .remove("saved_last_screen")
                     .remove("has_completed_onboarding")
+                    .remove("onboarding_completed_guest")
                     .remove("saved_last_topic_id")
                     .remove("saved_last_chapter_id")
                     .remove("saved_last_subject_id")
                     .apply()
             } catch (_: Throwable) {}
+            try {
+                repository.updateStudentProfile(
+                    name = "পরীক্ষার্থী",
+                    school = "",
+                    district = "কলকাতা",
+                    targetExam = "Madhyamik 2026"
+                )
+            } catch (_: Throwable) {}
+            _activeTopicStudy.value = null
+            _selectedChapterEntity.value = null
+            _selectedSubjectEntity.value = null
             _currentScreen.value = AppScreen.AUTH
         }
     }

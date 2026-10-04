@@ -4,10 +4,14 @@ import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 data class AuthUserState(
@@ -34,38 +38,60 @@ class FirebaseAuthRepository {
         }
     }
 
-    private var localOfflineUser: AuthUserState? = null
+    private val _offlineUserState = MutableStateFlow<AuthUserState?>(null)
+
+    private var localOfflineUser: AuthUserState?
+        get() = _offlineUserState.value
+        set(value) {
+            _offlineUserState.value = value
+        }
 
     val currentUserState: AuthUserState?
         get() {
             return try {
-                auth?.currentUser?.toUserState() ?: localOfflineUser
+                auth?.currentUser?.toUserState() ?: _offlineUserState.value
             } catch (e: Throwable) {
-                localOfflineUser
+                _offlineUserState.value
             }
         }
 
     val authStateFlow: Flow<AuthUserState?> = callbackFlow {
         val fbAuth = auth
         if (fbAuth == null) {
-            trySend(localOfflineUser)
-            awaitClose { }
+            val job = CoroutineScope(Dispatchers.Default).launch {
+                _offlineUserState.collect { user ->
+                    trySend(user)
+                }
+            }
+            awaitClose { job.cancel() }
             return@callbackFlow
         }
 
         try {
             val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-                trySend(firebaseAuth.currentUser?.toUserState() ?: localOfflineUser)
+                trySend(firebaseAuth.currentUser?.toUserState() ?: _offlineUserState.value)
             }
             fbAuth.addAuthStateListener(listener)
+            val job = CoroutineScope(Dispatchers.Default).launch {
+                _offlineUserState.collect { offlineUser ->
+                    if (fbAuth.currentUser == null) {
+                        trySend(offlineUser)
+                    }
+                }
+            }
             awaitClose {
                 try {
                     fbAuth.removeAuthStateListener(listener)
                 } catch (_: Throwable) { }
+                job.cancel()
             }
         } catch (e: Throwable) {
-            trySend(localOfflineUser)
-            awaitClose { }
+            val job = CoroutineScope(Dispatchers.Default).launch {
+                _offlineUserState.collect { user ->
+                    trySend(user)
+                }
+            }
+            awaitClose { job.cancel() }
         }
     }
 

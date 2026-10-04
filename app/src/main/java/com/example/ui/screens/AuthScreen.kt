@@ -91,7 +91,6 @@ fun AuthScreen(
     var targetExam by remember { mutableStateOf("WBBSE Madhyamik 2026") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
     var districtExpanded by remember { mutableStateOf(false) }
@@ -179,7 +178,7 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .padding(horizontal = 22.dp, vertical = 14.dp)
                 .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -188,7 +187,7 @@ fun AuthScreen(
             // 1. App Logo Badge
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(66.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -205,29 +204,29 @@ fun AuthScreen(
                     imageVector = Icons.Default.School,
                     contentDescription = "Logo Cap",
                     tint = Color.White,
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(34.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // 2. Form Column directly on layout (No outer Card)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("auth_form_container"),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Segmented Toggle control with Gradient Active Tab
                 if (authMode != AuthMode.FORGOT_PASSWORD) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(44.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF1E293B).copy(alpha = 0.5f))
                             .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), CircleShape)
-                            .padding(4.dp),
+                            .padding(3.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         val isSignIn = authMode == AuthMode.SIGN_IN
@@ -410,12 +409,12 @@ fun AuthScreen(
 
                         // Form input fields
                         AnimatedVisibility(visible = authMode == AuthMode.SIGN_UP) {
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 // Full Name Field
                                 OutlinedTextField(
                                     value = name,
                                     onValueChange = { name = it },
-                                    label = { Text("আপনার নাম", fontSize = 12.sp) },
+                                    placeholder = { Text("আপনার সম্পূর্ণ নাম", fontSize = 13.sp, color = Color(0xFF64748B)) },
                                     leadingIcon = {
                                         Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
                                     },
@@ -423,10 +422,11 @@ fun AuthScreen(
                                     textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                                     keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     colors = modernTextFieldColors,
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .height(46.dp)
                                         .testTag("input_full_name")
                                 )
                             }
@@ -453,73 +453,22 @@ fun AuthScreen(
                                     if (authMode == AuthMode.FORGOT_PASSWORD) onForgotPassword(email)
                                 }
                             ),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(10.dp),
                             colors = modernTextFieldColors,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(46.dp)
                                 .testTag("input_email")
                         )
 
-                        // Password Field matching "পাসওয়ার্ড দিন" layout
+                        // Password Field matching clean layout
                         if (authMode != AuthMode.FORGOT_PASSWORD) {
                             OutlinedTextField(
                                 value = password,
                                 onValueChange = { password = it },
-                                placeholder = { Text("পাসওয়ার্ড দিন", fontSize = 13.sp, color = Color(0xFF64748B)) },
+                                placeholder = { Text("পাসওয়ার্ড", fontSize = 13.sp, color = Color(0xFF64748B)) },
                                 leadingIcon = {
                                     Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-                                },
-                                trailingIcon = {
-                                    IconButton(
-                                        onClick = { showPassword = !showPassword },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                            contentDescription = if (showPassword) "Hide password" else "Show password",
-                                            modifier = Modifier.size(18.dp),
-                                            tint = Color(0xFF64748B)
-                                        )
-                                    }
-                                },
-                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password,
-                                    imeAction = if (authMode == AuthMode.SIGN_UP) ImeAction.Next else ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
-                                    onDone = {
-                                        focusManager.clearFocus()
-                                        onSignIn(email, password)
-                                    }
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = modernTextFieldColors,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("input_password")
-                            )
-                            if (authMode == AuthMode.SIGN_UP) {
-                                Text(
-                                    text = "কমপক্ষে ৮ অক্ষরের পাসওয়ার্ড ব্যবহার করুন",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = Color(0xFF94A3B8),
-                                    modifier = Modifier.padding(start = 4.dp, top = 1.dp)
-                                )
-                            }
-                        }
-
-                        // Confirm Password (SignUp Mode)
-                        if (authMode == AuthMode.SIGN_UP) {
-                            OutlinedTextField(
-                                value = confirmPassword,
-                                onValueChange = { confirmPassword = it },
-                                placeholder = { Text("পাসওয়ার্ড নিশ্চিত করুন", fontSize = 13.sp, color = Color(0xFF64748B)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                                 },
                                 trailingIcon = {
                                     IconButton(
@@ -544,24 +493,35 @@ fun AuthScreen(
                                 keyboardActions = KeyboardActions(
                                     onDone = {
                                         focusManager.clearFocus()
-                                        if (password == confirmPassword) {
-                                            onSignUp(name, school, district, targetExam, email, password)
+                                        if (authMode == AuthMode.SIGN_IN) {
+                                            onSignIn(email, password)
+                                        } else if (authMode == AuthMode.SIGN_UP) {
+                                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                                localError = if (isBengali) "নাম, ইমেইল ও পাসওয়ার্ড প্রদান করুন" else "Please enter name, email and password"
+                                            } else {
+                                                onSignUp(name, school, district, targetExam, email, password)
+                                            }
                                         }
                                     }
                                 ),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = modernTextFieldColors,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .testTag("input_confirm_password")
+                                    .height(46.dp)
+                                    .testTag("input_password")
                             )
-                            
-                            var termsAccepted by remember { mutableStateOf(false) }
+                        }
+
+                        // Terms and Conditions Policy (SignUp Mode) with minimized margin
+                        if (authMode == AuthMode.SIGN_UP) {
+                            var termsAccepted by remember { mutableStateOf(true) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
+                                    .padding(top = 1.dp, bottom = 1.dp)
+                                    .clickable { termsAccepted = !termsAccepted }
                             ) {
                                 Checkbox(
                                     checked = termsAccepted,
@@ -570,9 +530,9 @@ fun AuthScreen(
                                         checkedColor = Color(0xFFA78BFA),
                                         uncheckedColor = Color(0xFF64748B)
                                     ),
-                                    modifier = Modifier.size(20.dp).padding(end = 8.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = androidx.compose.ui.text.buildAnnotatedString {
                                         append("আমি ব্যবহারের ")
@@ -615,14 +575,12 @@ fun AuthScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
-
                         // Gradient Action Button matching image
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     if (isLoading) {
                                         Brush.horizontalGradient(listOf(Color(0xFF64748B), Color(0xFF64748B)))
@@ -639,7 +597,13 @@ fun AuthScreen(
                                     focusManager.clearFocus()
                                     when (authMode) {
                                         AuthMode.SIGN_IN -> onSignIn(email, password)
-                                        AuthMode.SIGN_UP -> onSignUp(name, school, district, targetExam, email, password)
+                                        AuthMode.SIGN_UP -> {
+                                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                                localError = if (isBengali) "নাম, ইমেইল ও পাসওয়ার্ড প্রদান করুন" else "Please enter name, email and password"
+                                            } else {
+                                                onSignUp(name, school, district, targetExam, email, password)
+                                            }
+                                        }
                                         AuthMode.FORGOT_PASSWORD -> onForgotPassword(email)
                                     }
                                 }
@@ -684,10 +648,12 @@ fun AuthScreen(
                             }
                         }
 
-                        // Divider matching the "বা" in image
+                        // Divider matching the "বা" in image with compact margin
                         if (authMode != AuthMode.FORGOT_PASSWORD) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 1.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -699,10 +665,10 @@ fun AuthScreen(
                                     text = "বা",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
+                                        fontSize = 11.sp
                                     ),
                                     color = Color(0xFF64748B),
-                                    modifier = Modifier.padding(horizontal = 14.dp)
+                                    modifier = Modifier.padding(horizontal = 10.dp)
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.weight(1f),
@@ -798,13 +764,13 @@ fun AuthScreen(
                                         }
                                     }
                                 },
-                                enabled = !isLoading,
-                                shape = RoundedCornerShape(16.dp),
+                                 enabled = !isLoading,
+                                shape = RoundedCornerShape(10.dp),
                                 color = Color.White,
                                 border = BorderStroke(1.dp, Color(0xFFDADCE0)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp)
+                                    .height(46.dp)
                                     .testTag("google_signin_btn")
                             ) {
                                 Row(
@@ -824,7 +790,7 @@ fun AuthScreen(
                                         text = "Google দিয়ে সাইন ইন করুন",
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
+                                            fontSize = 13.5.sp
                                         ),
                                          color = Color(0xFF1F1F1F)
                                     )
@@ -833,7 +799,7 @@ fun AuthScreen(
                         }
                     }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Compact Centered Guest Mode Button (Not Full Width)
             Surface(
@@ -852,7 +818,7 @@ fun AuthScreen(
                     .testTag(if (authMode == AuthMode.SIGN_UP) "go_to_signin_btn" else "continue_as_guest_btn")
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -913,7 +879,7 @@ fun AuthScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Beautiful interactive sparkling 4-pointed star drawn in SVG Canvas to match bottom-right corner decoration
             Row(

@@ -290,8 +290,8 @@ fun PdfNotesScreen(
                         } else {
                             pendingDownloadNote = note
                             val activity = context as? Activity
-                            if (activity != null && AdMobManager.hasRewardedInterstitialAd()) {
-                                val shown = AdMobManager.showRewardedInterstitialAd(
+                            if (activity != null) {
+                                val shown = AdMobManager.showAnyRewardedAd(
                                     activity = activity,
                                     onRewardEarned = { _, _ ->
                                         localUnlockedNotes.add(note.id)

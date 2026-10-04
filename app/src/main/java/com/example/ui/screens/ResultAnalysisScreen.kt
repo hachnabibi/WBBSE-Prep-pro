@@ -35,6 +35,7 @@ import com.example.data.model.*
 import com.example.ui.components.AdBannerCard
 import com.example.ui.components.AdRewardType
 import com.example.ui.components.ConfettiAnimationOverlay
+import com.example.ui.components.InterstitialAdDialog
 import com.example.ui.components.RewardedAdDialog
 import com.example.ui.theme.*
 
@@ -58,17 +59,21 @@ fun ResultAnalysisScreen(
     var expandedQuestionIndices by remember { mutableStateOf(setOf<Int>()) }
     var isDoubleClaimed by remember { mutableStateOf(false) }
     var showRewardedAd by remember { mutableStateOf(false) }
+    var showFallbackInterstitial by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         val activity = context as? Activity
         if (activity != null) {
             var attempts = 0
-            while (attempts < 4 && !AdMobManager.hasInterstitialAd()) {
-                delay(400L)
+            while (attempts < 6 && !AdMobManager.hasInterstitialAd()) {
+                delay(300L)
                 attempts++
             }
-            AdMobManager.showInterstitialAd(activity) {}
+            val shown = AdMobManager.showInterstitialAd(activity) {}
+            if (!shown) {
+                showFallbackInterstitial = true
+            }
         }
     }
 
@@ -603,6 +608,13 @@ fun ResultAnalysisScreen(
                     onDoubleReward?.invoke()
                 },
                 onDismiss = { showRewardedAd = false }
+            )
+        }
+
+        if (showFallbackInterstitial) {
+            InterstitialAdDialog(
+                isBengali = isBengali,
+                onDismiss = { showFallbackInterstitial = false }
             )
         }
     }

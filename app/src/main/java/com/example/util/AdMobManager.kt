@@ -15,10 +15,17 @@ import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
 import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 object AdMobManager {
     private const val TAG = "AdMobManager"
     private var isInitialized = false
+    private var appContext: Context? = null
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // Official Google AdMob Test Unit IDs (100% safe for testing and Play Store compliance)
     const val APP_ID = "ca-app-pub-3940256099942544~3347511713"
@@ -49,15 +56,16 @@ object AdMobManager {
     private var isLoadingRewardedInterstitial = false
 
     fun initialize(context: Context) {
+        appContext = context.applicationContext
         if (!isInitialized) {
             try {
-                MobileAds.initialize(context) { initializationStatus ->
+                MobileAds.initialize(context.applicationContext) { initializationStatus ->
                     isInitialized = true
                     Log.d(TAG, "AdMob SDK Initialized: $initializationStatus")
-                    loadAppOpenAd(context)
-                    loadInterstitialAd(context)
-                    loadRewardedAd(context)
-                    loadRewardedInterstitialAd(context)
+                    loadAppOpenAd()
+                    loadInterstitialAd()
+                    loadRewardedAd()
+                    loadRewardedInterstitialAd()
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "Failed to initialize AdMob SDK: ${e.message}")
@@ -66,13 +74,15 @@ object AdMobManager {
     }
 
     // --- App Open Ad ---
-    fun loadAppOpenAd(context: Context) {
+    fun loadAppOpenAd(context: Context? = null) {
+        val ctx = context?.applicationContext ?: appContext ?: return
+        if (appContext == null) appContext = ctx
         if (appOpenAd != null || isLoadingAppOpen) return
         isLoadingAppOpen = true
         try {
             val adRequest = AdRequest.Builder().build()
             AppOpenAd.load(
-                context,
+                ctx,
                 APP_OPEN_AD_UNIT,
                 adRequest,
                 object : AppOpenAd.AppOpenAdLoadCallback() {
@@ -85,7 +95,11 @@ object AdMobManager {
                     override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                         appOpenAd = null
                         isLoadingAppOpen = false
-                        Log.e(TAG, "App Open Ad Failed to load: ${loadAdError.message}")
+                        Log.w(TAG, "App Open Ad Failed to load: ${loadAdError.message}. Retrying in 10s...")
+                        scope.launch {
+                            delay(10000L)
+                            if (appOpenAd == null) loadAppOpenAd()
+                        }
                     }
                 }
             )
@@ -99,50 +113,59 @@ object AdMobManager {
     fun showAppOpenAd(activity: Activity, onAdDismissed: () -> Unit = {}): Boolean {
         val ad = appOpenAd
         if (ad != null) {
+            appOpenAd = null
+            scope.launch {
+                delay(2000L)
+                loadAppOpenAd()
+            }
             ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    appOpenAd = null
-                    loadAppOpenAd(activity)
+                    loadAppOpenAd()
                     onAdDismissed()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                     Log.e(TAG, "App Open Ad Failed to show: ${adError.message}")
-                    appOpenAd = null
-                    loadAppOpenAd(activity)
+                    loadAppOpenAd()
                     onAdDismissed()
                 }
             }
             ad.show(activity)
             return true
         } else {
-            onAdDismissed()
             loadAppOpenAd(activity)
+            onAdDismissed()
             return false
         }
     }
 
     // --- Interstitial Ad ---
-    fun loadInterstitialAd(context: Context) {
+    fun loadInterstitialAd(context: Context? = null) {
+        val ctx = context?.applicationContext ?: appContext ?: return
+        if (appContext == null) appContext = ctx
         if (interstitialAd != null || isLoadingInterstitial) return
         isLoadingInterstitial = true
         try {
             val adRequest = AdRequest.Builder().build()
             InterstitialAd.load(
-                context,
+                ctx,
                 INTERSTITIAL_AD_UNIT,
                 adRequest,
                 object : InterstitialAdLoadCallback() {
                     override fun onAdLoaded(ad: InterstitialAd) {
                         interstitialAd = ad
                         isLoadingInterstitial = false
-                        Log.d(TAG, "Interstitial Ad Loaded")
+                        Log.d(TAG, "Interstitial Ad Loaded successfully")
                     }
 
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         interstitialAd = null
                         isLoadingInterstitial = false
-                        Log.e(TAG, "Interstitial Ad Failed: ${error.message}")
+                        Log.w(TAG, "Interstitial Ad Failed: ${error.message} (code: ${error.code}). Retrying in 5s...")
+                        scope.launch {
+                            delay(5000L)
+                            if (interstitialAd == null) loadInterstitialAd()
+                        }
                     }
                 }
             )
@@ -154,53 +177,62 @@ object AdMobManager {
 
     fun hasInterstitialAd(): Boolean = interstitialAd != null
 
-    fun showInterstitialAd(activity: Activity, onAdDismissed: () -> Unit): Boolean {
+    fun showInterstitialAd(activity: Activity, onAdDismissed: () -> Unit = {}): Boolean {
         val ad = interstitialAd
         if (ad != null) {
+            interstitialAd = null // Consumed immediately to prevent duplicate display
+            scope.launch {
+                delay(1000L)
+                loadInterstitialAd()
+            }
             ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    interstitialAd = null
-                    loadInterstitialAd(activity)
+                    loadInterstitialAd()
                     onAdDismissed()
                 }
 
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
                     Log.e(TAG, "Interstitial Ad Failed to show: ${error.message}")
-                    interstitialAd = null
-                    loadInterstitialAd(activity)
+                    loadInterstitialAd()
                     onAdDismissed()
                 }
             }
             ad.show(activity)
             return true
         } else {
-            onAdDismissed()
             loadInterstitialAd(activity)
+            onAdDismissed()
             return false
         }
     }
 
     // --- Rewarded Ad ---
-    fun loadRewardedAd(context: Context) {
+    fun loadRewardedAd(context: Context? = null) {
+        val ctx = context?.applicationContext ?: appContext ?: return
+        if (appContext == null) appContext = ctx
         if (rewardedAd != null || isLoadingRewarded) return
         isLoadingRewarded = true
         try {
             val adRequest = AdRequest.Builder().build()
             RewardedAd.load(
-                context,
+                ctx,
                 REWARDED_AD_UNIT,
                 adRequest,
                 object : RewardedAdLoadCallback() {
                     override fun onAdLoaded(ad: RewardedAd) {
                         rewardedAd = ad
                         isLoadingRewarded = false
-                        Log.d(TAG, "Rewarded Ad Loaded")
+                        Log.d(TAG, "Rewarded Ad Loaded successfully")
                     }
 
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         rewardedAd = null
                         isLoadingRewarded = false
-                        Log.e(TAG, "Rewarded Ad Failed: ${error.message}")
+                        Log.w(TAG, "Rewarded Ad Failed: ${error.message} (code: ${error.code}). Retrying in 5s...")
+                        scope.launch {
+                            delay(5000L)
+                            if (rewardedAd == null) loadRewardedAd()
+                        }
                     }
                 }
             )
@@ -212,14 +244,22 @@ object AdMobManager {
 
     fun hasRewardedAd(): Boolean = rewardedAd != null
 
-    fun showRewardedAd(activity: Activity, onRewardEarned: (amount: Int, type: String) -> Unit, onAdDismissed: () -> Unit): Boolean {
+    fun showRewardedAd(
+        activity: Activity,
+        onRewardEarned: (amount: Int, type: String) -> Unit,
+        onAdDismissed: () -> Unit
+    ): Boolean {
         val ad = rewardedAd
         if (ad != null) {
+            rewardedAd = null // Consumed immediately
+            scope.launch {
+                delay(1000L)
+                loadRewardedAd()
+            }
             var rewardGranted = false
             ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    rewardedAd = null
-                    loadRewardedAd(activity)
+                    loadRewardedAd()
                     if (!rewardGranted) {
                         onAdDismissed()
                     }
@@ -227,8 +267,7 @@ object AdMobManager {
 
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
                     Log.e(TAG, "Rewarded Ad Failed to show: ${error.message}")
-                    rewardedAd = null
-                    loadRewardedAd(activity)
+                    loadRewardedAd()
                     onAdDismissed()
                 }
             }
@@ -245,26 +284,32 @@ object AdMobManager {
     }
 
     // --- Rewarded Interstitial Ad ---
-    fun loadRewardedInterstitialAd(context: Context) {
+    fun loadRewardedInterstitialAd(context: Context? = null) {
+        val ctx = context?.applicationContext ?: appContext ?: return
+        if (appContext == null) appContext = ctx
         if (rewardedInterstitialAd != null || isLoadingRewardedInterstitial) return
         isLoadingRewardedInterstitial = true
         try {
             val adRequest = AdRequest.Builder().build()
             RewardedInterstitialAd.load(
-                context,
+                ctx,
                 REWARDED_INTERSTITIAL_AD_UNIT,
                 adRequest,
                 object : RewardedInterstitialAdLoadCallback() {
                     override fun onAdLoaded(ad: RewardedInterstitialAd) {
                         rewardedInterstitialAd = ad
                         isLoadingRewardedInterstitial = false
-                        Log.d(TAG, "Rewarded Interstitial Ad Loaded")
+                        Log.d(TAG, "Rewarded Interstitial Ad Loaded successfully")
                     }
 
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         rewardedInterstitialAd = null
                         isLoadingRewardedInterstitial = false
-                        Log.e(TAG, "Rewarded Interstitial Ad Failed: ${error.message}")
+                        Log.w(TAG, "Rewarded Interstitial Ad Failed: ${error.message} (code: ${error.code}). Retrying in 5s...")
+                        scope.launch {
+                            delay(5000L)
+                            if (rewardedInterstitialAd == null) loadRewardedInterstitialAd()
+                        }
                     }
                 }
             )
@@ -276,14 +321,22 @@ object AdMobManager {
 
     fun hasRewardedInterstitialAd(): Boolean = rewardedInterstitialAd != null
 
-    fun showRewardedInterstitialAd(activity: Activity, onRewardEarned: (amount: Int, type: String) -> Unit, onAdDismissed: () -> Unit): Boolean {
+    fun showRewardedInterstitialAd(
+        activity: Activity,
+        onRewardEarned: (amount: Int, type: String) -> Unit,
+        onAdDismissed: () -> Unit
+    ): Boolean {
         val ad = rewardedInterstitialAd
         if (ad != null) {
+            rewardedInterstitialAd = null // Consumed immediately
+            scope.launch {
+                delay(1000L)
+                loadRewardedInterstitialAd()
+            }
             var rewardGranted = false
             ad.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    rewardedInterstitialAd = null
-                    loadRewardedInterstitialAd(activity)
+                    loadRewardedInterstitialAd()
                     if (!rewardGranted) {
                         onAdDismissed()
                     }
@@ -291,8 +344,7 @@ object AdMobManager {
 
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
                     Log.e(TAG, "Rewarded Interstitial Ad Failed to show: ${error.message}")
-                    rewardedInterstitialAd = null
-                    loadRewardedInterstitialAd(activity)
+                    loadRewardedInterstitialAd()
                     onAdDismissed()
                 }
             }
@@ -306,5 +358,25 @@ object AdMobManager {
             loadRewardedInterstitialAd(activity)
             return false
         }
+    }
+
+    /**
+     * Tries to show any available rewarded ad format (Rewarded Interstitial first, then Rewarded Ad).
+     * If neither is ready, triggers background preloading for both and returns false.
+     */
+    fun showAnyRewardedAd(
+        activity: Activity,
+        onRewardEarned: (amount: Int, type: String) -> Unit,
+        onAdDismissed: () -> Unit
+    ): Boolean {
+        if (hasRewardedInterstitialAd()) {
+            return showRewardedInterstitialAd(activity, onRewardEarned, onAdDismissed)
+        }
+        if (hasRewardedAd()) {
+            return showRewardedAd(activity, onRewardEarned, onAdDismissed)
+        }
+        loadRewardedAd(activity)
+        loadRewardedInterstitialAd(activity)
+        return false
     }
 }

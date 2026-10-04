@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import android.app.Activity
 import android.speech.tts.TextToSpeech
+import com.example.util.AdMobManager
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -695,9 +697,27 @@ fun FlashcardsScreen(
     }
 
     if (showInterstitialAd) {
-        InterstitialAdDialog(
-            isBengali = isBengali,
-            onDismiss = { showInterstitialAd = false }
-        )
+        val activity = context as? Activity
+        var showInAppFallback by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            if (activity != null && AdMobManager.hasInterstitialAd()) {
+                val shown = AdMobManager.showInterstitialAd(activity) {
+                    showInterstitialAd = false
+                }
+                if (!shown) {
+                    showInAppFallback = true
+                }
+            } else {
+                showInAppFallback = true
+            }
+        }
+
+        if (showInAppFallback) {
+            InterstitialAdDialog(
+                isBengali = isBengali,
+                onDismiss = { showInterstitialAd = false }
+            )
+        }
     }
 }
