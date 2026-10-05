@@ -784,6 +784,7 @@ fun DeshExamApp(
                             viewModel = viewModel,
                             isBengali = isBengali,
                             onBack = { viewModel.goBack() },
+                            onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
