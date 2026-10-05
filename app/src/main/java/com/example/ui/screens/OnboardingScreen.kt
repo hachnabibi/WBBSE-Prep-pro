@@ -1175,137 +1175,120 @@ fun Step3LocationAndSchool(
                         }
                     }
                     
-                    OutlinedTextField(
-                        value = searchQuery.ifEmpty { school },
-                        onValueChange = { 
-                            searchQuery = it 
-                            onSchoolChange(it)
-                        },
-                        placeholder = { Text("স্কুলের নাম লিখুন বা খুঁজুন", maxLines = 1) },
-                        leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = AppPrimaryAccent) },
-                        trailingIcon = {
-                            if (school.isNotBlank()) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent)
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF818CF8),
-                            unfocusedBorderColor = Color(0x33FFFFFF),
-                            focusedLabelColor = Color(0xFF818CF8),
-                            unfocusedLabelColor = AppTextSecondary,
-                            focusedTextColor = AppTextPrimary,
-                            unfocusedTextColor = AppTextPrimary,
-                            focusedContainerColor = AppInput.copy(alpha = 0.4f),
-                            unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
-                        ),
-                        singleLine = true,
+                    var schoolExpanded by remember { mutableStateOf(false) }
+
+                    ExposedDropdownMenuBox(
+                        expanded = schoolExpanded,
+                        onExpandedChange = { schoolExpanded = !schoolExpanded },
                         modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    // Suggested School List Box
-                    if (filteredSchools.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Card(
+                    ) {
+                        OutlinedTextField(
+                            value = school,
+                            onValueChange = { 
+                                onSchoolChange(it)
+                                schoolExpanded = true
+                            },
+                            placeholder = { Text("স্কুলের নাম লিখুন বা বাছুন", maxLines = 1) },
+                            leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = AppPrimaryAccent) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = schoolExpanded) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = AppInput.copy(alpha = 0.4f)),
-                            border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF818CF8),
+                                unfocusedBorderColor = Color(0x33FFFFFF),
+                                focusedLabelColor = Color(0xFF818CF8),
+                                unfocusedLabelColor = AppTextSecondary,
+                                focusedTextColor = AppTextPrimary,
+                                unfocusedTextColor = AppTextPrimary,
+                                focusedContainerColor = AppInput.copy(alpha = 0.4f),
+                                unfocusedContainerColor = AppInput.copy(alpha = 0.4f)
+                            ),
+                            singleLine = true,
                             modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryEditable)
                                 .fillMaxWidth()
-                                .heightIn(max = 140.dp)
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = schoolExpanded,
+                            onDismissRequest = { schoolExpanded = false },
+                            modifier = Modifier
+                                .background(AppCard)
+                                .heightIn(max = 280.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.verticalScroll(rememberScrollState())
-                            ) {
-                                 filteredSchools.forEach { s ->
+                            if (filteredSchools.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("কোনো স্কুল পাওয়া যায়নি", color = AppTextSecondary) },
+                                    onClick = {},
+                                    enabled = false
+                                )
+                            } else {
+                                filteredSchools.forEach { s ->
                                     val isSelected = school == s
-                                    val schoolTags = remember(s) { com.example.util.getSchoolInfo(s).getTags() }
+                                    val schoolTags = com.example.util.getSchoolInfo(s).getTags()
                                     
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                onSchoolChange(s)
-                                                searchQuery = "" // reset search so school name displays
-                                            }
-                                            .background(if (isSelected) AppPrimaryAccent.copy(alpha = 0.25f) else Color.Transparent)
-                                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.School,
-                                            contentDescription = null,
-                                            tint = if (isSelected) AppPrimaryAccent else AppTextSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = s,
-                                                color = if (isSelected) AppPrimaryAccent else AppTextPrimary,
-                                                style = MaterialTheme.typography.bodyMedium.copy(
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    fontSize = 13.sp
-                                                ),
-                                                maxLines = 1
-                                            )
-                                            Spacer(modifier = Modifier.height(3.dp))
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                                modifier = Modifier.padding(top = 2.dp)
-                                            ) {
-                                                schoolTags.take(3).forEach { tag ->
-                                                    Surface(
-                                                        shape = RoundedCornerShape(4.dp),
-                                                        color = Color(0xFF1E293B).copy(alpha = 0.8f),
-                                                        border = BorderStroke(0.5.dp, Color(0x22FFFFFF))
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                                Text(
+                                                    text = s,
+                                                    color = if (isSelected) Color(0xFF818CF8) else AppTextPrimary,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                    )
+                                                )
+                                                if (schoolTags.isNotEmpty()) {
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        modifier = Modifier.padding(top = 4.dp)
                                                     ) {
-                                                        Text(
-                                                            text = tag,
-                                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                                            color = AppTextSecondary,
-                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                                                        )
+                                                        schoolTags.take(3).forEach { tag ->
+                                                            Surface(
+                                                                shape = RoundedCornerShape(4.dp),
+                                                                color = Color(0xFF1E293B).copy(alpha = 0.8f),
+                                                                border = BorderStroke(0.5.dp, Color(0x22FFFFFF))
+                                                            ) {
+                                                                Text(
+                                                                    text = tag,
+                                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                                    color = AppTextSecondary,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
+                                        },
+                                        trailingIcon = {
+                                            if (isSelected) {
+                                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(18.dp))
+                                            }
+                                        },
+                                        onClick = {
+                                            onSchoolChange(s)
+                                            schoolExpanded = false
                                         }
-                                        if (isSelected) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppPrimaryAccent, modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                    HorizontalDivider(color = Color(0x22FFFFFF), thickness = 0.5.dp)
+                                    )
                                 }
                             }
-                        }
-                    }
 
-                    // Add Custom School Option if searching for a school not listed
-                    if (searchQuery.isNotBlank() && !availableSchools.contains(searchQuery)) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            onClick = {
-                                com.example.util.WestBengalData.addSchoolToBlock(block, district, searchQuery)
-                                onSchoolChange(searchQuery)
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = AppActiveSurface.copy(alpha = 0.6f),
-                            border = BorderStroke(1.dp, Color(0xFF818CF8)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "‘$searchQuery’ নতুন স্কুল হিসেবে যোগ করুন",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = Color(0xFF38BDF8),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
+                            if (school.isNotBlank() && !availableSchools.contains(school)) {
+                                HorizontalDivider(color = Color(0x22FFFFFF), thickness = 0.5.dp)
+                                DropdownMenuItem(
+                                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp)) },
+                                    text = {
+                                        Text(
+                                            text = "‘$school’ নতুন স্কুল হিসেবে যোগ করুন",
+                                            color = Color(0xFF38BDF8),
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    },
+                                    onClick = {
+                                        com.example.util.WestBengalData.addSchoolToBlock(block, district, school)
+                                        onSchoolChange(school)
+                                        schoolExpanded = false
+                                    }
                                 )
                             }
                         }
@@ -1333,14 +1316,14 @@ fun Step3LocationAndSchool(
 
 private data class GoalOptionData(
     val id: String,
-    val titleEn: String,
+    val titleBn: String,
     val subtitleBn: String,
     val icon: ImageVector
 )
 
 @Composable
 fun GoalCard(
-    titleEn: String,
+    titleBn: String,
     subtitleBn: String,
     isSelected: Boolean,
     defaultIcon: ImageVector,
@@ -1384,7 +1367,7 @@ fun GoalCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = titleEn,
+                    text = titleBn,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = AppTextPrimary
                 )
@@ -1413,63 +1396,33 @@ fun Step5Goals(
         listOf(
             GoalOptionData(
                 id = "study_daily",
-                titleEn = "Daily Routine & Revision",
-                subtitleBn = "প্রতিদিন নিয়মিত রিভিশন ও রুটিন ধরে রাখা",
+                titleBn = "প্রতিদিনের রুটিন মেনে চলা",
+                subtitleBn = "প্রতিদিন নির্দিষ্ট সময় ধরে নিয়মিত চর্চা করা",
                 icon = Icons.Default.EventAvailable
             ),
             GoalOptionData(
                 id = "prepare_exams",
-                titleEn = "Board Exam Preparation",
-                subtitleBn = "মাধ্যমিক/উচ্চমাধ্যমিক পরীক্ষার সেরা প্রস্তুতি",
+                titleBn = "পরীক্ষায় সেরা প্রস্তুতি নেওয়া",
+                subtitleBn = "বোর্ড পরীক্ষার জন্য সম্পূর্ণ সিলেবাস শেষ করা",
                 icon = Icons.Default.Assignment
             ),
             GoalOptionData(
-                id = "top_marks",
-                titleEn = "Score Top Marks & Ranks",
-                subtitleBn = "পরীক্ষায় সর্বোচ্চ নম্বর ও সেরা র‍্যাংক অর্জন",
-                icon = Icons.Default.EmojiEvents
-            ),
-            GoalOptionData(
                 id = "improve_weak",
-                titleEn = "Master Difficult Subjects",
-                subtitleBn = "গণিত, বিজ্ঞান ও ইংরেজি আয়ত্ত করা",
+                titleBn = "কঠিন বিষয় সহজে শেখা",
+                subtitleBn = "গণিত ও বিজ্ঞানের কঠিন অধ্যায় সহজে আয়ত্ত করা",
                 icon = Icons.Default.Psychology
             ),
             GoalOptionData(
                 id = "mock_practice",
-                titleEn = "Solve Mock Tests & Test Papers",
-                subtitleBn = "টেস্ট পেপার ও বিগত বছরের প্রশ্ন সলভ করা",
+                titleBn = "বিগত বছরের প্রশ্ন সমাধান",
+                subtitleBn = "টেস্ট পেপার ও কুইজ নিয়মিত অনুশীলন করা",
                 icon = Icons.Default.Quiz
             ),
             GoalOptionData(
-                id = "competitive_exams",
-                titleEn = "Competitive Exam Prep (JEE / NEET / NTSE)",
-                subtitleBn = "স্কুলের পাশাপাশি কম্পিটিটিভ পরীক্ষার প্রস্তুতি",
-                icon = Icons.Default.School
-            ),
-            GoalOptionData(
-                id = "doubt_clearing",
-                titleEn = "Instant Doubt Clearing",
-                subtitleBn = "যেকোনো কঠিন প্রশ্নের দ্রুত সঠিক উত্তর পাওয়া",
-                icon = Icons.Default.HelpOutline
-            ),
-            GoalOptionData(
-                id = "time_management",
-                titleEn = "Smart Time Management",
-                subtitleBn = "পড়াশোনার সময় ও রুটিন সঠিকভাবে পরিচালনা",
-                icon = Icons.Default.Timer
-            ),
-            GoalOptionData(
-                id = "syllabus_completion",
-                titleEn = "Early Syllabus Completion",
-                subtitleBn = "পরীক্ষার আগেই পুরো সিলেবাস শেষ করা",
-                icon = Icons.Default.MenuBook
-            ),
-            GoalOptionData(
-                id = "handwritten_notes",
-                titleEn = "Topper's Notes & Suggestions",
-                subtitleBn = "হাতে লেখা স্টাডি নোটস ও বিষয়ভিত্তিক সাজেশন",
-                icon = Icons.Default.Description
+                id = "top_marks",
+                titleBn = "পরীক্ষায় সর্বোচ্চ নম্বর পাওয়া",
+                subtitleBn = "সব বিষয়ে সেরা নম্বর ও ভালো ফলাফল অর্জন করা",
+                icon = Icons.Default.EmojiEvents
             )
         )
     }
@@ -1488,14 +1441,14 @@ fun Step5Goals(
             Spacer(modifier = Modifier.height(20.dp))
             
             Text(
-                text = if (isBengali) "আপনার পড়াশোনার লক্ষ্য কী?" else "What is your study goal?",
+                text = "আপনার পড়াশোনার লক্ষ্য কী?",
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                 color = AppTextPrimary,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = if (isBengali) "আপনার জন্য সঠিক পড়াশোনার অভিজ্ঞতা তৈরি করতে সাহায্য করবে" else "Helps us craft the perfect study experience for you",
+                text = "আপনার জন্য সঠিক পড়াশোনার অভিজ্ঞতা তৈরি করতে সাহায্য করবে",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppTextSecondary,
                 modifier = Modifier.fillMaxWidth()
@@ -1506,11 +1459,11 @@ fun Step5Goals(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 goalOptions.forEach { goal ->
                     val isSelected = selectedGoals.contains(goal.id) || 
-                            selectedGoals.contains(goal.titleEn) || 
+                            selectedGoals.contains(goal.titleBn) || 
                             selectedGoals.contains(goal.subtitleBn)
                     
                     GoalCard(
-                        titleEn = goal.titleEn,
+                        titleBn = goal.titleBn,
                         subtitleBn = goal.subtitleBn,
                         isSelected = isSelected,
                         defaultIcon = goal.icon,
@@ -1529,7 +1482,7 @@ fun Step5Goals(
                 .padding(vertical = 12.dp)
         ) {
             OnboardingPrimaryButton(
-                text = if (isBengali) "আমার পড়াশোনা শুরু করি →" else "Start My Studies →",
+                text = "আমার পড়াশোনা শুরু করি →",
                 enabled = selectedGoals.isNotEmpty(),
                 onClick = onNext
             )

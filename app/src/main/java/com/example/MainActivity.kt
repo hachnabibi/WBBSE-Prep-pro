@@ -254,6 +254,7 @@ fun DeshExamApp(
                     isBengali = isBengali,
                     onNavigate = { screen -> viewModel.navigateTo(screen) },
                     onCloseDrawer = { coroutineScope.launch { drawerState.close() } },
+                    onSignOut = { viewModel.signOut() },
                     isAdmin = isAdmin,
                     authUserState = authUserState
                 )
@@ -571,6 +572,14 @@ fun DeshExamApp(
                 }
                 AppScreen.PROGRESS_DASHBOARD -> {
                     ProgressDashboardScreen(
+                        viewModel = viewModel,
+                        isBengali = isBengali,
+                        onBack = { viewModel.goBack() },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                AppScreen.BADGES -> {
+                    com.example.ui.screens.BadgesScreen(
                         viewModel = viewModel,
                         isBengali = isBengali,
                         onBack = { viewModel.goBack() },

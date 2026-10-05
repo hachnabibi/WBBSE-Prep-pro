@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -161,10 +162,7 @@ fun TopHeaderBar(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "🪙",
-                                    fontSize = 12.sp
-                                )
+                                GoldCoinIcon()
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "${formatCoinCount(coinCount)} ${"কয়েন"}",
@@ -268,6 +266,25 @@ fun TopHeaderBar(
         HorizontalDivider(
             thickness = 0.5.dp,
             color = MaterialTheme.colorScheme.outlineVariant
+        )
+    }
+}
+
+@Composable
+fun GoldCoinIcon(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(15.dp)
+            .background(Color(0xFFF59E0B), CircleShape) // Bright Gold Base
+            .border(1.dp, Color(0xFFD97706), CircleShape), // Darker Amber Outer Rim
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "★",
+            color = Color.White, // Shiny white star inside the coin!
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.offset(y = (-1).dp)
         )
     }
 }

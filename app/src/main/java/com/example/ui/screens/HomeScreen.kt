@@ -137,7 +137,8 @@ fun HomeScreen(
                 isBengali = isBengali,
                 onOpenProfile = { onNavigate(AppScreen.PROFILE) },
                 onOpenWallet = { onNavigate(AppScreen.WALLET) },
-                onSwitchClassClick = { onSwitchClass(profile.classId) }
+                onSwitchClassClick = { onSwitchClass(profile.classId) },
+                onOpenBadges = { onNavigate(AppScreen.BADGES) }
             )
         }
 
@@ -608,6 +609,7 @@ fun StudentGreetingHeader(
     onOpenProfile: () -> Unit,
     onOpenWallet: () -> Unit,
     onSwitchClassClick: () -> Unit,
+    onOpenBadges: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentHour = remember { java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) }
@@ -628,56 +630,51 @@ fun StudentGreetingHeader(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Welcome greeting on its own full line to avoid truncation
+        Text(
+            text = "$greeting, ${profile.name.ifBlank { if (isBengali) "শিক্ষার্থী" else "Student" }}! 👋",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenProfile() }
+        )
+
+        // Class Selector on the left, Streak & Coins on the right
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onOpenProfile() }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                modifier = Modifier.clickable { onSwitchClassClick() }
             ) {
-                Text(
-                    text = "$greeting, ${profile.name.ifBlank { if (isBengali) "শিক্ষার্থী" else "Student" }}! 👋",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(3.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                    modifier = Modifier.clickable { onSwitchClassClick() }
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.School,
-                            contentDescription = "Class",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Text(
-                            text = "${currentCls?.name ?: "১০ম শ্রেণি"} • ${currentCls?.board ?: "WBBSE"} ▼",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.School,
+                        contentDescription = "Class",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "${currentCls?.name ?: "১০ম শ্রেণি"} • ${currentCls?.board ?: "WBBSE"} ▼",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
-            // Stats row: Streak & Coins
+            // Gamification stats (Streak & Coins)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -687,7 +684,7 @@ fun StudentGreetingHeader(
                     shape = RoundedCornerShape(12.dp),
                     color = ExamFlame.copy(alpha = 0.15f),
                     border = BorderStroke(1.dp, ExamFlame.copy(alpha = 0.35f)),
-                    modifier = Modifier.clickable { onOpenProfile() }
+                    modifier = Modifier.clickable { onOpenBadges() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),

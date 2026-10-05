@@ -1595,6 +1595,27 @@ fun ProfileScreen(
                             )
                         }
 
+                        Button(
+                            onClick = { viewModel.navigateTo(com.example.ui.viewmodel.AppScreen.BADGES) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GridView,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isBengali) "পূর্ণাঙ্গ মেডেল গ্যালারি দেখুন →" else "View Full Trophy Grid →",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
                         // Status Filter Chips
                         Row(
                             modifier = Modifier.fillMaxWidth(),

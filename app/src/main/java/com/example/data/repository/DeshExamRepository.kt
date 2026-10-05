@@ -128,9 +128,9 @@ class DeshExamRepository(
     fun createInitialBadges(): List<BadgeItem> = listOf(
         BadgeItem(
             id = "badge_perfect_score",
-            nameBengali = "পারফেক্ট স্কোর (নিখুঁত ১০০%)",
-            nameEnglish = "Perfect Score",
-            descriptionBengali = "যেকোনো টেস্ট বা কুইজে একটিও ভুল না করে ১০০% নিখুঁত নম্বর অর্জন করেছেন।",
+            nameBengali = "শতভাগ মেধা (Perfect Scholar)",
+            nameEnglish = "Perfect Scholar",
+            descriptionBengali = "যেকোনো টেস্ট বা কুইজে একটিও ভুল না করে ১০০% নিখুঁত স্কোর অর্জন করেছেন।",
             descriptionEnglish = "Score 100% in any quiz or assessment without any wrong answers.",
             category = BadgeCategory.ACCURACY,
             tier = BadgeTier.GOLD,
@@ -145,9 +145,9 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_early_bird",
-            nameBengali = "ভোরের সাধক (Early Bird)",
-            nameEnglish = "Early Bird",
-            descriptionBengali = "সকাল ৫:০০ থেকে ৮:০০ টার মধ্যে নিষ্ঠাভরে পড়াশোনা বা কুইজ সম্পন্ন করেছেন।",
+            nameBengali = "प्रत्यুষ পাঠক (Dawn Scholar)",
+            nameEnglish = "Dawn Scholar",
+            descriptionBengali = "ভোরে মনোযোগের সাথে পড়াশোনা ও স্ব-মূল্যায়ন সম্পন্ন করেছেন।",
             descriptionEnglish = "Complete a study or test session between 5:00 AM and 8:00 AM.",
             category = BadgeCategory.TIME,
             tier = BadgeTier.SILVER,
@@ -162,9 +162,9 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_night_owl",
-            nameBengali = "রাতের তপস্বী (Night Owl)",
-            nameEnglish = "Night Owl",
-            descriptionBengali = "রাত ১০:০০ টার পর একাগ্রতার সাথে মক টেস্ট বা রিভিশন কুইজ শেষ করেছেন।",
+            nameBengali = "নিশীথ গবেষক (Night Researcher)",
+            nameEnglish = "Night Researcher",
+            descriptionBengali = "রাতে একাগ্রতার সাথে পড়াশোনা, মক টেস্ট বা রিভিশন শেষ করেছেন।",
             descriptionEnglish = "Complete a practice session or mock test after 10:00 PM.",
             category = BadgeCategory.TIME,
             tier = BadgeTier.SILVER,
@@ -179,9 +179,9 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_consistent_learner",
-            nameBengali = "ধারাবাহিক শিক্ষার্থী (Consistent Learner)",
+            nameBengali = "নিয়মিত অধ্যাবসায়ী (Consistent Learner)",
             nameEnglish = "Consistent Learner",
-            descriptionBengali = "টানা ৭ দিন নিয়ম করে প্রতিদিন DeshExam-এ অনুশীলন ও ৭-দিনের স্ট্রিক অর্জন করেছেন।",
+            descriptionBengali = "টানা ৭ দিন নিয়ম করে পড়াশোনা ও অনুশীলনের মাধ্যমে অধ্যাবসায়ের প্রমাণ দিয়েছেন।",
             descriptionEnglish = "Maintain an unbroken 7-day study streak with daily practice on DeshExam.",
             category = BadgeCategory.CONSISTENCY,
             tier = BadgeTier.GOLD,
@@ -196,10 +196,10 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_speed_demon",
-            nameBengali = "বিদ্যুৎ গতি কুইজার (Speed Demon)",
-            nameEnglish = "Speed Demon",
-            descriptionBengali = "স্পিড ব্লিৎজ মোডে দ্রুত সময়ে ৯০%+ নির্ভুলতার সাথে প্রশ্ন সমাধান করেছেন।",
-            descriptionEnglish = "Solve rapid-fire questions in Speed Blitz mode with >90% accuracy.",
+            nameBengali = "ক্ষুরধার চিন্তাবিদ (Fast Thinker)",
+            nameEnglish = "Fast Thinker",
+            descriptionBengali = "খুব কম সময়ে সঠিক উত্তর নির্বাচন করে ক্ষুরধার মেধার পরিচয় দিয়েছেন।",
+            descriptionEnglish = "Solve questions quickly with >90% accuracy.",
             category = BadgeCategory.ACCURACY,
             tier = BadgeTier.SILVER,
             iconName = "Bolt",
@@ -213,10 +213,10 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_boss_slayer",
-            nameBengali = "অধ্যায় বস বিজয়ী (Boss Slayer)",
-            nameEnglish = "Boss Slayer",
-            descriptionBengali = "অধ্যায়ের ১০০০ HP দানব বসকে পরাজিত করে অধ্যায় মাস্টারি ট্রফি অর্জন করেছেন।",
-            descriptionEnglish = "Defeat a 1000 HP Citadel Boss to claim complete chapter mastery.",
+            nameBengali = "অধ্যায় মাস্টার (Chapter Mastery Hero)",
+            nameEnglish = "Chapter Mastery Hero",
+            descriptionBengali = "অধ্যায়ের চূড়ান্ত ও জটিল টেস্টে উত্তীর্ণ হয়ে অধ্যায়টির ওপর পূর্ণ পারদর্শিতা অর্জন করেছেন।",
+            descriptionEnglish = "Defeat the chapter evaluation exam to claim complete chapter mastery.",
             category = BadgeCategory.MASTERY,
             tier = BadgeTier.GOLD,
             iconName = "Shield",
@@ -225,13 +225,13 @@ class DeshExamRepository(
             currentProgress = 1,
             maxProgress = 1,
             xpReward = 400,
-            milestoneRequirementBengali = "যেকোনো অধ্যায়ের বস ব্যাটল জয় করুন",
+            milestoneRequirementBengali = "যেকোনো অধ্যায়ের বস ব্যাটল জয় করুন",
             milestoneRequirementEnglish = "Defeat any chapter boss"
         ),
         BadgeItem(
             id = "badge_madhyamik_ready",
-            nameBengali = "মাধ্যমিক চ্যাম্পিয়ন (Madhyamik Ready)",
-            nameEnglish = "Madhyamik Ready",
+            nameBengali = "বোর্ড স্ট্যান্ডার্ড স্কলার (Board Ready)",
+            nameEnglish = "Board Ready",
             descriptionBengali = "পূর্ণাঙ্গ মাধ্যমিক মডেল টেস্টে ৮০% বা তার বেশি স্কোর অর্জন করেছেন।",
             descriptionEnglish = "Score 80%+ in a full 90-mark Madhyamik model exam.",
             category = BadgeCategory.EXAM,
@@ -247,9 +247,9 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_first_step",
-            nameBengali = "প্রথম পদক্ষেপ",
+            nameBengali = "বিদ্যারম্ভ (First Step)",
             nameEnglish = "First Step",
-            descriptionBengali = "DeshExam অ্যাপে আপনার প্রথম অনুশীলন পর্ব সফলভাবে সম্পন্ন করেছেন।",
+            descriptionBengali = "DeshExam অ্যাপে আপনার প্রথম শিক্ষণ পর্ব ও কুইজ সফলভাবে সম্পন্ন করেছেন।",
             descriptionEnglish = "Completed your very first practice session on DeshExam.",
             category = BadgeCategory.CONSISTENCY,
             tier = BadgeTier.BRONZE,
@@ -264,9 +264,9 @@ class DeshExamRepository(
         ),
         BadgeItem(
             id = "badge_polymath",
-            nameBengali = "সর্বশাস্ত্রবিশারদ (Polymath Scholar)",
-            nameEnglish = "Polymath Scholar",
-            descriptionBengali = "মাধ্যমিকের সব ৭টি বিষয়েই সক্রিয় অধ্যায় অনুশীলন ও দক্ষতা গড়ে তুলেছেন।",
+            nameBengali = "সর্ববিষয়ে পারদর্শী (All-Subject Scholar)",
+            nameEnglish = "All-Subject Scholar",
+            descriptionBengali = "মাধ্যমিকের সব ৭টি প্রধান বিষয়েই সফলভাবে পড়াশোনা ও টেস্ট সম্পন্ন করেছেন।",
             descriptionEnglish = "Actively master topics across all 7 WBBSE Madhyamik subjects.",
             category = BadgeCategory.MASTERY,
             tier = BadgeTier.DIAMOND,
@@ -276,14 +276,14 @@ class DeshExamRepository(
             currentProgress = 3,
             maxProgress = 7,
             xpReward = 600,
-            milestoneRequirementBengali = "৭টি বিষয়ে অধ্যায় মাস্টারি অর্জন করুন",
+            milestoneRequirementBengali = "৭টি বিষয়ে অধ্যায় মাস্টারি অর্জন করুন",
             milestoneRequirementEnglish = "Master topics across all 7 subjects"
         ),
         BadgeItem(
             id = "badge_accuracy_master",
-            nameBengali = "নির্ভুল গণক (Accuracy Master)",
-            nameEnglish = "Accuracy Master",
-            descriptionBengali = "কমপক্ষে ৫০টি প্রশ্নের মধ্যে ৮৫%+ সামগ্রিক নির্ভুলতা সফলভাবে বজায় রাখা।",
+            nameBengali = "নির্ভুল বিশ্লেষক (Precision Analyst)",
+            nameEnglish = "Precision Analyst",
+            descriptionBengali = "কমপক্ষে ৫০টি প্রশ্নের মধ্যে ৮৫%-এর বেশি সঠিক উত্তর ধরে রেখে পড়াশোনায় গভীর মনোযোগের পরিচয় দিয়েছেন।",
             descriptionEnglish = "Maintain over 85% overall accuracy across 50+ solved questions.",
             category = BadgeCategory.ACCURACY,
             tier = BadgeTier.GOLD,
@@ -295,6 +295,57 @@ class DeshExamRepository(
             xpReward = 350,
             milestoneRequirementBengali = "৮৫%+ সার্বিক নির্ভুলতা ধরে রাখুন",
             milestoneRequirementEnglish = "Maintain 85%+ accuracy"
+        ),
+        BadgeItem(
+            id = "badge_chapter_conqueror",
+            nameBengali = "অধ্যায় বিশেষজ্ঞ (Chapter Specialist)",
+            nameEnglish = "Chapter Specialist",
+            descriptionBengali = "একটি সম্পূর্ণ অধ্যায়ের সকল টপিক ও প্রশ্নমালা সফলভাবে সমাপ্ত করেছেন।",
+            descriptionEnglish = "Complete all topics and quizzes of any single chapter in the syllabus.",
+            category = BadgeCategory.MASTERY,
+            tier = BadgeTier.SILVER,
+            iconName = "AutoStories",
+            isUnlocked = false,
+            unlockedDate = null,
+            currentProgress = 0,
+            maxProgress = 1,
+            xpReward = 250,
+            milestoneRequirementBengali = "যেকোনো একটি অধ্যায় সম্পন্ন করুন",
+            milestoneRequirementEnglish = "Complete all topics in any chapter"
+        ),
+        BadgeItem(
+            id = "badge_streak_3day",
+            nameBengali = "মনোযোগী পাঠক (3-Day Streak)",
+            nameEnglish = "3-Day Streak",
+            descriptionBengali = "টানা ৩ দিন প্রতিদিন পড়াশোনা ও কুইজ সম্পন্ন করে নতুন ধারাবাহিকতা গড়েছেন।",
+            descriptionEnglish = "Maintain an unbroken 3-day study streak with daily practice on DeshExam.",
+            category = BadgeCategory.CONSISTENCY,
+            tier = BadgeTier.BRONZE,
+            iconName = "LocalFireDepartment",
+            isUnlocked = false,
+            unlockedDate = null,
+            currentProgress = 0,
+            maxProgress = 3,
+            xpReward = 150,
+            milestoneRequirementBengali = "টানা ৩ দিনের স্ট্রিক সম্পন্ন করুন",
+            milestoneRequirementEnglish = "Reach a 3-day streak"
+        ),
+        BadgeItem(
+            id = "badge_streak_15day",
+            nameBengali = "কঠোর সাধক (15-Day Streak)",
+            nameEnglish = "15-Day Streak",
+            descriptionBengali = "টানা ১৫ দিন প্রতিদিন নিয়ম করে পড়াশোনা ও অধ্যায়ন সম্পন্ন করেছেন।",
+            descriptionEnglish = "Maintain an unbroken 15-day study streak with daily practice on DeshExam.",
+            category = BadgeCategory.CONSISTENCY,
+            tier = BadgeTier.GOLD,
+            iconName = "Whatshot",
+            isUnlocked = false,
+            unlockedDate = null,
+            currentProgress = 0,
+            maxProgress = 15,
+            xpReward = 500,
+            milestoneRequirementBengali = "টানা ১৫ দিনের স্ট্রিক সম্পন্ন করুন",
+            milestoneRequirementEnglish = "Reach a 15-day streak"
         )
     )
 
@@ -341,6 +392,24 @@ class DeshExamRepository(
                         newProgress = currentStreak.coerceAtMost(7)
                         if (currentStreak >= 7) {
                             shouldUnlock = true
+                        }
+                    }
+                    "badge_streak_3day" -> {
+                        newProgress = currentStreak.coerceAtMost(3)
+                        if (currentStreak >= 3) {
+                            shouldUnlock = true
+                        }
+                    }
+                    "badge_streak_15day" -> {
+                        newProgress = currentStreak.coerceAtMost(15)
+                        if (currentStreak >= 15) {
+                            shouldUnlock = true
+                        }
+                    }
+                    "badge_chapter_conqueror" -> {
+                        if (mode == AssessmentMode.BOSS_BATTLE && scorePercent >= 70) {
+                            shouldUnlock = true
+                            newProgress = 1
                         }
                     }
                     "badge_speed_demon" -> {

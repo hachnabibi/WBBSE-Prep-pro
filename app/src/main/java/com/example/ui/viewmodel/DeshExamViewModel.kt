@@ -53,6 +53,7 @@ enum class AppScreen {
     BOOKMARK_HUB,
     STUDY_SQUADS,
     PROGRESS_DASHBOARD,
+    BADGES,
     PDF_NOTES,
     PYQ_PDF_DOWNLOAD,
     ORIGINAL_PYQ_PDF_DOWNLOAD,
@@ -297,6 +298,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private val _isLoadingDistricts = MutableStateFlow(false)
     val isLoadingDistricts: StateFlow<Boolean> = _isLoadingDistricts.asStateFlow()
+
+    private val _claimedCoinTaskIds = MutableStateFlow<Set<String>>(emptySet())
+    val claimedCoinTaskIds: StateFlow<Set<String>> = _claimedCoinTaskIds.asStateFlow()
+
+    fun claimCoinTask(taskId: String) {
+        _claimedCoinTaskIds.update { it + taskId }
+    }
 
     val studentProfile: StateFlow<StudentProfile> = repository.studentProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StudentProfile())
@@ -1513,19 +1521,67 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     // 1. Save Test Result in Firestore
                     firestoreService.saveTestResult(userId, result)
 
-                    // 2. Save Updated Student Profile & Stats in Firestore
+                    // 2. Award specific coins for completed learning modules or mock tests (validated against Firestore to prevent duplicate API calls)
                     val currentProf = studentProfile.value
-                    firestoreService.saveStudentProfile(userId, currentProf)
+                    var updatedCoins = currentProf.coins
+                    var coinsAwarded = 0
 
-                    // 3. Update Real-time Leaderboard Entry in Firestore
+                    if (!session.topicId.isNullOrBlank() && result.accuracyPercentage >= 70) {
+                        // Learning module / Topic completed! Validate against Firestore
+                        val topicId = session.topicId ?: ""
+                        val masteryRes = firestoreService.getTopicMastery(userId, topicId)
+                        val alreadyCompleted = masteryRes.getOrNull()?.isCompleted == true
+                        
+                        if (!alreadyCompleted) {
+                            coinsAwarded = 30
+                            updatedCoins += 30
+                        }
+                    } else if (session.mode == AssessmentMode.MOCK_TEST) {
+                        // Mock test completed! Validate against Firestore
+                        val historyRes = firestoreService.getStudentAttemptHistory(userId)
+                        val history = historyRes.getOrNull() ?: emptyList()
+                        val alreadyCompletedMock = history.any { it.testTitle == result.title }
+                        
+                        if (!alreadyCompletedMock) {
+                            coinsAwarded = 100
+                            updatedCoins += 100
+                        }
+                    } else {
+                        // Any other quiz completed (e.g. Daily 10, Boss Battle, Weak Area, Speed Blitz, etc.)!
+                        // Validate against attempt history in Firestore
+                        val historyRes = firestoreService.getStudentAttemptHistory(userId)
+                        val history = historyRes.getOrNull() ?: emptyList()
+                        val alreadyCompletedQuiz = history.any { it.testTitle == result.title }
+                        
+                        if (!alreadyCompletedQuiz) {
+                            coinsAwarded = 20
+                            updatedCoins += 20
+                        }
+                    }
+
+                    val finalProfile = if (coinsAwarded > 0) {
+                        currentProf.copy(coins = updatedCoins)
+                    } else {
+                        currentProf
+                    }
+
+                    if (coinsAwarded > 0) {
+                        // Save profile locally in Room
+                        repository.updateProfile(finalProfile)
+                    }
+
+                    // 3. Save Updated Student Profile & Stats in Firestore
+                    firestoreService.saveStudentProfile(userId, finalProfile)
+
+                    // 4. Update Real-time Leaderboard Entry in Firestore
                     firestoreService.updateLeaderboardEntry(
                         userId = userId,
-                        name = currentProf.name,
-                        school = currentProf.school,
-                        district = currentProf.district,
-                        xp = currentProf.currentXp,
-                        accuracy = currentProf.overallAccuracy,
-                        streak = currentProf.currentStreak
+                        name = finalProfile.name,
+                        school = finalProfile.school,
+                        district = finalProfile.district,
+                        xp = finalProfile.currentXp,
+                        accuracy = finalProfile.overallAccuracy,
+                        streak = finalProfile.currentStreak
                     )
 
                     // 4. Save Topic Mastery in Firestore if topic practice
