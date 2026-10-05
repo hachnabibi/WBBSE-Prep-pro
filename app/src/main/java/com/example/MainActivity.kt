@@ -200,11 +200,13 @@ fun DeshExamApp(
             viewModel.goBack()
         }
 
+        val activeLessonForFullScreen by viewModel.activeVideoLesson.collectAsState()
+
         val isFullScreenMode = (currentScreen == AppScreen.SPLASH) ||
                 (currentScreen == AppScreen.ASSESSMENT) ||
                 (currentScreen == AppScreen.RESULT) ||
                 (currentScreen == AppScreen.LEARN_TOPIC) ||
-                (currentScreen == AppScreen.VIDEO_LESSON) ||
+                (currentScreen == AppScreen.VIDEO_LESSON && activeLessonForFullScreen != null) ||
                 (currentScreen == AppScreen.AUTH) ||
                 (currentScreen == AppScreen.ONBOARDING) ||
                 (currentScreen == AppScreen.MULTIPLAYER_BATTLE) ||

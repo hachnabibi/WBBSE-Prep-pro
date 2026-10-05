@@ -57,15 +57,14 @@ fun VideoHubScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         LazyColumn(
             state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 1. Top Header with Premium Gradient & Sidebar Hamburger Menu
@@ -78,19 +77,23 @@ fun VideoHubScreen(
                                 colors = listOf(PrimaryIndigo, PrimaryIndigoLight)
                             )
                         )
-                        .padding(horizontal = 4.dp, vertical = 20.dp)
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left: Hamburger Menu Icon to open sidebar navigation drawer
-                        IconButton(onClick = onOpenDrawer) {
+                        // Left: Hamburger Menu Icon to open sidebar navigation drawer (aligned with home)
+                        IconButton(
+                            onClick = onOpenDrawer,
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Open Sidebar Navigation",
                                 tint = Color.White,
-                                modifier = Modifier.size(26.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                         
@@ -99,18 +102,18 @@ fun VideoHubScreen(
                         Column {
                             Text(
                                 text = if (isBengali) "স্মার্ট ভিডিও লাইব্রেরি" else "Smart Video Library",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 20.sp
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 17.sp
                                 ),
                                 color = Color.White
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(1.dp))
                             Text(
                                 text = if (isBengali) "আপনার সিলেবাসের সকল ভিডিও ক্লাস এক জায়গায়" else "All syllabus video classes in one place",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                         }
                     }
