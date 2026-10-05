@@ -1625,14 +1625,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun syncRemoteQuestionsToLocal() {}
     
-    fun fetchFirestoreQuestions(limit: String = "1000", classId: String? = null) {
+    fun fetchFirestoreQuestions(classId: String? = null, subjectId: String? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val res = firestoreService.getAllQuestions()
+                val res = firestoreService.getQuestionsFiltered(classId, subjectId)
                 val list = res.getOrDefault(emptyList())
-                val filtered = if (!classId.isNullOrBlank()) list.filter { it.classId == classId } else list
                 withContext(Dispatchers.Main) {
-                    _firestoreQuestions.value = filtered
+                    _firestoreQuestions.value = list
                 }
             } catch (e: Exception) {
                 Log.e("DeshExamViewModel", "Error fetching Firestore questions: ${e.message}")
@@ -1643,7 +1642,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun fetchFirestoreTestTemplates(classId: String? = null, subjectId: String? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val res = firestoreService.getAllTestTemplates()
+                val res = firestoreService.getTestTemplatesFiltered(classId, subjectId)
                 val list = res.getOrDefault(emptyList())
                 withContext(Dispatchers.Main) {
                     _firestoreTestTemplates.value = list

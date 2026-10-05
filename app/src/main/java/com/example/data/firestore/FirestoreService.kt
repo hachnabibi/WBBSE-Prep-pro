@@ -447,20 +447,20 @@ class FirestoreService(
     suspend fun getCloudCollectionCounts(): Result<Map<String, Int>> = withContext(Dispatchers.IO) {
         try {
             val counts = mutableMapOf<String, Int>()
-            val boardsSnap = firestore.collection(COLLECTION_BOARDS).get().await()
-            counts["boards"] = boardsSnap.size()
-            val classesSnap = firestore.collection(COLLECTION_CLASSES).get().await()
-            counts["classes"] = classesSnap.size()
-            val subjectsSnap = firestore.collection(COLLECTION_SUBJECTS).get().await()
-            counts["subjects"] = subjectsSnap.size()
-            val chaptersSnap = firestore.collection(COLLECTION_CHAPTERS).get().await()
-            counts["chapters"] = chaptersSnap.size()
-            val topicsSnap = firestore.collection(COLLECTION_TOPICS).get().await()
-            counts["topics"] = topicsSnap.size()
-            val questionsSnap = firestore.collection(COLLECTION_QUESTIONS).get().await()
-            counts["questions"] = questionsSnap.size()
-            val testsSnap = firestore.collection(COLLECTION_TESTS).get().await()
-            counts["tests"] = testsSnap.size()
+            val boardsSnap = firestore.collection(COLLECTION_BOARDS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["boards"] = boardsSnap.count.toInt()
+            val classesSnap = firestore.collection(COLLECTION_CLASSES).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["classes"] = classesSnap.count.toInt()
+            val subjectsSnap = firestore.collection(COLLECTION_SUBJECTS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["subjects"] = subjectsSnap.count.toInt()
+            val chaptersSnap = firestore.collection(COLLECTION_CHAPTERS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["chapters"] = chaptersSnap.count.toInt()
+            val topicsSnap = firestore.collection(COLLECTION_TOPICS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["topics"] = topicsSnap.count.toInt()
+            val questionsSnap = firestore.collection(COLLECTION_QUESTIONS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["questions"] = questionsSnap.count.toInt()
+            val testsSnap = firestore.collection(COLLECTION_TESTS).count().get(com.google.firebase.firestore.AggregateSource.SERVER).await()
+            counts["tests"] = testsSnap.count.toInt()
             Result.success(counts)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting cloud collection counts: ${e.localizedMessage}", e)
@@ -506,6 +506,28 @@ class FirestoreService(
             Result.success(list)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting all questions: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getQuestionsFiltered(
+        classId: String? = null,
+        subjectId: String? = null,
+        limit: Long = 1000
+    ): Result<List<FirestoreQuestion>> = withContext(Dispatchers.IO) {
+        try {
+            var query: Query = firestore.collection(COLLECTION_QUESTIONS)
+            if (!classId.isNullOrBlank()) {
+                query = query.whereEqualTo("classId", classId)
+            }
+            if (!subjectId.isNullOrBlank()) {
+                query = query.whereEqualTo("subjectId", subjectId)
+            }
+            val snapshot = query.limit(limit).get().await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreQuestion::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting filtered questions: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }
@@ -1275,6 +1297,28 @@ class FirestoreService(
             Result.success(list)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching all test templates: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getTestTemplatesFiltered(
+        classId: String? = null,
+        subjectId: String? = null,
+        limit: Long = 200
+    ): Result<List<FirestoreTestTemplate>> = withContext(Dispatchers.IO) {
+        try {
+            var query: Query = firestore.collection(COLLECTION_TESTS)
+            if (!classId.isNullOrBlank()) {
+                query = query.whereEqualTo("classId", classId)
+            }
+            if (!subjectId.isNullOrBlank()) {
+                query = query.whereEqualTo("subjectId", subjectId)
+            }
+            val snapshot = query.limit(limit).get().await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestoreTestTemplate::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting filtered test templates: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }
