@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -33,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.components.AdBannerCard
+import com.example.ui.components.AdMobBanner
 import com.example.ui.components.AdRewardType
 import com.example.ui.components.RealtimeCountdownTimer
 import com.example.ui.components.RewardedAdDialog
@@ -264,20 +266,31 @@ fun AssessmentScreen(
                 }
             },
             bottomBar = {
-                Surface(
-                    color = cardBgColorUi,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(1.dp, borderColorUi),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
+                    AdBannerCard(
+                        isBengali = isBengali,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp)
+                    )
+                    Surface(
+                        color = cardBgColorUi,
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(1.dp, borderColorUi),
+                        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                     ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                         // 1. 50:50 Button (Cyan pill)
                         Button(
                             onClick = { 
@@ -381,7 +394,8 @@ fun AssessmentScreen(
                     }
                 }
             }
-        ) { innerPadding ->
+        }
+    ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -390,7 +404,7 @@ fun AssessmentScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                AdBannerCard(isBengali = isBengali, modifier = Modifier.fillMaxWidth())
+                AdMobBanner(isBengali = isBengali, modifier = Modifier.fillMaxWidth())
 
                 // Premium Question Card with Gradient Background
                 Card(
@@ -556,7 +570,8 @@ private fun QuizResultPopupCard(
     isBengali: Boolean,
     onDismiss: () -> Unit
 ) {
-    val scaleAnim = remember { Animatable(0.4f) }
+    val slideAnim = remember { Animatable(400f) }
+    val alphaAnim = remember { Animatable(0f) }
     val timerProgress = remember { Animatable(0f) }
     val haptic = LocalHapticFeedback.current
 
@@ -564,10 +579,22 @@ private fun QuizResultPopupCard(
         // Trigger haptic when result popup appears
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         
-        scaleAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
-        )
+        // Run slide-up and fade-in animations concurrently
+        launch {
+            slideAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        }
+        launch {
+            alphaAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing)
+            )
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -578,49 +605,37 @@ private fun QuizResultPopupCard(
         onDismiss()
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.45f * alphaAnim.value))
+            .clickable(enabled = true, onClickLabel = null, onClick = {}),
+        contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(0.85f)
+                .graphicsLayer {
+                    translationY = slideAnim.value
+                    alpha = alphaAnim.value
+                },
+            contentAlignment = Alignment.TopCenter
         ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White.copy(alpha = 0.96f),
                 shadowElevation = 16.dp,
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .graphicsLayer {
-                        scaleX = scaleAnim.value
-                        scaleY = scaleAnim.value
-                    }
+                    .fillMaxWidth()
+                    .padding(top = 36.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 48.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(if (isCorrect) Color(0xFF10B981) else Color(0xFFEF4444)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isCorrect) Icons.Rounded.Check else Icons.Rounded.Close,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(42.dp)
-                        )
-                    }
-
                     Text(
                         text = if (isCorrect) "চমৎকার!" else "ভুল উত্তর!",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
@@ -721,6 +736,23 @@ private fun QuizResultPopupCard(
                         )
                     }
                 }
+            }
+
+            // Overlapping Icon Badge at top center
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .border(BorderStroke(4.dp, Color.White), CircleShape)
+                    .background(if (isCorrect) Color(0xFF10B981) else Color(0xFFEF4444)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isCorrect) Icons.Rounded.Check else Icons.Rounded.Close,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(42.dp)
+                )
             }
         }
     }

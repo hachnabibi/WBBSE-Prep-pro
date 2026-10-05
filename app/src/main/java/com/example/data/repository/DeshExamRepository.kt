@@ -1376,7 +1376,6 @@ class DeshExamRepository(
         setNumber: Int,
         resolvedClassId: String
     ): List<QuestionEntity> {
-        val topic = dao.getTopicById(topicId)
         val directQuestions = dao.getQuestionsForTopic(topicId).sortedBy { it.id }
         if (directQuestions.isNotEmpty()) {
             val chunkSize = 15
@@ -1384,133 +1383,25 @@ class DeshExamRepository(
             if (setNumber <= chunks.size && setNumber > 0) {
                 return chunks[setNumber - 1].shuffled()
             } else {
-                // Dynamic endless set: create fresh randomized questions pool
                 val shuffled = directQuestions.shuffled()
                 return shuffled.take(chunkSize)
             }
         }
 
-        val tagMatching = dao.getAllQuestions().filter { 
-            (it.topicId == topicId || (topic != null && it.topicId.contains(topicId)) || it.tagsJson.contains(topicId)) &&
-            (topic == null || it.subjectId == topic.subjectId) &&
+        // Strict tag match (only if the question's topicId is EXACTLY equal to topicId)
+        val strictTagMatching = dao.getAllQuestions().filter { 
+            it.topicId == topicId && 
             (it.classId == resolvedClassId || resolvedClassId.isBlank() || it.classId.isBlank())
         }
-        if (tagMatching.isNotEmpty()) {
+        if (strictTagMatching.isNotEmpty()) {
             val chunkSize = 15
-            val chunks = tagMatching.chunked(chunkSize)
+            val chunks = strictTagMatching.chunked(chunkSize)
             if (setNumber <= chunks.size && setNumber > 0) {
                 return chunks[setNumber - 1].shuffled()
             } else {
-                val shuffled = tagMatching.shuffled()
+                val shuffled = strictTagMatching.shuffled()
                 return shuffled.take(chunkSize)
             }
-        }
-
-        if (topic != null) {
-            val chapterQs = dao.getQuestionsForChapter(topic.chapterId)
-                .filter { it.subjectId == topic.subjectId }
-            if (chapterQs.isNotEmpty()) {
-                val chunkSize = 10
-                val chunks = chapterQs.chunked(chunkSize)
-                if (setNumber <= chunks.size && setNumber > 0) {
-                    return chunks[setNumber - 1].shuffled()
-                } else {
-                    val shuffled = chapterQs.shuffled()
-                    return shuffled.take(chunkSize)
-                }
-            }
-
-            val topicTitle = topic.title
-            val keyPoints = topic.keyPointsJson.split("|").filter { it.isNotBlank() }
-            val generated = listOf(
-                QuestionEntity(
-                    id = "${topicId}_q1",
-                    topicId = topicId,
-                    chapterId = topic.chapterId,
-                    subjectId = topic.subjectId,
-                    type = "MCQ",
-                    difficulty = "EASY",
-                    question = "$topicTitle বিষয়ের মূল ধারণা ও সংজ্ঞার ক্ষেত্রে কোনটি সর্বাধিক যুক্তিযুক্ত?",
-                    optionsJson = "${keyPoints.getOrElse(0) { "সঠিক মূল তত্ত্ব ও সূত্রের প্রয়োগ" }}|ভুল ব্যাখ্যামূলক বিবৃতি|অপ্রাসঙ্গিক অনুসিদ্ধান্ত|উপরের কোনটিই নয়",
-                    correctOptionIndex = 0,
-                    correctAnswerText = keyPoints.getOrElse(0) { "সঠিক মূল তত্ত্ব ও সূত্রের প্রয়োগ" },
-                    explanation = "$topicTitle অধ্যায়ের পাঠ্যসূচি অনুযায়ী এই ধারণাটি সঠিক।",
-                    marks = 1,
-                    tagsJson = "$topicId|MCQ|CONCEPT",
-                    pyqYear = "2024",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${topicId}_q2",
-                    topicId = topicId,
-                    chapterId = topic.chapterId,
-                    subjectId = topic.subjectId,
-                    type = "MCQ",
-                    difficulty = "MEDIUM",
-                    question = "$topicTitle সম্পর্কিত গুরুত্বপূর্ণ বৈশিষ্ট্য বা নিয়ম কোনটি?",
-                    optionsJson = "বিপরীত ধারণা|${keyPoints.getOrElse(1) { "বিষয়টির মূল কার্যপ্রণালী ও গুরুত্বপূর্ণ নিয়ম" }}|শুধুমাত্র তাত্ত্বিক অনুসিদ্ধান্ত|কোনোটিই প্রযোজ্য নয়",
-                    correctOptionIndex = 1,
-                    correctAnswerText = keyPoints.getOrElse(1) { "বিষয়টির মূল কার্যপ্রণালী ও গুরুত্বপূর্ণ নিয়ম" },
-                    explanation = "$topicTitle অধ্যায়ের প্রধান নিয়মাবলী পাঠ্যবইয়ে সুস্পষ্টভাবে উল্লিখিত।",
-                    marks = 1,
-                    tagsJson = "$topicId|MCQ|RULES",
-                    pyqYear = "2023",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${topicId}_q3",
-                    topicId = topicId,
-                    chapterId = topic.chapterId,
-                    subjectId = topic.subjectId,
-                    type = "MCQ",
-                    difficulty = "HARD",
-                    question = "$topicTitle থেকে পরীক্ষায় আসা বহুনির্বাচনী প্রশ্নের সঠিক সিদ্ধান্ত কোনটি?",
-                    optionsJson = "ভ্রান্ত প্রতিক্রিয়া|আংশিক সমাধান|${keyPoints.getOrElse(2) { "সঠিক বিশ্লেষণ ও বাস্তব প্রয়োগ" }}|কোনোটিই নয়",
-                    correctOptionIndex = 2,
-                    correctAnswerText = keyPoints.getOrElse(2) { "সঠিক বিশ্লেষণ ও বাস্তব প্রয়োগ" },
-                    explanation = "টপিক ভিত্তিক গভীর অধ্যয়নে এই বিশ্লেষণটি সবচেয়ে নির্ভুল।",
-                    marks = 1,
-                    tagsJson = "$topicId|MCQ|APPLICATION",
-                    pyqYear = "2022",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${topicId}_q4",
-                    topicId = topicId,
-                    chapterId = topic.chapterId,
-                    subjectId = topic.subjectId,
-                    type = "MCQ",
-                    difficulty = "MEDIUM",
-                    question = "$topicTitle সম্পর্কিত মাধ্যমিক বা বোর্ড পরীক্ষার মডেল প্রশ্নের সঠিক উত্তর কোনটি?",
-                    optionsJson = "${keyPoints.getOrElse(0) { "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর" }}|অপ্রমাণিত তত্ত্ব|ভুল উদাহরণ|সবকটিই ভুল",
-                    correctOptionIndex = 0,
-                    correctAnswerText = keyPoints.getOrElse(0) { "সঠিক পাঠ্যপুস্তক ভিত্তিক উত্তর" },
-                    explanation = "বোর্ড নির্দেশিকা অনুসারে সঠিক উত্তর চিহ্নিত করা হয়েছে।",
-                    marks = 1,
-                    tagsJson = "$topicId|MCQ|EXAM_SPECIAL",
-                    pyqYear = "2024",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${topicId}_q5",
-                    topicId = topicId,
-                    chapterId = topic.chapterId,
-                    subjectId = topic.subjectId,
-                    type = "MCQ",
-                    difficulty = "HARD",
-                    question = "$topicTitle অধ্যায়ের বাস্তব প্রয়োগ ও গুরুত্ব বিষয়ে কোনটি সঠিক?",
-                    optionsJson = "প্রয়োগহীনতা|${keyPoints.getOrElse(1) { "ব্যবহারিক প্রয়োগ ও গাণিতিক/তাত্ত্বিক নির্ভুলতা" }}|কেবল মুখস্থ নির্ভরতা|কোনোটিই নয়",
-                    correctOptionIndex = 1,
-                    correctAnswerText = keyPoints.getOrElse(1) { "ব্যবহারিক প্রয়োগ ও গাণিতিক/তাত্ত্বিক নির্ভুলতা" },
-                    explanation = "টপিকের গুরুত্বপূর্ণ তাৎপর্য ও প্রয়োগের নির্ভুল রূপ।",
-                    marks = 1,
-                    tagsJson = "$topicId|MCQ|IMPORTANCE",
-                    pyqYear = "2023",
-                    classId = resolvedClassId
-                )
-            )
-            dao.insertQuestions(generated)
-            return generated
         }
 
         return emptyList()
@@ -1521,11 +1412,7 @@ class DeshExamRepository(
         setNumber: Int,
         resolvedClassId: String
     ): List<QuestionEntity> {
-        val chapter = dao.getChapterById(chapterId)
-        val chapterQs = dao.getQuestionsForChapter(chapterId).filter {
-            chapter == null || it.subjectId == chapter.subjectId
-        }.sortedBy { it.id }
-
+        val chapterQs = dao.getQuestionsForChapter(chapterId).sortedBy { it.id }
         if (chapterQs.isNotEmpty()) {
             val chunkSize = 15
             val chunks = chapterQs.chunked(chunkSize)
@@ -1533,72 +1420,16 @@ class DeshExamRepository(
             return if (chunks.isNotEmpty()) chunks[safeSetIndex] else chapterQs
         }
 
-        if (chapter != null) {
-            val subjectQs = dao.getQuestionsForSubject(chapter.subjectId, 30)
-                .filter { it.subjectId == chapter.subjectId }
-            if (subjectQs.isNotEmpty()) {
-                val chunkSize = 15
-                val chunks = subjectQs.chunked(chunkSize)
-                val safeSetIndex = (setNumber - 1).coerceIn(0, (chunks.size - 1).coerceAtLeast(0))
-                return chunks[safeSetIndex]
-            }
-
-            val chTitle = chapter.title
-            val generated = listOf(
-                QuestionEntity(
-                    id = "${chapterId}_boss_q1",
-                    topicId = "${chapterId}_top1",
-                    chapterId = chapterId,
-                    subjectId = chapter.subjectId,
-                    type = "MCQ",
-                    difficulty = "MEDIUM",
-                    question = "$chTitle - এই অধ্যায়ের মূল তাত্ত্বিক ভিত্তি কোনটি?",
-                    optionsJson = "পাঠ্যক্রমের প্রধান সংজ্ঞাগত সূত্র|ভুল প্রতিপাদন|অসম্পূর্ণ সমীকরণ|কোনোটিই নয়",
-                    correctOptionIndex = 0,
-                    correctAnswerText = "পাঠ্যক্রমের প্রধান সংজ্ঞাগত সূত্র",
-                    explanation = "$chTitle অধ্যায়ের প্রারম্ভিক ধারণা।",
-                    marks = 1,
-                    tagsJson = "$chapterId|BOSS_BATTLE|MCQ",
-                    pyqYear = "2024",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${chapterId}_boss_q2",
-                    topicId = "${chapterId}_top1",
-                    chapterId = chapterId,
-                    subjectId = chapter.subjectId,
-                    type = "MCQ",
-                    difficulty = "HARD",
-                    question = "$chTitle - অধ্যায় থেকে বিগত বছরের পরীক্ষায় আসা প্রধান প্রশ্নের সমাধান কোনটি?",
-                    optionsJson = "ভুল উত্তর|সঠিক বিশ্লেষণ ও বৈজ্ঞানিক/যৌক্তিক সূত্র|অনুপযুক্ত কারণ|কোনোটিই নয়",
-                    correctOptionIndex = 1,
-                    correctAnswerText = "সঠিক বিশ্লেষণ ও বৈজ্ঞানিক/যৌক্তিক সূত্র",
-                    explanation = "বোর্ড পরীক্ষার প্রশ্নের সঠিক উত্তর।",
-                    marks = 2,
-                    tagsJson = "$chapterId|BOSS_BATTLE|MCQ",
-                    pyqYear = "2023",
-                    classId = resolvedClassId
-                ),
-                QuestionEntity(
-                    id = "${chapterId}_boss_q3",
-                    topicId = "${chapterId}_top2",
-                    chapterId = chapterId,
-                    subjectId = chapter.subjectId,
-                    type = "MCQ",
-                    difficulty = "HARD",
-                    question = "$chTitle - চূড়ান্ত বস ব্যাটল চ্যালেঞ্জ: অধ্যায়ের সামগ্রিক সারসংক্ষেপ কোনটি?",
-                    optionsJson = "অপ্রাসঙ্গিক অনুসিদ্ধান্ত|বিভ্রান্তিকর তথ্য|সম্পূর্ণ সিলেবাস ভিত্তিক সঠিক ধারণা|কোনোটিই নয়",
-                    correctOptionIndex = 2,
-                    correctAnswerText = "সম্পূর্ণ সিলেবাস ভিত্তিক সঠিক ধারণা",
-                    explanation = "অধ্যায়ের সার্বিক মাস্টারির নির্ভুল উত্তর।",
-                    marks = 2,
-                    tagsJson = "$chapterId|BOSS_BATTLE|MCQ",
-                    pyqYear = "2024",
-                    classId = resolvedClassId
-                )
-            )
-            dao.insertQuestions(generated)
-            return generated
+        // Strict exact chapterId matching from all questions
+        val strictChapterQs = dao.getAllQuestions().filter {
+            it.chapterId == chapterId && 
+            (it.classId == resolvedClassId || resolvedClassId.isBlank() || it.classId.isBlank())
+        }
+        if (strictChapterQs.isNotEmpty()) {
+            val chunkSize = 15
+            val chunks = strictChapterQs.chunked(chunkSize)
+            val safeSetIndex = (setNumber - 1).coerceIn(0, (chunks.size - 1).coerceAtLeast(0))
+            return if (chunks.isNotEmpty()) chunks[safeSetIndex] else strictChapterQs
         }
 
         return emptyList()

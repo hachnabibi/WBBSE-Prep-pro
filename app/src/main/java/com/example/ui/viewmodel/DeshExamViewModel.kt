@@ -185,6 +185,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val _authSuccessMessage = MutableStateFlow<String?>(null)
     val authSuccessMessage: StateFlow<String?> = _authSuccessMessage.asStateFlow()
 
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
+    fun clearToastMessage() {
+        _toastMessage.value = null
+    }
+
     private val _isGuestUser = MutableStateFlow(true)
     val isGuestUser: StateFlow<Boolean> = _isGuestUser.asStateFlow()
 
@@ -1329,6 +1336,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 )
                 startTimer()
                 navigateTo(AppScreen.ASSESSMENT)
+            } else {
+                _toastMessage.value = if (_isBengali.value) "দুঃখিত, এই বিষয়ের কোনো প্রশ্ন এখনো উপলব্ধ নেই!" else "Sorry, no questions are available for this topic yet!"
             }
         }
     }
@@ -1399,6 +1408,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 selectedOptionIndex = -1,
                 isAnswerChecked = false,
                 isCorrect = false,
+                eliminatedOptionIndices = emptySet(),
                 questionStartTimeSeconds = state.timeRemainingSeconds
             )
         } else {
@@ -1416,6 +1426,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 selectedOptionIndex = savedOption,
                 isAnswerChecked = false,
                 isCorrect = false,
+                eliminatedOptionIndices = emptySet(),
                 questionStartTimeSeconds = state.timeRemainingSeconds
             )
         }

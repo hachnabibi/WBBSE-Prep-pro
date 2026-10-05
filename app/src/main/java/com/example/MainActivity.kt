@@ -137,6 +137,14 @@ fun DeshExamApp(
     val selectedChapterEntity by viewModel.selectedChapterEntity.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    val toastMessage by viewModel.toastMessage.collectAsStateWithLifecycle()
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let { msg ->
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearToastMessage()
+        }
+    }
+
     // Request notification permission for Android 13+ (API 33+)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
