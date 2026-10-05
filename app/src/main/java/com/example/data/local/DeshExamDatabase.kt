@@ -26,7 +26,7 @@ import com.example.data.repository.DeshExamRepository
         BoardEntity::class,
         AcademicClassEntity::class
     ],
-    version = 44,
+    version = 45,
     exportSchema = false
 )
 abstract class DeshExamDatabase : RoomDatabase() {

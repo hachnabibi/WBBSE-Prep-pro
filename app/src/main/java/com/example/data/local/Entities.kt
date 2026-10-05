@@ -147,7 +147,8 @@ data class UserProgressEntity(
     val fiftyFiftyLifelines: Int = 3,
     val battleEnergy: Int = 5,
     val isStreakRepaired: Boolean = false,
-    val studyGoalsJson: String = ""
+    val studyGoalsJson: String = "",
+    val claimedCoinTaskIdsJson: String = ""
 )
 
 @Entity(tableName = "daily_quests")

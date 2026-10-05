@@ -316,7 +316,8 @@ data class StudentProfile(
     val unlockedNotes: Set<String> = setOf("1"),
     val unlockedPodcasts: Set<String> = emptySet(),
     val fiftyFiftyLifelines: Int = 3,
-    val battleEnergy: Int = 5
+    val battleEnergy: Int = 5,
+    val claimedCoinTaskIds: Set<String> = emptySet()
 )
 
 data class StreakDay(

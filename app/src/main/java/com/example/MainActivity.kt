@@ -766,17 +766,24 @@ fun DeshExamApp(
                 AppScreen.VIDEO_LESSON -> {
                     val activeLesson by viewModel.activeVideoLesson.collectAsState()
                     val activeTopic by viewModel.activeVideoTopic.collectAsState()
-                    activeLesson?.let { lesson ->
+                    if (activeLesson != null) {
                         VideoLessonScreen(
-                            lesson = lesson,
+                            lesson = activeLesson!!,
                             topic = activeTopic,
                             isBengali = isBengali,
                             viewModel = viewModel,
-                            onBack = { viewModel.goBack() },
+                            onBack = { viewModel.closeVideoLesson() },
                             onStartQuiz = { mode, targetId, title ->
                                 viewModel.startAssessment(mode, targetId, title)
                             },
                             onOpenDoubtSolver = { viewModel.navigateTo(AppScreen.DOUBT_SOLVER) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        com.example.ui.screens.VideoHubScreen(
+                            viewModel = viewModel,
+                            isBengali = isBengali,
+                            onBack = { viewModel.goBack() },
                             modifier = Modifier.fillMaxSize()
                         )
                     }

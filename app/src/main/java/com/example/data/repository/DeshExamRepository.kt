@@ -1143,6 +1143,10 @@ class DeshExamRepository(
                 entity.unlockedPodcastsJson.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
             } else emptySet()
 
+            val claimedCoinTasksSet = if (entity.claimedCoinTaskIdsJson.isNotBlank()) {
+                entity.claimedCoinTaskIdsJson.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+            } else emptySet()
+
             StudentProfile(
                 name = entity.studentName,
                 school = entity.school,
@@ -1178,7 +1182,8 @@ class DeshExamRepository(
                 unlockedNotes = notesSet,
                 unlockedPodcasts = podcastsSet,
                 fiftyFiftyLifelines = entity.fiftyFiftyLifelines,
-                battleEnergy = entity.battleEnergy
+                battleEnergy = entity.battleEnergy,
+                claimedCoinTaskIds = claimedCoinTasksSet
             )
         } else {
             StudentProfile()
@@ -1189,6 +1194,7 @@ class DeshExamRepository(
         val current = dao.getUserProgressOnce() ?: UserProgressEntity()
         val notesJson = profile.unlockedNotes.joinToString(",")
         val podcastsJson = profile.unlockedPodcasts.joinToString(",")
+        val claimedCoinTaskIdsJson = profile.claimedCoinTaskIds.joinToString(",")
         val updated = current.copy(
             studentName = profile.name,
             school = profile.school,
@@ -1207,7 +1213,8 @@ class DeshExamRepository(
             unlockedNotesJson = notesJson,
             unlockedPodcastsJson = podcastsJson,
             fiftyFiftyLifelines = profile.fiftyFiftyLifelines,
-            battleEnergy = profile.battleEnergy
+            battleEnergy = profile.battleEnergy,
+            claimedCoinTaskIdsJson = claimedCoinTaskIdsJson
         )
         dao.insertOrUpdateProgress(updated)
     }

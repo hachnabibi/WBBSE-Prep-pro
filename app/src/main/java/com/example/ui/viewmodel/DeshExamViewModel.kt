@@ -299,15 +299,22 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val _isLoadingDistricts = MutableStateFlow(false)
     val isLoadingDistricts: StateFlow<Boolean> = _isLoadingDistricts.asStateFlow()
 
-    private val _claimedCoinTaskIds = MutableStateFlow<Set<String>>(emptySet())
-    val claimedCoinTaskIds: StateFlow<Set<String>> = _claimedCoinTaskIds.asStateFlow()
-
-    fun claimCoinTask(taskId: String) {
-        _claimedCoinTaskIds.update { it + taskId }
-    }
-
     val studentProfile: StateFlow<StudentProfile> = repository.studentProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StudentProfile())
+
+    val claimedCoinTaskIds: StateFlow<Set<String>> = studentProfile
+        .map { it.claimedCoinTaskIds }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    fun claimCoinTask(taskId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = studentProfile.value
+            if (!current.claimedCoinTaskIds.contains(taskId)) {
+                val updated = current.copy(claimedCoinTaskIds = current.claimedCoinTaskIds + taskId)
+                repository.updateProfile(updated)
+            }
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val subjects: StateFlow<List<SubjectItem>> = studentProfile.flatMapLatest { profile ->
@@ -1019,6 +1026,11 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         _activeVideoLesson.value = lesson
         _activeVideoTopic.value = topic
         navigateTo(AppScreen.VIDEO_LESSON)
+    }
+
+    fun closeVideoLesson() {
+        _activeVideoLesson.value = null
+        _activeVideoTopic.value = null
     }
 
     fun openVideoLessonForEntity(lesson: VideoLesson, entity: TopicEntity? = null) {

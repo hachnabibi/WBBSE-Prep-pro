@@ -216,7 +216,7 @@ fun WalletScreen(
 
     val dateFormat = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
 
-    fun addTransaction(title: String, amount: Int, isCredit: Boolean, category: String) {
+    fun addTransaction(title: String, amount: Int, isCredit: Boolean, category: String, claimedTaskId: String? = null) {
         val newTx = WalletTransaction(
             id = "tx_${System.currentTimeMillis()}",
             title = title,
@@ -229,7 +229,8 @@ fun WalletScreen(
 
         // Update profile in ViewModel
         val updatedCoins = if (isCredit) currentTokens + amount else (currentTokens - amount).coerceAtLeast(0)
-        viewModel.updateStudentProfile(profile.copy(coins = updatedCoins))
+        val updatedClaimedSet = if (claimedTaskId != null) profile.claimedCoinTaskIds + claimedTaskId else profile.claimedCoinTaskIds
+        viewModel.updateStudentProfile(profile.copy(coins = updatedCoins, claimedCoinTaskIds = updatedClaimedSet))
 
         actionMessage = if (isCredit) {
             if (isBengali) "🎉 +$amount কয়েন ওয়ালেটে যোগ হয়েছে!" else "🎉 +$amount Coins added to your wallet!"
@@ -514,12 +515,12 @@ fun WalletScreen(
                                 isClaimed = isClaimed,
                                 onClaim = {
                                     if (!isClaimed) {
-                                        viewModel.claimCoinTask(task.id)
                                         addTransaction(
                                             title = task.title,
                                             amount = task.reward,
                                             isCredit = true,
-                                            category = "REWARD"
+                                            category = "REWARD",
+                                            claimedTaskId = task.id
                                         )
                                     }
                                 }
