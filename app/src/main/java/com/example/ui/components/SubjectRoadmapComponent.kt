@@ -7,6 +7,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -48,7 +50,9 @@ fun SubjectRoadmapComponent(
     isBengali: Boolean,
     onOpenTopicStudy: (String) -> Unit,
     onStartAssessment: (AssessmentMode, String?, String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    questions: List<com.example.data.local.QuestionEntity> = emptyList(),
+    viewModel: com.example.ui.viewmodel.DeshExamViewModel? = null
 ) {
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, COMPLETED, IN_PROGRESS, UPCOMING
     val expandedChapters = remember { mutableStateMapOf<String, Boolean>() }
@@ -255,7 +259,9 @@ fun SubjectRoadmapComponent(
                                 chapter.id,
                                 "🔥 অধ্যায় বস ব্যাটল: ${chapter.getTitle(true)}"
                             )
-                        }
+                        },
+                        questions = questions,
+                        viewModel = viewModel
                     )
                 }
             }
@@ -475,7 +481,7 @@ fun RecommendedPracticeCard(
     onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
@@ -596,7 +602,9 @@ fun ChapterRoadmapCard(
     onOpenStudy: (String) -> Unit,
     onStartTopicPractice: (String, String) -> Unit,
     onStartBossBattle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    questions: List<com.example.data.local.QuestionEntity> = emptyList(),
+    viewModel: com.example.ui.viewmodel.DeshExamViewModel? = null
 ) {
     val isCompleted = chapter.bossCompleted || (chapter.completedTopics >= chapter.totalTopics && chapter.totalTopics > 0)
     val isInProgress = !isCompleted && (chapter.completedTopics > 0 || chapter.bossUnlocked)
@@ -610,6 +618,14 @@ fun ChapterRoadmapCard(
         isInProgress -> Color(subjectColorHex)
         else -> if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
     }
+
+    var showConceptDialog by remember { mutableStateOf(false) }
+    var conceptTitle by remember { mutableStateOf("") }
+    var conceptSummaryText by remember { mutableStateOf("") }
+
+    var showSolutionDialog by remember { mutableStateOf(false) }
+    var solutionTitle by remember { mutableStateOf("") }
+    var solutionText by remember { mutableStateOf("") }
 
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -728,6 +744,51 @@ fun ChapterRoadmapCard(
                         maxLines = if (isExpanded) 3 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
+
+                    // Chapter Stats Badges Bar: topics, questions, quizzes, mock tests
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val chapterTopicsCount = topics.size
+                        val chapterQuestionsCount = topics.sumOf { topic ->
+                            questions.count { it.topicId == topic.id }.let {
+                                if (it > 0) it else if (topic.questionCount > 0) topic.questionCount else 15
+                            }
+                        }
+                        // Topics badge
+                        ChapterStatPill(
+                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            label = if (isBengali) "${chapterTopicsCount.toBengaliDigits()}টি টপিক" else "$chapterTopicsCount Topics",
+                            color = Color(subjectColorHex),
+                            isDark = isDark
+                        )
+                        // Questions badge
+                        ChapterStatPill(
+                            icon = Icons.Default.Quiz,
+                            label = if (isBengali) "${chapterQuestionsCount.toBengaliDigits()}টি প্রশ্ন" else "$chapterQuestionsCount Qs",
+                            color = Color(subjectColorHex),
+                            isDark = isDark
+                        )
+                        // Quizzes badge
+                        ChapterStatPill(
+                            icon = Icons.Default.Assignment,
+                            label = if (isBengali) "${chapterTopicsCount.toBengaliDigits()}টি কুইজ" else "$chapterTopicsCount Quizzes",
+                            color = Color(subjectColorHex),
+                            isDark = isDark
+                        )
+                        // Mock test badge
+                        ChapterStatPill(
+                            icon = Icons.Default.EmojiEvents,
+                            label = if (isBengali) "১টি মক টেস্ট" else "1 Mock Test",
+                            color = Color(subjectColorHex),
+                            isDark = isDark
+                        )
+                    }
                 }
 
                 IconButton(
@@ -790,11 +851,55 @@ fun ChapterRoadmapCard(
                         val isNextTarget = topic.isUnlocked && !isTopicMastered &&
                                 topics.take(topicIndex).all { it.masteryPercentage >= 80 }
 
+                        val calculatedQCount = questions.count { it.topicId == topic.id }.let {
+                            if (it > 0) it else if (topic.questionCount > 0) topic.questionCount else 15
+                        }
+
+                        val topicNumStr = if (isBengali) {
+                            "${chapter.chapterNumber.toBengaliDigits()}.${(topicIndex + 1).toBengaliDigits()}"
+                        } else {
+                            "${chapter.chapterNumber}.${topicIndex + 1}"
+                        }
+
                         RoadmapTopicItemRow(
                             topic = topic,
                             isNextTarget = isNextTarget,
                             isBengali = isBengali,
-                            onOpenStudy = { onOpenStudy(topic.id) },
+                            questionCount = calculatedQCount,
+                            topicNumber = topicNumStr,
+                            index = topicIndex,
+                            onConceptClick = {
+                                conceptTitle = topic.getTitle(isBengali)
+                                conceptSummaryText = (topic.contentData ?: "").ifBlank { "টপিকের মূল ধারণা ও প্রয়োজনীয় কনসেপ্ট নোটস।" }
+                                showConceptDialog = true
+                            },
+                            onSolutionClick = {
+                                solutionTitle = topic.getTitle(isBengali)
+                                val sol = topic.solutionData
+                                solutionText = if (!sol.isNullOrBlank() && !sol.contains("খুব শীঘ্রই")) {
+                                    sol
+                                } else {
+                                    "## ${topic.getTitle(isBengali)} - সমাধান ও প্রশ্নোত্তর\n\n" +
+                                    "এই টপিকের সকল গুরুত্বপূর্ণ ও বিগত বছরের প্রশ্নের ব্যাখ্যা ও মডেল সমাধান নিচে দেওয়া হলো:\n\n" +
+                                    (topic.contentData ?: topic.summary)
+                                }
+                                showSolutionDialog = true
+                            },
+                            onVideoClick = {
+                                try {
+                                    val lesson = VideoLessonProvider.getVideoForTopic(
+                                        topicId = topic.id,
+                                        topicTitle = topic.getTitle(isBengali),
+                                        subjectId = topic.subjectId,
+                                        topicVideoUrl = topic.videoUrl,
+                                        topicPlaylistJson = topic.playlistJson
+                                    )
+                                    viewModel?.openVideoLesson(lesson, topic)
+                                } catch (_: Exception) {
+                                    val fallback = VideoLessonProvider.getVideoForTopic(topic.id)
+                                    viewModel?.openVideoLesson(fallback, topic)
+                                }
+                            },
                             onStartPractice = {
                                 onStartTopicPractice(
                                     topic.id,
@@ -807,6 +912,23 @@ fun ChapterRoadmapCard(
             }
         }
     }
+
+    if (showConceptDialog) {
+        ConceptDetailDialog(
+            title = conceptTitle,
+            conceptSummary = conceptSummaryText,
+            onDismiss = { showConceptDialog = false }
+        )
+    }
+
+    if (showSolutionDialog) {
+        ConceptDetailDialog(
+            title = solutionTitle,
+            subtitle = "টপিক সমাধান ও প্রশ্নোত্তর নোটস",
+            conceptSummary = solutionText,
+            onDismiss = { showSolutionDialog = false }
+        )
+    }
 }
 
 @Composable
@@ -814,57 +936,59 @@ fun RoadmapTopicItemRow(
     topic: TopicItem,
     isNextTarget: Boolean,
     isBengali: Boolean,
-    onOpenStudy: () -> Unit,
+    questionCount: Int,
+    topicNumber: String,
+    index: Int,
+    onConceptClick: () -> Unit,
+    onSolutionClick: () -> Unit,
+    onVideoClick: () -> Unit,
     onStartPractice: () -> Unit
 ) {
     val isMastered = topic.masteryPercentage >= 80
     val isUnlocked = topic.isUnlocked
-    val isDark = isSystemInDarkTheme()
+    val isLocked = !isUnlocked
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
 
     val progress = (topic.masteryPercentage.coerceIn(0, 100)) / 100f
 
-    val cardBackground = when {
-        isNextTarget -> {
-            if (isDark) Color(0xFF1E1B4B)
-            else Color(0xFFF5F3FF)
-        }
+    // Subtle distinct linear gradients for cards based on index
+    val cardGradientsLight = listOf(
+        Brush.linearGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF))), // Subtle Indigo
+        Brush.linearGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))), // Subtle Emerald
+        Brush.linearGradient(listOf(Color(0xFFFFFBEB), Color(0xFFFEF3C7))), // Subtle Amber
+        Brush.linearGradient(listOf(Color(0xFFECFEFF), Color(0xFFCFFAFE))), // Subtle Cyan
+        Brush.linearGradient(listOf(Color(0xFFF5F3FF), Color(0xFFEDE9FE))), // Subtle Violet
+        Brush.linearGradient(listOf(Color(0xFFFDF2F8), Color(0xFFFCE7F3))), // Subtle Pink
+        Brush.linearGradient(listOf(Color(0xFFFFF1F2), Color(0xFFFFE4E6)))  // Subtle Rose
+    )
+    
+    val cardGradientsDark = listOf(
+        Brush.linearGradient(listOf(Color(0xFF1E1B4B), Color(0xFF0F172A))), // Dark Indigo
+        Brush.linearGradient(listOf(Color(0xFF064E3B), Color(0xFF0F172A))), // Dark Emerald
+        Brush.linearGradient(listOf(Color(0xFF78350F), Color(0xFF0F172A))), // Dark Amber
+        Brush.linearGradient(listOf(Color(0xFF164E63), Color(0xFF0F172A))), // Dark Cyan
+        Brush.linearGradient(listOf(Color(0xFF4C1D95), Color(0xFF0F172A))), // Dark Violet
+        Brush.linearGradient(listOf(Color(0xFF831843), Color(0xFF0F172A))), // Dark Pink
+        Brush.linearGradient(listOf(Color(0xFF881337), Color(0xFF0F172A)))  // Dark Rose
+    )
 
-        isMastered -> {
-            if (isDark) Color(0xFF052E2B)
-            else Color(0xFFF0FDF4)
-        }
-
-        isUnlocked -> {
-            if (isDark) Color(0xFF172033)
-            else Color.White
-        }
-
-        else -> {
-            if (isDark) Color(0xFF111827)
-            else Color(0xFFF8FAFC)
-        }
+    val cardGradient = if (isDark) {
+        cardGradientsDark[index % cardGradientsDark.size]
+    } else {
+        cardGradientsLight[index % cardGradientsLight.size]
     }
 
-    val cardBorder = when {
-        isNextTarget -> {
-            if (isDark) Color(0xFF818CF8)
-            else PrimaryIndigo
-        }
+    val lockedGradient = if (isDark) {
+        Brush.linearGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
+    } else {
+        Brush.linearGradient(listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9)))
+    }
 
-        isMastered -> {
-            if (isDark) Color(0xFF059669)
-            else Color(0xFFA7F3D0)
-        }
-
-        isUnlocked -> {
-            if (isDark) Color(0xFF334155)
-            else Color(0xFFE2E8F0)
-        }
-
-        else -> {
-            if (isDark) Color(0xFF1E293B)
-            else Color(0xFFE2E8F0)
-        }
+    val cardBorderColor = when {
+        isLocked -> if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+        isMastered -> if (isDark) Color(0xFF10B981).copy(alpha = 0.6f) else Color(0xFFA7F3D0)
+        isNextTarget -> if (isDark) Color(0xFF818CF8) else PrimaryIndigo
+        else -> if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
     }
 
     val titleColor = when {
@@ -895,12 +1019,24 @@ fun RoadmapTopicItemRow(
         Color(0xFF64748B)
     }
 
+    // Beautiful linear gradients for the number circle backgrounds
+    val numberGradients = listOf(
+        Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF4F46E5))), // Indigo
+        Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF059669))), // Emerald
+        Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))), // Amber
+        Brush.linearGradient(listOf(Color(0xFF06B6D4), Color(0xFF0284C7))), // Cyan
+        Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF7C3AED))), // Violet
+        Brush.linearGradient(listOf(Color(0xFFEC4899), Color(0xFFD946EF))), // Pink-Purple
+        Brush.linearGradient(listOf(Color(0xFFF43F5E), Color(0xFFE11D48)))  // Rose-Red
+    )
+    val numberGradient = numberGradients[index % numberGradients.size]
+
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = cardBackground,
+        color = Color.Transparent,
         border = BorderStroke(
             width = if (isNextTarget) 1.5.dp else 1.dp,
-            color = cardBorder
+            color = cardBorderColor
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -910,6 +1046,7 @@ fun RoadmapTopicItemRow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(if (isLocked) lockedGradient else cardGradient)
                 .padding(14.dp)
         ) {
 
@@ -922,91 +1059,56 @@ fun RoadmapTopicItemRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                // Topic Number / Status
+                // Topic Number / Status with gradients!
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(
                             when {
-                                isMastered -> {
-                                    if (isDark) {
-                                        Color(0xFF065F46)
-                                    } else {
-                                        Color(0xFFD1FAE5)
-                                    }
+                                isLocked -> {
+                                    if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
                                 }
-
-                                isNextTarget -> PrimaryIndigo
-
-                                isUnlocked -> {
-                                    if (isDark) {
-                                        Color(0xFF312E81)
-                                    } else {
-                                        Color(0xFFE0E7FF)
-                                    }
-                                }
-
-                                else -> {
-                                    if (isDark) {
-                                        Color(0xFF334155)
-                                    } else {
-                                        Color(0xFFE2E8F0)
-                                    }
-                                }
+                                else -> Color.Transparent // to let the gradient show
+                            }
+                        )
+                        .then(
+                            if (!isLocked) {
+                                Modifier.background(numberGradient)
+                            } else {
+                                Modifier
                             }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
 
                     when {
-
                         isMastered -> {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Mastered",
-                                tint = if (isDark) {
-                                    Color(0xFFA7F3D0)
-                                } else {
-                                    CorrectGreen
-                                },
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
 
-                        !isUnlocked -> {
+                        isLocked -> {
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = "Locked",
-                                tint = if (isDark) {
-                                    Color(0xFF94A3B8)
-                                } else {
-                                    Color(0xFF64748B)
-                                },
+                                tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                 modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        isNextTarget -> {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Next Topic",
-                                tint = Color.White,
-                                modifier = Modifier.size(21.dp)
                             )
                         }
 
                         else -> {
                             Text(
-                                text = "${topic.orderIndex}",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Black
+                                text = topicNumber,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp
                                 ),
-                                color = if (isDark) {
-                                    Color(0xFFC7D2FE)
-                                } else {
-                                    PrimaryIndigo
-                                }
+                                color = Color.White
                             )
                         }
                     }
@@ -1076,7 +1178,7 @@ fun RoadmapTopicItemRow(
                         )
 
                         Text(
-                            text = "${topic.questionCount}টি প্রশ্ন",
+                            text = "${questionCount.toBengaliDigits()}টি প্রশ্ন",
                             style = MaterialTheme.typography.labelSmall,
                             color = secondaryColor
                         )
@@ -1146,74 +1248,123 @@ fun RoadmapTopicItemRow(
             Spacer(modifier = Modifier.height(12.dp))
 
             // =========================================================
-            // ACTION BUTTONS
+            // ACTION BUTTONS (4 chip buttons instead of readout/practice)
             // =========================================================
 
             if (isUnlocked) {
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
-                    // Study
-                    OutlinedButton(
-                        onClick = onOpenStudy,
-                        shape = RoundedCornerShape(9.dp),
-                        contentPadding = PaddingValues(
-                            horizontal = 8.dp,
-                            vertical = 0.dp
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
+                    // 💡 Concept Button
+                    Surface(
+                        shape = RoundedCornerShape(7.dp),
+                        color = if (isDark) Color(0xFF451A03).copy(alpha = 0.4f) else Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f)),
+                        modifier = Modifier.clickable { onConceptClick() }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoStories,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        Text(
-                            text = "পড়ুন",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = "Concept",
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(12.dp)
                             )
-                        )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "কনসেপ্ট",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = if (isDark) Color(0xFFFDE68A) else Color(0xFFB45309)
+                            )
+                        }
                     }
 
-                    // Practice
-                    Button(
-                        onClick = onStartPractice,
-                        shape = RoundedCornerShape(9.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryIndigo,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(
-                            horizontal = 8.dp,
-                            vertical = 0.dp
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
+                    // 📝 Solution Button
+                    Surface(
+                        shape = RoundedCornerShape(7.dp),
+                        color = if (isDark) Color(0xFF134E4A).copy(alpha = 0.4f) else Color(0xFFF0FDFA),
+                        border = BorderStroke(1.dp, Color(0xFF0D9488).copy(alpha = 0.5f)),
+                        modifier = Modifier.clickable { onSolutionClick() }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        Text(
-                            text = "অনুশীলন",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = "Solution",
+                                tint = Color(0xFF0D9488),
+                                modifier = Modifier.size(12.dp)
                             )
-                        )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "সমাধান",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = if (isDark) Color(0xFF99F6E4) else Color(0xFF0F766E)
+                            )
+                        }
+                    }
+
+                    // ▶ Video Button
+                    Surface(
+                        shape = RoundedCornerShape(7.dp),
+                        color = if (isDark) Color(0xFF7F1D1D).copy(alpha = 0.35f) else Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                        modifier = Modifier.clickable { onVideoClick() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircle,
+                                contentDescription = "Video Lesson",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "ভিডিও",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = if (isDark) Color(0xFFFECACA) else Color(0xFFB91C1C)
+                            )
+                        }
+                    }
+
+                    // 🎯 Tests Button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+                                )
+                            )
+                            .clickable { onStartPractice() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Quiz,
+                                contentDescription = "Tests",
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "টেস্টস",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                                color = Color.White
+                            )
+                        }
                     }
                 }
 
@@ -1270,7 +1421,7 @@ fun RoadmapBossCitadelWaypoint(
     val isCompleted = chapter.bossCompleted
     val isUnlocked = chapter.bossUnlocked
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = when {
@@ -1353,6 +1504,47 @@ fun RoadmapBossCitadelWaypoint(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ChapterStatPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isDark) color.copy(alpha = 0.15f) else color.copy(alpha = 0.08f),
+        border = BorderStroke(
+            width = 0.75.dp,
+            color = if (isDark) color.copy(alpha = 0.4f) else color.copy(alpha = 0.25f)
+        ),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isDark) color.copy(alpha = 0.9f) else color,
+                modifier = Modifier.size(11.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = if (isDark) Color.White.copy(alpha = 0.9f) else color
+            )
         }
     }
 }

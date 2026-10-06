@@ -64,6 +64,7 @@ fun JourneyMapScreen(
     val topics by topicsFlow.collectAsState(initial = emptyList())
     val subjectTopicsFlow = viewModel.repository.getTopicsForSubject(selectedSubjectId)
     val subjectTopics by subjectTopicsFlow.collectAsState(initial = emptyList())
+    val questions by viewModel.questions.collectAsState()
 
     val currentSubject = subjects.find { it.id == selectedSubjectId } ?: subjects.firstOrNull()
     val currentChapter = chapters.find { it.id == selectedChapterId } ?: chapters.firstOrNull()
@@ -300,7 +301,9 @@ fun JourneyMapScreen(
                             recommendedPractices = recommendedPractices,
                             isBengali = isBengali,
                             onOpenTopicStudy = onOpenTopicStudy,
-                            onStartAssessment = onStartAssessment
+                            onStartAssessment = onStartAssessment,
+                            questions = questions,
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -376,7 +379,9 @@ fun JourneyMapScreen(
                                     onStartAssessment(AssessmentMode.PRACTICE, topicId, title)
                                 },
                                 onStartBossBattle = { },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                questions = questions,
+                                viewModel = viewModel
                             )
                         }
                     }

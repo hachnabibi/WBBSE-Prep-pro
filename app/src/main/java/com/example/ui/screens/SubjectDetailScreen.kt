@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -66,7 +67,7 @@ fun SubjectDetailScreen(
     BackHandler { onBack() }
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Chapters, 1: Tests, 2: PYQs, 3: Key Notes
-    val isDark = MaterialTheme.colorScheme.background.red < 0.3f
+    val isDark = isSystemInDarkTheme()
     val subjectColor = Color(subject.colorHex)
 
     val firestoreTestTemplates by (viewModel?.firestoreTestTemplates?.collectAsState() ?: remember { mutableStateOf(emptyList()) })

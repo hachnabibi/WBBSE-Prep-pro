@@ -403,7 +403,7 @@ private fun AdventureNodeRow(
 ) {
     val isMastered = topic.masteryPercentage >= 80
     val isUnlocked = topic.isUnlocked
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
 
     // Pulsing animation for the active next mission node
     val infiniteTransition = rememberInfiniteTransition(label = "node_pulse")
@@ -659,7 +659,7 @@ private fun BossCitadelGateNode(
 ) {
     val isUnlocked = chapter.bossUnlocked
     val isDefeated = chapter.bossCompleted
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
 
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -825,7 +825,7 @@ fun NodeExpeditionDialog(
     onStartQuiz: () -> Unit,
     onCelebrateModule: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(22.dp),

@@ -254,7 +254,12 @@ fun DeshExamApp(
                     currentScreen = currentScreen,
                     profile = profile,
                     isBengali = isBengali,
-                    onNavigate = { screen -> viewModel.navigateTo(screen) },
+                    onNavigate = { screen ->
+                        if (screen == AppScreen.VIDEO_LESSON) {
+                            viewModel.closeVideoLesson()
+                        }
+                        viewModel.navigateTo(screen)
+                    },
                     onCloseDrawer = { coroutineScope.launch { drawerState.close() } },
                     onSignOut = { viewModel.signOut() },
                     isAdmin = isAdmin,
@@ -300,7 +305,12 @@ fun DeshExamApp(
                     BottomNavBar(
                         currentScreen = currentScreen,
                         isBengali = isBengali,
-                        onNavigate = { screen -> viewModel.navigateTo(screen) }
+                        onNavigate = { screen ->
+                            if (screen == AppScreen.VIDEO_LESSON) {
+                                viewModel.closeVideoLesson()
+                            }
+                            viewModel.navigateTo(screen)
+                        }
                     )
                 }
             },
