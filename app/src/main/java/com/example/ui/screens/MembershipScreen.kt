@@ -40,7 +40,7 @@ fun MembershipScreen(
     var actionMessage by remember { mutableStateOf<String?>(null) }
     var selectedTabIndex by remember { mutableIntStateOf(1) } // Default Yearly (1)
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     val cyanGlow = Color(0xFF06B6D4)
     val purpleGlow = Color(0xFF8B5CF6)
     val scrollState = rememberScrollState()

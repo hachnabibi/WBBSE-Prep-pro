@@ -67,7 +67,7 @@ fun SubjectDetailScreen(
     BackHandler { onBack() }
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Chapters, 1: Tests, 2: PYQs, 3: Key Notes
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     val subjectColor = Color(subject.colorHex)
 
     val firestoreTestTemplates by (viewModel?.firestoreTestTemplates?.collectAsState() ?: remember { mutableStateOf(emptyList()) })

@@ -648,7 +648,7 @@ fun BossBattleCitadelCard(
 ) {
     val isUnlocked = chapter.bossUnlocked
     val isCompleted = chapter.bossCompleted
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
 
     if (isUnlocked || isCompleted) {
         BossBattleCard(

@@ -49,7 +49,7 @@ fun ChapterDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: com.example.ui.viewmodel.DeshExamViewModel? = null
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     val subjectColor = Color(subjectColorLong)
     var activeVideoLesson by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<VideoLesson?>(null) }
     var showConceptDialog by remember { mutableStateOf(false) }

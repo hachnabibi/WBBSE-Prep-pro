@@ -1673,7 +1673,7 @@ fun SubjectProgressCard(
 
     val subjectColor = Color(subject.colorHex)
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
 
     Card(
         shape = RoundedCornerShape(16.dp),

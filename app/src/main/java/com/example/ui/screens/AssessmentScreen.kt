@@ -107,82 +107,104 @@ fun AssessmentScreen(
         showExitConfirmation = true
     }
 
-    val blurEffect by animateDpAsState(
-        targetValue = if (state.isAnswerChecked || showExitConfirmation) 12.dp else 0.dp,
-        label = "blur_effect"
-    )
-
     if (showExitConfirmation) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showExitConfirmation = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.WarningAmber,
-                    contentDescription = "Warning",
-                    tint = WrongRed,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "টেস্ট ছেড়ে বের হতে চান?",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Text(
-                    text = if (isBengali)
-                        "এখন বেরিয়ে গেলে আপনার বর্তমান টেস্টের স্কোর সংরক্ষিত হবে না। আপনি কি নিশ্চিত?"
-                    else
-                        "If you leave now, your current test progress will be lost. Are you sure?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = if (isDark) Color.LightGray else Color.DarkGray
-                )
-            },
-            confirmButton = {
-                Row(
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDark) Color(0xFF1E293B) else Color.White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .padding(16.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { showExitConfirmation = false },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp),
-                        modifier = Modifier.weight(1f),
-                        border = BorderStroke(1.dp, PrimaryIndigo)
+                    // Warning Sign in the TOP CENTER of the card
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF7F1D1D).copy(alpha = 0.2f) else Color(0xFFFEF2F2)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "চালিয়ে যান",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = PrimaryIndigo
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = "Warning",
+                            tint = WrongRed,
+                            modifier = Modifier.size(36.dp)
                         )
                     }
-                    Button(
-                        onClick = {
-                            showExitConfirmation = false
-                            onExit()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp),
-                        modifier = Modifier.weight(1f)
+
+                    Text(
+                        text = if (isBengali) "টেস্ট ছেড়ে বের হতে চান?" else "Exit Test?",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
+
+                    Text(
+                        text = if (isBengali)
+                            "এখন বেরিয়ে গেলে আপনার বর্তমান টেস্টের স্কোর সংরক্ষিত হবে না। আপনি কি নিশ্চিত?"
+                        else
+                            "If you leave now, your current test progress will be lost. Are you sure?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "বের হন",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
+                        OutlinedButton(
+                            onClick = { showExitConfirmation = false },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(vertical = 12.dp),
+                            modifier = Modifier.weight(1f),
+                            border = BorderStroke(1.5.dp, PrimaryIndigo)
+                        ) {
+                            Text(
+                                text = if (isBengali) "চালিয়ে যান" else "Continue",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = PrimaryIndigo
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                showExitConfirmation = false
+                                onExit()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(vertical = 12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = if (isBengali) "বের হন" else "Exit",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
                     }
                 }
-            },
-            dismissButton = {},
-            shape = RoundedCornerShape(20.dp),
-            containerColor = cardBgColorUi
-        )
+            }
+        }
     }
 
     // Rewarded Dialogs (Omitted standard details for brevity, assumed correctly handled in components)
@@ -195,7 +217,7 @@ fun AssessmentScreen(
 
     Box(modifier = modifier.fillMaxSize().background(screenBgColor).testTag("assessment_screen")) {
         Scaffold(
-            modifier = Modifier.blur(blurEffect),
+            modifier = Modifier,
             containerColor = Color.Transparent,
             topBar = {
                 Surface(

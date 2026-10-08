@@ -123,7 +123,7 @@ fun AiCoachScreen(
 
         // 2. Urgent Weak Area Focus Card
         item {
-            val isDark = isSystemInDarkTheme()
+            val isDark = MaterialTheme.colorScheme.background.red < 0.45f
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(

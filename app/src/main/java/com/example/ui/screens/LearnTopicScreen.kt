@@ -50,7 +50,7 @@ fun LearnTopicHeroBanner(
     onViewSolution: () -> Unit,
     onViewVideo: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background.red < 0.45f
     val mastery = topic.masteryPercentage.coerceIn(0, 100)
 
     var showTopicConceptDialog by remember { mutableStateOf(false) }

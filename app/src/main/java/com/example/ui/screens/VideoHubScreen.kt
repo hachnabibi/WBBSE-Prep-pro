@@ -30,11 +30,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.example.data.model.TopicItem
 import com.example.data.model.VideoLessonProvider
 import com.example.ui.viewmodel.DeshExamViewModel
 import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.PrimaryIndigoLight
+
+private fun extractYoutubeVideoId(url: String?): String? {
+    if (url.isNullOrBlank()) return null
+    return try {
+        if (url.contains("youtu.be/")) {
+            url.split("youtu.be/").lastOrNull()?.split("?")?.firstOrNull()?.trim()
+        } else if (url.contains("v=")) {
+            url.split("v=").lastOrNull()?.split("&")?.firstOrNull()?.trim()
+        } else if (url.contains("embed/")) {
+            url.split("embed/").lastOrNull()?.split("?")?.firstOrNull()?.trim()
+        } else if (url.length in 10..15 && !url.contains("/")) {
+            url.trim()
+        } else {
+            null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -252,6 +273,9 @@ fun VideoHubScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Left Side: Visual Thumbnail with Play Icon & Gradient Overlay
+                                val videoId = extractYoutubeVideoId(topic.videoUrl)
+                                val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
+
                                 Box(
                                     modifier = Modifier
                                         .size(width = 110.dp, height = 75.dp)
@@ -266,6 +290,21 @@ fun VideoHubScreen(
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
+                                    if (!thumbnailUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = thumbnailUrl,
+                                            contentDescription = "Video Thumbnail",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                        // Semi-transparent dark overlay to keep the play icon highly visible
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = 0.25f))
+                                        )
+                                    }
+
                                     // Decorative elements to make it look like a video container
                                     Icon(
                                         imageVector = Icons.Default.PlayCircle,
