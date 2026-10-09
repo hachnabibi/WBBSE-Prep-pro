@@ -1894,6 +1894,7 @@ fun ActiveClassBanner(
     onSwitchStream: (String) -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var selectedBoardIdForFilter by remember { mutableStateOf<String?>(null) }
     val currentClass = AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
         ?: AcademicClassProvider.ALL_CLASSES.find { it.targetExam == profile.targetExam }
         ?: AcademicClassProvider.ALL_CLASSES[5] // Default Class 10
@@ -1923,7 +1924,10 @@ fun ActiveClassBanner(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { showDialog = true }
+                        .clickable {
+                            selectedBoardIdForFilter = null
+                            showDialog = true
+                        }
                 ) {
                     Surface(
                         shape = CircleShape,
@@ -1961,7 +1965,10 @@ fun ActiveClassBanner(
                 }
 
                 OutlinedButton(
-                    onClick = { showDialog = true },
+                    onClick = {
+                        selectedBoardIdForFilter = null
+                        showDialog = true
+                    },
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("switch_class_btn")
@@ -2044,121 +2051,252 @@ fun ActiveClassBanner(
             onDismissRequest = { showDialog = false },
             title = {
                 Text(
-                    text = "শ্রেণি ও শাখা নির্বাচন করুন",
+                    text = if (selectedBoardIdForFilter == null) {
+                        if (isBengali) "প্রথমে বোর্ড নির্বাচন করুন" else "Select Board First"
+                    } else {
+                        if (isBengali) "শ্রেণি ও শাখা নির্বাচন করুন" else "Select Class & Stream"
+                    },
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = if (isBengali)
-                            "শ্রেণি পরিবর্তন করলে হোম পেজের বিষয় ও সিলেবাস সরাসরি সেই শ্রেণির অনুযায়ী প্রদর্শিত হবে। একাদশ/দ্বাদশে বিজ্ঞান ও কলা আলাদা করা হয়েছে।"
-                        else
-                            "Changing your class dynamically updates subjects and curriculum. Class 11/12 includes Science, Arts, and Commerce streams.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    AcademicClassProvider.ALL_CLASSES.forEach { academicClass ->
-                        val isSelected = academicClass.id == profile.classId
-                        val isClassHs = academicClass.classNumber in listOf(11, 12)
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (!isClassHs) {
-                                        onSwitchClass(academicClass.id)
-                                        showDialog = false
-                                    }
-                                }
-                        ) {
-                            Column(
+                    if (selectedBoardIdForFilter == null) {
+                        Text(
+                            text = if (isBengali)
+                                "অনুগ্রহ করে প্রথমে আপনার শিক্ষা বোর্ড নির্বাচন করুন, তারপর সংশ্লিষ্ট শ্রেণির তালিকা দেখতে পাবেন।"
+                            else
+                                "Please select your education board first to see the available classes.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        AcademicClassProvider.ALL_BOARDS.forEach { board ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    .clickable {
+                                        selectedBoardIdForFilter = board.id
+                                    }
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    val iconVector = when (board.iconName) {
+                                        "ChildCare" -> Icons.Default.ChildCare
+                                        "MenuBook" -> Icons.Default.MenuBook
+                                        "School" -> Icons.Default.School
+                                        else -> Icons.Default.MenuBook
+                                    }
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = iconVector,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
                                         Text(
-                                            text = academicClass.name,
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            text = if (isBengali) board.fullNameBengali else board.fullNameEnglish,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.8.sp
                                             ),
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
-                                        Text(
-                                            text = if (isClassHs) "${academicClass.board} • সাব-ক্লাস / শাখা বেছে নিন:" else "${academicClass.board} • ${academicClass.targetExam}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                                        shape = RoundedCornerShape(4.dp)
+                                                    )
+                                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                                            ) {
+                                                Text(
+                                                    text = board.shortName,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                            }
+                                            Text(
+                                                text = if (isBengali) board.classRangeDescription else "Classes " + board.classRangeDescription,
+                                                fontSize = 10.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                    if (isSelected && !isClassHs) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
-
-                                if (isClassHs) {
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            IconButton(
+                                onClick = { selectedBoardIdForFilter = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Text(
+                                text = if (isBengali) "বোর্ড: $selectedBoardIdForFilter (পরিবর্তন করুন)" else "Board: $selectedBoardIdForFilter (Change)",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { selectedBoardIdForFilter = null }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        
+                        Text(
+                            text = if (isBengali)
+                                "শ্রেণি পরিবর্তন করলে হোম পেজের বিষয় ও সিলেবাস সরাসরি সেই শ্রেণির অনুযায়ী প্রদর্শিত হবে।"
+                            else
+                                "Changing your class updates subjects dynamically.",
+                            fontSize = 10.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        
+                        val filteredClasses = AcademicClassProvider.ALL_CLASSES.filter { 
+                            it.board.equals(selectedBoardIdForFilter, ignoreCase = true) 
+                        }
+                        filteredClasses.forEach { academicClass ->
+                            val isSelected = academicClass.id == profile.classId
+                            val isClassHs = academicClass.classNumber in listOf(11, 12)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                border = BorderStroke(
+                                    width = if (isSelected) 1.2.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (!isClassHs) {
+                                            onSwitchClass(academicClass.id)
+                                            showDialog = false
+                                        }
+                                    }
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        val subClasses = listOf(
-                                            Triple("science", "বিজ্ঞান", Icons.Default.Science),
-                                            Triple("arts", "কলা", Icons.Default.AutoStories),
-                                            Triple("commerce", "বাণিজ্য", Icons.Default.AccountBalanceWallet)
-                                        )
-                                        subClasses.forEach { (subId, subLabel, subIcon) ->
-                                            val isSubSelected = isSelected && profile.stream == subId
-                                            AssistChip(
-                                                onClick = {
-                                                    onSwitchClass(academicClass.id)
-                                                    onSwitchStream(subId)
-                                                    showDialog = false
-                                                },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        imageVector = subIcon,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                },
-                                                label = {
-                                                    Text(
-                                                        text = subLabel,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal
-                                                    )
-                                                },
-                                                colors = AssistChipDefaults.assistChipColors(
-                                                    containerColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                                    labelColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                                    leadingIconContentColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = academicClass.name,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    fontSize = 12.5.sp
                                                 ),
-                                                border = AssistChipDefaults.assistChipBorder(
-                                                    enabled = true,
-                                                    borderColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                                                ),
-                                                modifier = Modifier.weight(1f)
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                             )
+                                            Text(
+                                                text = if (isClassHs) "${academicClass.board} • সাব-ক্লাস / শাখা বেছে নিন:" else "${academicClass.board} • ${academicClass.targetExam}",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        if (isSelected && !isClassHs) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (isClassHs) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            val subClasses = listOf(
+                                                Triple("science", "বিজ্ঞান", Icons.Default.Science),
+                                                Triple("arts", "কলা", Icons.Default.AutoStories),
+                                                Triple("commerce", "বাণিজ্য", Icons.Default.AccountBalanceWallet)
+                                            )
+                                            subClasses.forEach { (subId, subLabel, subIcon) ->
+                                                val isSubSelected = isSelected && profile.stream == subId
+                                                AssistChip(
+                                                    onClick = {
+                                                        onSwitchClass(academicClass.id)
+                                                        onSwitchStream(subId)
+                                                        showDialog = false
+                                                    },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            imageVector = subIcon,
+                                                            contentDescription = null,
+                                                            modifier = Modifier.size(12.dp)
+                                                        )
+                                                    },
+                                                    label = {
+                                                        Text(
+                                                            text = subLabel,
+                                                            fontSize = 10.sp,
+                                                            fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal
+                                                        )
+                                                    },
+                                                    colors = AssistChipDefaults.assistChipColors(
+                                                        containerColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                                        labelColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                                        leadingIconContentColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    border = AssistChipDefaults.assistChipBorder(
+                                                        enabled = true,
+                                                        borderColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                                                    ),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
                                         }
                                     }
                                 }

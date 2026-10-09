@@ -57,7 +57,7 @@ abstract class DeshExamDatabase : RoomDatabase() {
                         val dao = instance.deshExamDao()
                         val prefs = context.applicationContext.getSharedPreferences("desh_exam_prefs", Context.MODE_PRIVATE)
                         val seededVersion = prefs.getInt("db_seeded_version", 0)
-                        val TARGET_VERSION = 18 // Incrementing this forces a full fresh seed of all asset files
+                        val TARGET_VERSION = 19 // Incrementing this forces a full fresh seed of all asset files
                         
                         if (seededVersion < TARGET_VERSION || dao.getAllSubjectsOnce().isEmpty()) {
                             Log.d(TAG, "Forcing database seed or update (seeded: $seededVersion, target: $TARGET_VERSION)")

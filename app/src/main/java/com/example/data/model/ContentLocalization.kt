@@ -33,7 +33,10 @@ object ContentLocalization {
         }
 
         if (targetCode != null) {
-            return if (isBengali) targetCode.subjectNameBengali else targetCode.subjectNameEnglish
+            val cleanId = subjectId.lowercase()
+            if (targetCode != SubjectCode.PHYSICAL_SCIENCE || cleanId.contains("phy") || cleanId.contains("science")) {
+                return if (isBengali) targetCode.subjectNameBengali else targetCode.subjectNameEnglish
+            }
         }
 
         return if (isBengali) {

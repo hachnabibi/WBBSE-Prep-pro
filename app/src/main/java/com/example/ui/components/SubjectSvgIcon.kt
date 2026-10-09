@@ -76,6 +76,13 @@ object SubjectSvgIconProvider {
             SubjectCode.COSTING_TAXATION -> Icons.Default.RequestQuote
             SubjectCode.BUSINESS_MATH_STATISTICS -> Icons.Default.Calculate
             SubjectCode.VOCATIONAL -> Icons.Default.Build
+            SubjectCode.AMAR_BOI -> Icons.AutoMirrored.Filled.MenuBook
+            SubjectCode.SOHOJ_PATH -> Icons.Default.Book
+            SubjectCode.HEALTH -> Icons.Default.SportsHandball
+            SubjectCode.KUTUM_KATAM -> Icons.Default.Palette
+            SubjectCode.MJARU -> Icons.Default.Star
+            SubjectCode.BHASHAPATH -> Icons.Default.Spellcheck
+            SubjectCode.ENVIRONMENT -> Icons.Default.Eco
         }
     }
 

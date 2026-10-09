@@ -80,7 +80,14 @@ enum class SubjectCode(
     COMMERCIAL_LAW_AUDITING("clpa", "কমার্শিয়াল ল অ্যান্ড প্রিলিমিনারিজ অফ অডিটিং", "Commercial Law and Preliminaries of Auditing", "Gavel", 0xFFD97706),
     COSTING_TAXATION("cstx", "কস্টিং অ্যান্ড ট্যাক্সেশন", "Costing and Taxation", "RequestQuote", 0xFF10B981),
     BUSINESS_MATH_STATISTICS("bmbs", "বিজনেস ম্যাথমেটিকস অ্যান্ড বেসিক স্ট্যাটিস্টিকস", "Business Mathematics and Basic Statistics", "Calculate", 0xFFF59E0B),
-    VOCATIONAL("vocational", "বৃত্তিমূলক বিষয়", "Vocational Subject", "Build", 0xFF6B7280);
+    VOCATIONAL("vocational", "বৃত্তিমূলক বিষয়", "Vocational Subject", "Build", 0xFF6B7280),
+    AMAR_BOI("amar_boi", "আমার বই", "Amar Boi", "AutoStories", 0xFFF59E0B),
+    SOHOJ_PATH("sohoj_path", "সহজ পাঠ", "Sohoj Path", "Book", 0xFF8B5CF6),
+    HEALTH("health", "স্বাস্থ্য ও শারীরশিক্ষা", "Health & Physical Education", "SportsHandball", 0xFF10B981),
+    KUTUM_KATAM("kutum_katam", "কুটুম-কাটাম", "Kutum-Katam", "Palette", 0xFFEC4899),
+    MJARU("mjaru", "মজারু", "Mjaru", "Star", 0xFF06B6D4),
+    BHASHAPATH("bhashapath", "ভাষা পাঠ", "Bhasha Path", "Translate", 0xFFEC4899),
+    ENVIRONMENT("environment", "আমাদের পরিবেশ", "Our Environment", "Eco", 0xFF10B981);
 
     val nameBengali: String get() = subjectNameBengali
     val nameEnglish: String get() = subjectNameEnglish
