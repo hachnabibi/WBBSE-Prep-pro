@@ -400,8 +400,8 @@ fun DeshExamApp(
                             viewModel.selectSubject(subjectId)
                         },
                         onNavigate = { screen -> viewModel.navigateTo(screen) },
-                        onSwitchClass = { classId ->
-                            viewModel.switchActiveExamClass(classId)
+                        onSwitchClass = { classId, stream ->
+                            viewModel.switchActiveExamClass(classId, stream)
                         },
                         onSwitchStream = { stream ->
                             viewModel.switchStream(stream)

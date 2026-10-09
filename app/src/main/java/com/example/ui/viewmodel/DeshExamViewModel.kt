@@ -319,8 +319,29 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     @OptIn(ExperimentalCoroutinesApi::class)
     val subjects: StateFlow<List<SubjectItem>> = studentProfile.flatMapLatest { profile ->
         val cid = if (profile.classId.isNotBlank()) profile.classId else "class_10_wbbse"
-        val stream = if (cid == "class_11_wbchse" || cid == "class_12_wbchse") profile.stream else "all"
-        repository.getSubjectsForClass(cid, stream)
+        if (cid == "class_11_wbchse" || cid == "class_12_wbchse") {
+            val rawStream = profile.stream
+            val (streamPart, semPart) = if (rawStream.contains("_sem")) {
+                val parts = rawStream.split("_")
+                parts[0] to parts[1] // e.g. "science" to "sem1"
+            } else {
+                rawStream to null
+            }
+            repository.getSubjectsForClass(cid, streamPart).map { list ->
+                if (semPart != null) {
+                    list.filter { subject ->
+                        subject.id.lowercase().contains(semPart) || 
+                        subject.stream.lowercase().contains(semPart) ||
+                        subject.textbookName.lowercase().contains(semPart.replace("sem", "সেমিস্টার ")) ||
+                        subject.textbookName.lowercase().contains(semPart.replace("sem", "semester "))
+                    }
+                } else {
+                    list
+                }
+            }
+        } else {
+            repository.getSubjectsForClass(cid, "all")
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val dailyQuests: StateFlow<List<DailyQuest>> = repository.dailyQuests
@@ -1092,16 +1113,49 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private fun getDynamicTargetExam(classId: String, stream: String): String {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val nextYear = currentYear + 1
+        return when (classId) {
+            "class_10_wbbse" -> "WBBSE Madhyamik $nextYear"
+            "class_11_wbchse" -> {
+                val sem = if (stream.contains("sem2")) 2 else 1
+                val year = if (sem == 2) nextYear else currentYear
+                "WBCHSE Class 11 Sem $sem Exam $year"
+            }
+            "class_12_wbchse" -> {
+                val sem = if (stream.contains("sem4")) 4 else 3
+                val year = if (sem == 4) nextYear else currentYear
+                "WBCHSE Class 12 Sem $sem Exam $year"
+            }
+            "class_kg_wbbpe" -> "WBBPE Pre-Primary / KG $currentYear"
+            "class_1_wbbpe" -> "WBBPE Class 1 Exam $currentYear"
+            "class_2_wbbpe" -> "WBBPE Class 2 Exam $currentYear"
+            "class_3_wbbpe" -> "WBBPE Class 3 Exam $currentYear"
+            "class_4_wbbpe" -> "WBBPE Class 4 Exam $currentYear"
+            "class_5_wbbse" -> "WBBSE Class 5 Exam $currentYear"
+            "class_6_wbbse" -> "WBBSE Class 6 Exam $currentYear"
+            "class_7_wbbse" -> "WBBSE Class 7 Exam $currentYear"
+            "class_8_wbbse" -> "WBBSE Class 8 Exam $currentYear"
+            "class_9_wbbse" -> "WBBSE Class 9 Exam $currentYear"
+            else -> {
+                val classObj = com.example.data.model.AcademicClassProvider.ALL_CLASSES.find { it.id == classId }
+                classObj?.targetExam ?: "Exam $currentYear"
+            }
+        }
+    }
+
     fun switchActiveExamClass(classId: String, stream: String = "all") {
         viewModelScope.launch {
             val classObj = AcademicClassProvider.ALL_CLASSES.find { it.id == classId }
             if (classObj != null) {
                 val finalStream = if (classId in listOf("class_11_wbchse", "class_12_wbchse")) stream else "all"
+                val dynamicTargetExam = getDynamicTargetExam(classId, finalStream)
                 repository.updateStudentProfile(
                     name = "",
                     school = "",
                     district = "",
-                    targetExam = classObj.targetExam,
+                    targetExam = dynamicTargetExam,
                     classId = classId,
                     stream = finalStream
                 )
@@ -1123,14 +1177,26 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun switchStream(newStream: String) {
         viewModelScope.launch {
             val current = studentProfile.value
+            val dynamicTargetExam = getDynamicTargetExam(current.classId, newStream)
             repository.updateStudentProfile(
                 name = "",
                 school = "",
                 district = "",
-                targetExam = "",
+                targetExam = dynamicTargetExam,
                 classId = current.classId,
                 stream = newStream
             )
+            val newSubs = repository.getSubjectsForClassOnce(current.classId)
+            if (newSubs.isNotEmpty()) {
+                val firstSub = if (newStream == "all") newSubs.first() else (newSubs.find { com.example.util.StreamHelper.matchesStream(it.stream, newStream) } ?: newSubs.first())
+                _selectedSubjectId.value = firstSub.id
+                _selectedSubjectEntity.value = firstSub
+                val chs = repository.getChaptersOnce(firstSub.id)
+                if (chs.isNotEmpty()) {
+                    _selectedChapterId.value = chs.first().id
+                    _selectedChapterEntity.value = null
+                }
+            }
         }
     }
 

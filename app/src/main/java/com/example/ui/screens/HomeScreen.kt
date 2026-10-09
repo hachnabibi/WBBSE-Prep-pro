@@ -102,7 +102,7 @@ fun HomeScreen(
     onStartAssessment: (AssessmentMode, String?, String?) -> Unit,
     onSelectSubject: (String) -> Unit,
     onNavigate: (AppScreen) -> Unit,
-    onSwitchClass: (String) -> Unit = {},
+    onSwitchClass: (String, String) -> Unit = { _, _ -> },
     onSwitchStream: (String) -> Unit = {},
     onRepairStreak: () -> Unit = {},
     onOpenSubjectDetail: ((SubjectEntity) -> Unit)? = null,
@@ -140,7 +140,7 @@ fun HomeScreen(
                 isBengali = isBengali,
                 onOpenProfile = { onNavigate(AppScreen.PROFILE) },
                 onOpenWallet = { onNavigate(AppScreen.WALLET) },
-                onSwitchClassClick = { onSwitchClass(profile.classId) },
+                onSwitchClassClick = { onSwitchClass(profile.classId, profile.stream) },
                 onOpenBadges = { onNavigate(AppScreen.BADGES) }
             )
         }
@@ -1890,11 +1890,13 @@ fun SubjectProgressCard(
 fun ActiveClassBanner(
     profile: StudentProfile,
     isBengali: Boolean,
-    onSwitchClass: (String) -> Unit,
+    onSwitchClass: (String, String) -> Unit,
     onSwitchStream: (String) -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedBoardIdForFilter by remember { mutableStateOf<String?>(null) }
+    var selectedClassIdFor1112 by remember { mutableStateOf<String?>(null) }
+    var selectedSemesterIdFor1112 by remember { mutableStateOf<String?>(null) }
     val currentClass = AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
         ?: AcademicClassProvider.ALL_CLASSES.find { it.targetExam == profile.targetExam }
         ?: AcademicClassProvider.ALL_CLASSES[5] // Default Class 10
@@ -1926,6 +1928,8 @@ fun ActiveClassBanner(
                         .weight(1f)
                         .clickable {
                             selectedBoardIdForFilter = null
+                            selectedClassIdFor1112 = null
+                            selectedSemesterIdFor1112 = null
                             showDialog = true
                         }
                 ) {
@@ -1957,7 +1961,7 @@ fun ActiveClassBanner(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${currentClass.board} • ${currentClass.targetExam}",
+                            text = profile.targetExam,
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1967,6 +1971,8 @@ fun ActiveClassBanner(
                 OutlinedButton(
                     onClick = {
                         selectedBoardIdForFilter = null
+                        selectedClassIdFor1112 = null
+                        selectedSemesterIdFor1112 = null
                         showDialog = true
                     },
                     shape = RoundedCornerShape(10.dp),
@@ -2015,10 +2021,17 @@ fun ActiveClassBanner(
                         )
                         items(streamChips.size) { idx ->
                             val (sId, sLabel, sIcon) = streamChips[idx]
-                            val isSelected = profile.stream == sId
+                            val isSelected = profile.stream == sId || (profile.stream.contains("_") && profile.stream.split("_")[0] == sId)
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { onSwitchStream(sId) },
+                                onClick = { 
+                                    if (profile.stream.contains("_sem")) {
+                                        val sem = profile.stream.split("_")[1]
+                                        onSwitchStream(sId + "_" + sem)
+                                    } else {
+                                        onSwitchStream(sId)
+                                    }
+                                },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = sIcon,
@@ -2051,10 +2064,19 @@ fun ActiveClassBanner(
             onDismissRequest = { showDialog = false },
             title = {
                 Text(
-                    text = if (selectedBoardIdForFilter == null) {
-                        if (isBengali) "প্রথমে বোর্ড নির্বাচন করুন" else "Select Board First"
-                    } else {
-                        if (isBengali) "শ্রেণি ও শাখা নির্বাচন করুন" else "Select Class & Stream"
+                    text = when {
+                        selectedBoardIdForFilter == null -> {
+                            if (isBengali) "প্রথমে বোর্ড নির্বাচন করুন" else "Select Board First"
+                        }
+                        selectedClassIdFor1112 == null -> {
+                            if (isBengali) "শ্রেণি ও শাখা নির্বাচন করুন" else "Select Class & Stream"
+                        }
+                        selectedSemesterIdFor1112 == null -> {
+                            if (isBengali) "সেমিস্টার নির্বাচন করুন" else "Select Semester"
+                        }
+                        else -> {
+                            if (isBengali) "বিভাগ / স্ট্রিম নির্বাচন করুন" else "Select Stream"
+                        }
                     },
                     fontWeight = FontWeight.Bold
                 )
@@ -2064,240 +2086,406 @@ fun ActiveClassBanner(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (selectedBoardIdForFilter == null) {
-                        Text(
-                            text = if (isBengali)
-                                "অনুগ্রহ করে প্রথমে আপনার শিক্ষা বোর্ড নির্বাচন করুন, তারপর সংশ্লিষ্ট শ্রেণির তালিকা দেখতে পাবেন।"
-                            else
-                                "Please select your education board first to see the available classes.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        AcademicClassProvider.ALL_BOARDS.forEach { board ->
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedBoardIdForFilter = board.id
-                                    }
-                            ) {
-                                Row(
+                    when {
+                        selectedBoardIdForFilter == null -> {
+                            Text(
+                                text = if (isBengali)
+                                    "অনুগ্রহ করে প্রথমে আপনার শিক্ষা বোর্ড নির্বাচন করুন, তারপর সংশ্লিষ্ট শ্রেণির তালিকা দেখতে পাবেন।"
+                                else
+                                    "Please select your education board first to see the available classes.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            AcademicClassProvider.ALL_BOARDS.forEach { board ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val iconVector = when (board.iconName) {
-                                        "ChildCare" -> Icons.Default.ChildCare
-                                        "MenuBook" -> Icons.Default.MenuBook
-                                        "School" -> Icons.Default.School
-                                        else -> Icons.Default.MenuBook
-                                    }
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = iconVector,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
+                                        .clickable {
+                                            selectedBoardIdForFilter = board.id
                                         }
-                                    }
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(
-                                            text = if (isBengali) board.fullNameBengali else board.fullNameEnglish,
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.8.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                        val iconVector = when (board.iconName) {
+                                            "ChildCare" -> Icons.Default.ChildCare
+                                            "MenuBook" -> Icons.Default.MenuBook
+                                            "School" -> Icons.Default.School
+                                            else -> Icons.Default.MenuBook
+                                        }
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            modifier = Modifier.size(28.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                                        shape = RoundedCornerShape(4.dp)
-                                                    )
-                                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                                            ) {
-                                                Text(
-                                                    text = board.shortName,
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = iconVector,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
                                                 )
                                             }
-                                            Text(
-                                                text = if (isBengali) board.classRangeDescription else "Classes " + board.classRangeDescription,
-                                                fontSize = 10.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
                                         }
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isBengali) board.fullNameBengali else board.fullNameEnglish,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.8.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                                            shape = RoundedCornerShape(4.dp)
+                                                        )
+                                                        .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                                                ) {
+                                                    Text(
+                                                        text = board.shortName,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                    )
+                                                }
+                                                Text(
+                                                    text = if (isBengali) board.classRangeDescription else "Classes " + board.classRangeDescription,
+                                                    fontSize = 10.5.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
-                                    Icon(
-                                        imageVector = Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
                                 }
                             }
                         }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            IconButton(
-                                onClick = { selectedBoardIdForFilter = null },
-                                modifier = Modifier.size(28.dp)
+                        selectedClassIdFor1112 == null -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
+                                IconButton(
+                                    onClick = { selectedBoardIdForFilter = null },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (isBengali) "বোর্ড: $selectedBoardIdForFilter (পরিবর্তন করুন)" else "Board: $selectedBoardIdForFilter (Change)",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { selectedBoardIdForFilter = null }
                                 )
                             }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            
                             Text(
-                                text = if (isBengali) "বোর্ড: $selectedBoardIdForFilter (পরিবর্তন করুন)" else "Board: $selectedBoardIdForFilter (Change)",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.clickable { selectedBoardIdForFilter = null }
+                                text = if (isBengali)
+                                    "শ্রেণি পরিবর্তন করলে হোম পেজের বিষয় ও সিলেবাস সরাসরি সেই শ্রেণির অনুযায়ী প্রদর্শিত হবে।"
+                                else
+                                    "Changing your class updates subjects dynamically.",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        
-                        Text(
-                            text = if (isBengali)
-                                "শ্রেণি পরিবর্তন করলে হোম পেজের বিষয় ও সিলেবাস সরাসরি সেই শ্রেণির অনুযায়ী প্রদর্শিত হবে।"
-                            else
-                                "Changing your class updates subjects dynamically.",
-                            fontSize = 10.5.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        
-                        val filteredClasses = AcademicClassProvider.ALL_CLASSES.filter { 
-                            it.board.equals(selectedBoardIdForFilter, ignoreCase = true) 
-                        }
-                        filteredClasses.forEach { academicClass ->
-                            val isSelected = academicClass.id == profile.classId
-                            val isClassHs = academicClass.classNumber in listOf(11, 12)
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                border = BorderStroke(
-                                    width = if (isSelected) 1.2.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (!isClassHs) {
-                                            onSwitchClass(academicClass.id)
-                                            showDialog = false
-                                        }
-                                    }
-                            ) {
-                                Column(
+                            Spacer(modifier = Modifier.height(2.dp))
+                            
+                            val filteredClasses = AcademicClassProvider.ALL_CLASSES.filter { 
+                                it.board.equals(selectedBoardIdForFilter, ignoreCase = true) 
+                            }
+                            filteredClasses.forEach { academicClass ->
+                                val isSelected = academicClass.id == profile.classId
+                                val isClassHs = academicClass.classNumber in listOf(11, 12)
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    border = BorderStroke(
+                                        width = if (isSelected) 1.2.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        .clickable {
+                                            if (isClassHs) {
+                                                selectedClassIdFor1112 = academicClass.id
+                                                selectedSemesterIdFor1112 = null
+                                            } else {
+                                                onSwitchClass(academicClass.id, "all")
+                                                showDialog = false
+                                            }
+                                        }
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = academicClass.name,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        fontSize = 12.5.sp
+                                                    ),
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = if (isClassHs) "ট্যাপ করে সেমিস্টার ও শাখা বাছুন" else academicClass.targetExam,
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            if (isSelected && !isClassHs) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "Selected",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            if (isClassHs) {
+                                                Icon(
+                                                    imageVector = Icons.Default.ChevronRight,
+                                                    contentDescription = "Select",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        selectedSemesterIdFor1112 == null -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { selectedClassIdFor1112 = null },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (isBengali) "শ্রেণি: ${if (selectedClassIdFor1112 == "class_11_wbchse") "একাদশ শ্রেণি" else "দ্বাদশ শ্রেণি"}" else "Class: ${if (selectedClassIdFor1112 == "class_11_wbchse") "Class 11" else "Class 12"}",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { selectedClassIdFor1112 = null }
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            
+                            Text(
+                                text = if (isBengali) "প্রথমে আপনার সিলেবাসের সেমিস্টার নির্বাচন করুন:" else "Choose semester according to syllabus:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            val semesters = if (selectedClassIdFor1112 == "class_11_wbchse") {
+                                listOf(
+                                    "sem1" to Pair("সেমিস্টার ১ (Semester 1)", "প্রথম সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                                    "sem2" to Pair("সেমিস্টার ২ (Semester 2)", "দ্বিতীয় সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                                )
+                            } else {
+                                listOf(
+                                    "sem3" to Pair("সেমিস্টার ৩ (Semester 3)", "তৃতীয় সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                                    "sem4" to Pair("সেমিস্টার ৪ (Semester 4)", "চতুর্থ সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                                )
+                            }
+
+                            semesters.forEach { (semId, semNames) ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedSemesterIdFor1112 = semId
+                                        }
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CalendarToday,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = academicClass.name,
-                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    fontSize = 12.5.sp
-                                                ),
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                text = semNames.first,
+                                                fontSize = 12.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = if (isClassHs) "${academicClass.board} • সাব-ক্লাস / শাখা বেছে নিন:" else "${academicClass.board} • ${academicClass.targetExam}",
+                                                text = semNames.second,
                                                 fontSize = 10.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        if (isSelected && !isClassHs) {
-                                            Icon(
-                                                imageVector = Icons.Default.CheckCircle,
-                                                contentDescription = "Selected",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = "Select",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
+                                }
+                            }
+                        }
+                        else -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { selectedSemesterIdFor1112 = null },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                val semNumStr = selectedSemesterIdFor1112!!.replace("sem", "")
+                                val semBengaliNum = when (semNumStr) {
+                                    "1" -> "১"
+                                    "2" -> "২"
+                                    "3" -> "৩"
+                                    "4" -> "৪"
+                                    else -> semNumStr
+                                }
+                                Text(
+                                    text = if (isBengali) "সেমিস্টার $semBengaliNum (পরিবর্তন করুন)" else "Semester $semNumStr (Change)",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { selectedSemesterIdFor1112 = null }
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            
+                            Text(
+                                text = if (isBengali) "আপনার পড়ার বিভাগ / স্ট্রিম সিলেক্ট করুন:" else "Select your academic stream:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
 
-                                    if (isClassHs) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            val streamsList = listOf(
+                                Triple("science", "বিজ্ঞান শাখা (Science)", Icons.Default.Science),
+                                Triple("arts", "কলা বিভাগ (Arts)", Icons.Default.AutoStories),
+                                Triple("commerce", "বাণিজ্য শাখা (Commerce)", Icons.Default.AccountBalanceWallet)
+                            )
+
+                            streamsList.forEach { (subId, subLabel, subIcon) ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedClassIdFor1112?.let { cid ->
+                                                onSwitchClass(cid, subId + "_" + selectedSemesterIdFor1112)
+                                            }
+                                            showDialog = false
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            modifier = Modifier.size(28.dp)
                                         ) {
-                                            val subClasses = listOf(
-                                                Triple("science", "বিজ্ঞান", Icons.Default.Science),
-                                                Triple("arts", "কলা", Icons.Default.AutoStories),
-                                                Triple("commerce", "বাণিজ্য", Icons.Default.AccountBalanceWallet)
-                                            )
-                                            subClasses.forEach { (subId, subLabel, subIcon) ->
-                                                val isSubSelected = isSelected && profile.stream == subId
-                                                AssistChip(
-                                                    onClick = {
-                                                        onSwitchClass(academicClass.id)
-                                                        onSwitchStream(subId)
-                                                        showDialog = false
-                                                    },
-                                                    leadingIcon = {
-                                                        Icon(
-                                                            imageVector = subIcon,
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(12.dp)
-                                                        )
-                                                    },
-                                                    label = {
-                                                        Text(
-                                                            text = subLabel,
-                                                            fontSize = 10.sp,
-                                                            fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal
-                                                        )
-                                                    },
-                                                    colors = AssistChipDefaults.assistChipColors(
-                                                        containerColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                                        labelColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                                        leadingIconContentColor = if (isSubSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
-                                                    ),
-                                                    border = AssistChipDefaults.assistChipBorder(
-                                                        enabled = true,
-                                                        borderColor = if (isSubSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                                                    ),
-                                                    modifier = Modifier.weight(1f)
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = subIcon,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(14.dp)
                                                 )
                                             }
                                         }
+                                        Text(
+                                            text = if (isBengali) subLabel.split(" (")[0] else subLabel,
+                                            modifier = Modifier.weight(1f),
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = "Go",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                     }
                                 }
                             }

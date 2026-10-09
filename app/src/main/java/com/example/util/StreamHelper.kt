@@ -44,7 +44,8 @@ object StreamHelper {
      */
     fun matchesStream(subjectStream: String?, targetStream: String?): Boolean {
         // If target stream is empty or "all", all subjects are displayed
-        val normalizedTarget = targetStream?.trim()?.lowercase() ?: ""
+        val rawTarget = targetStream?.trim()?.lowercase() ?: ""
+        val normalizedTarget = if (rawTarget.contains("_")) rawTarget.split("_")[0] else rawTarget
         if (normalizedTarget.isBlank() || normalizedTarget == "all") {
             return true
         }

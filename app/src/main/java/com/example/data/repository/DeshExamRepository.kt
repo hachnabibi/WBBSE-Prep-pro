@@ -1163,11 +1163,33 @@ class DeshExamRepository(
                 classLevel = classBengali,
                 stream = entity.stream,
                 profileImageUri = entity.profileImageUri,
-                streamBengali = when (entity.stream) {
-                    "science" -> "বিজ্ঞান শাখা (Science)"
-                    "arts" -> "কলা বিভাগ (Arts)"
-                    "commerce" -> "বাণিজ্য শাখা (Commerce)"
-                    else -> "সকল বিষয়"
+                streamBengali = run {
+                    val rawStr = entity.stream
+                    if (rawStr.contains("_sem")) {
+                        val parts = rawStr.split("_")
+                        val strLabel = when (parts[0]) {
+                            "science" -> "বিজ্ঞান"
+                            "arts" -> "কলা"
+                            "commerce" -> "বাণিজ্য"
+                            else -> "সাধারণ"
+                        }
+                        val semNum = parts[1].replace("sem", "")
+                        val semLabel = when (semNum) {
+                            "1" -> "১"
+                            "2" -> "২"
+                            "3" -> "৩"
+                            "4" -> "৪"
+                            else -> semNum
+                        }
+                        "$strLabel • সেমিস্টার $semLabel"
+                    } else {
+                        when (rawStr) {
+                            "science" -> "বিজ্ঞান শাখা (Science)"
+                            "arts" -> "কলা বিভাগ (Arts)"
+                            "commerce" -> "বাণিজ্য শাখা (Commerce)"
+                            else -> "সকল বিষয়"
+                        }
+                    }
                 },
                 studyGoals = if (entity.studyGoalsJson.isNotBlank()) {
                     entity.studyGoalsJson.split("|").map { it.trim() }.filter { it.isNotEmpty() }

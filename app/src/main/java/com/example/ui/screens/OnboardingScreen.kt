@@ -593,6 +593,28 @@ fun ClassSelectionItem(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STEP 2: BOARD & CLASS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+private fun getOnboardingDynamicTargetExam(classId: String, stream: String): String {
+    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    val nextYear = currentYear + 1
+    return when (classId) {
+        "class_10_wbbse" -> "WBBSE Madhyamik $nextYear"
+        "class_11_wbchse" -> {
+            val sem = if (stream.contains("sem2")) 2 else 1
+            val year = if (sem == 2) nextYear else currentYear
+            "WBCHSE Class 11 Sem $sem Exam $year"
+        }
+        "class_12_wbchse" -> {
+            val sem = if (stream.contains("sem4")) 4 else 3
+            val year = if (sem == 4) nextYear else currentYear
+            "WBCHSE Class 12 Sem $sem Exam $year"
+        }
+        else -> {
+            val cls = com.example.data.model.AcademicClassProvider.ALL_CLASSES.find { it.id == classId }
+            cls?.targetExam ?: "Exam $currentYear"
+        }
+    }
+}
+
 @Composable
 fun Step2Class(
     selectedBoardId: String,
@@ -606,6 +628,11 @@ fun Step2Class(
 ) {
     val allBoards by AcademicClassProvider.ALL_BOARDS_FLOW.collectAsState()
     val allClasses by AcademicClassProvider.ALL_CLASSES_FLOW.collectAsState()
+
+    val initialSemId = remember(selectedStream) {
+        if (selectedStream.contains("_sem")) selectedStream.substringAfter("_") else null
+    }
+    var onboardingSemesterId by remember(selectedClassId) { mutableStateOf(initialSemId) }
 
     Column(
         modifier = Modifier
@@ -755,20 +782,33 @@ fun Step2Class(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         classesForBoard.forEach { cls ->
+                            val isSelected = selectedClassId.equals(cls.id, ignoreCase = true)
                             ClassSelectionItem(
                                 cls = cls,
-                                isSelected = selectedClassId.equals(cls.id, ignoreCase = true),
+                                isSelected = isSelected,
                                 isBengali = isBengali,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    val stream = if (cls.classNumber in 11..12) "science" else "all"
-                                    onClassChange(
-                                        cls.id,
-                                        cls.classNumber,
-                                        "${cls.name} - ${cls.board}",
-                                        cls.targetExam,
-                                        stream
-                                    )
+                                    if (cls.classNumber in 11..12) {
+                                        onClassChange(
+                                            cls.id,
+                                            cls.classNumber,
+                                            if (isBengali) cls.nameBengali else cls.nameEnglish,
+                                            cls.targetExam,
+                                            "" // empty stream initially, forcing them to pick sem & stream
+                                        )
+                                        onboardingSemesterId = null
+                                    } else {
+                                        val stream = "all"
+                                        val exam = getOnboardingDynamicTargetExam(cls.id, stream)
+                                        onClassChange(
+                                            cls.id,
+                                            cls.classNumber,
+                                            if (isBengali) cls.nameBengali else cls.nameEnglish,
+                                            exam,
+                                            stream
+                                        )
+                                    }
                                 }
                             )
                         }
@@ -783,20 +823,33 @@ fun Step2Class(
                             .heightIn(max = 240.dp)
                     ) {
                         items(classesForBoard) { cls ->
+                            val isSelected = selectedClassId.equals(cls.id, ignoreCase = true)
                             ClassSelectionItem(
                                 cls = cls,
-                                isSelected = selectedClassId.equals(cls.id, ignoreCase = true),
+                                isSelected = isSelected,
                                 isBengali = isBengali,
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = {
-                                    val stream = if (cls.classNumber in 11..12) "science" else "all"
-                                    onClassChange(
-                                        cls.id,
-                                        cls.classNumber,
-                                        "${cls.name} - ${cls.board}",
-                                        cls.targetExam,
-                                        stream
-                                    )
+                                    if (cls.classNumber in 11..12) {
+                                        onClassChange(
+                                            cls.id,
+                                            cls.classNumber,
+                                            if (isBengali) cls.nameBengali else cls.nameEnglish,
+                                            cls.targetExam,
+                                            "" // empty stream initially, forcing them to pick sem & stream
+                                        )
+                                        onboardingSemesterId = null
+                                    } else {
+                                        val stream = "all"
+                                        val exam = getOnboardingDynamicTargetExam(cls.id, stream)
+                                        onClassChange(
+                                            cls.id,
+                                            cls.classNumber,
+                                            if (isBengali) cls.nameBengali else cls.nameEnglish,
+                                            exam,
+                                            stream
+                                        )
+                                    }
                                 }
                             )
                         }
@@ -804,7 +857,7 @@ fun Step2Class(
                 }
             }
 
-            // SECTION 3: STREAM SELECTION (When Class 11 or 12 selected)
+            // SECTION 3: SEMESTER SELECTION (When Class 11 or 12 selected)
             AnimatedVisibility(
                 visible = selectedClassNumber in listOf(11, 12) && selectedClassId.isNotBlank(),
                 enter = expandVertically() + fadeIn(),
@@ -812,16 +865,114 @@ fun Step2Class(
             ) {
                 Column(modifier = Modifier.padding(top = 24.dp)) {
                     Text(
-                        text = if (isBengali) "বিভাগ (Stream) নির্বাচন" else "Stream Selection",
+                        text = if (isBengali) "প্রথমে আপনার সিলেবাসের সেমিস্টার নির্বাচন করুন:" else "First, select your syllabus semester:",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
-                    
+
+                    val semesters = if (selectedClassId == "class_11_wbchse") {
+                        listOf(
+                            "sem1" to Pair("সেমিস্টার ১ (Semester 1)", "প্রথম সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                            "sem2" to Pair("সেমিস্টার ২ (Semester 2)", "দ্বিতীয় সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                        )
+                    } else {
+                        listOf(
+                            "sem3" to Pair("সেমিস্টার ৩ (Semester 3)", "তৃতীয় সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                            "sem4" to Pair("সেমিস্টার ৪ (Semester 4)", "চতুর্থ সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        semesters.forEach { (semId, semNames) ->
+                            val isSemSelected = onboardingSemesterId == semId
+                            Surface(
+                                onClick = {
+                                    onboardingSemesterId = semId
+                                    // Reset selected stream when semester changes so they must pick stream again
+                                    val cls = allClasses.find { it.id.equals(selectedClassId, ignoreCase = true) }
+                                    if (cls != null) {
+                                        onClassChange(
+                                            cls.id,
+                                            cls.classNumber,
+                                            if (isBengali) cls.nameBengali else cls.nameEnglish,
+                                            cls.targetExam,
+                                            "" // clear stream selection on semester change
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (isSemSelected) Color(0xFF1E1B4B).copy(alpha = 0.6f) else AppInput.copy(alpha = 0.4f),
+                                border = BorderStroke(
+                                    width = if (isSemSelected) 2.dp else 1.dp,
+                                    color = if (isSemSelected) Color(0xFF818CF8) else Color(0x33FFFFFF)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isSemSelected) Color(0xFF4338CA) else Color(0x1AFFFFFF),
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.CalendarToday,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = semNames.first,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = AppTextPrimary
+                                        )
+                                        Text(
+                                            text = semNames.second,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = AppTextSecondary
+                                        )
+                                    }
+                                    if (isSemSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Selected",
+                                            tint = Color(0xFF818CF8),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // SECTION 4: STREAM SELECTION (When semester is selected)
+            AnimatedVisibility(
+                visible = selectedClassNumber in listOf(11, 12) && selectedClassId.isNotBlank() && onboardingSemesterId != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(top = 24.dp)) {
+                    Text(
+                        text = if (isBengali) "আপনার পড়ার বিভাগ (Stream) নির্বাচন করুন:" else "Select your academic stream:",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = AppTextPrimary,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
                     val streams = listOf(
                         Triple("science", "Science 🧪", "বিজ্ঞান 🧪"),
-                        Triple("arts", "Arts", "কলা"),
-                        Triple("commerce", "Commerce", "বাণিজ্য")
+                        Triple("arts", "Arts 📚", "কলা 📚"),
+                        Triple("commerce", "Commerce 💼", "বাণিজ্য 💼")
                     )
 
                     Row(
@@ -829,7 +980,8 @@ fun Step2Class(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         streams.forEach { (stId, labelEn, labelBn) ->
-                            val isStreamSelected = selectedStream == stId
+                            val currentCombinedStream = "${stId}_$onboardingSemesterId"
+                            val isStreamSelected = selectedStream == currentCombinedStream
                             val streamText = if (isBengali) labelBn else labelEn
 
                             Box(
@@ -841,12 +993,40 @@ fun Step2Class(
                                     onClick = {
                                         val cls = allClasses.find { it.id.equals(selectedClassId, ignoreCase = true) }
                                         if (cls != null) {
+                                            val semNum = onboardingSemesterId?.replace("sem", "") ?: "1"
+                                            val semBengali = when (semNum) {
+                                                "1" -> "১"
+                                                "2" -> "২"
+                                                "3" -> "৩"
+                                                "4" -> "৪"
+                                                else -> semNum
+                                            }
+                                            val strLabelBn = when (stId) {
+                                                "science" -> "বিজ্ঞান"
+                                                "arts" -> "কলা"
+                                                "commerce" -> "বাণিজ্য"
+                                                else -> "সাধারণ"
+                                            }
+                                            val strLabelEn = when (stId) {
+                                                "science" -> "Science"
+                                                "arts" -> "Arts"
+                                                "commerce" -> "Commerce"
+                                                else -> "General"
+                                            }
+                                            val classLevelText = if (isBengali) {
+                                                "${cls.nameBengali} • $strLabelBn • সেমিস্টার $semBengali"
+                                            } else {
+                                                "${cls.nameEnglish} • $strLabelEn • Semester $semNum"
+                                            }
+                                            val combinedStream = "${stId}_$onboardingSemesterId"
+                                            val dynamicExam = getOnboardingDynamicTargetExam(cls.id, combinedStream)
+
                                             onClassChange(
                                                 cls.id,
                                                 cls.classNumber,
-                                                "${cls.name} ($streamText) - ${cls.board}",
-                                                cls.targetExam,
-                                                stId
+                                                classLevelText,
+                                                dynamicExam,
+                                                combinedStream
                                             )
                                         }
                                     },
@@ -885,7 +1065,7 @@ fun Step2Class(
                                             .offset(y = (-8).dp)
                                     ) {
                                         Text(
-                                            text = "Selected",
+                                            text = if (isBengali) "নির্বাচিত" else "Selected",
                                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
                                             color = Color.White,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -910,7 +1090,7 @@ fun Step2Class(
         ) {
             OnboardingPrimaryButton(
                 text = if (isBengali) "পরবর্তী ধাপ →" else "Next Step →",
-                enabled = selectedBoardId.isNotBlank() && selectedClassId.isNotBlank(),
+                enabled = selectedBoardId.isNotBlank() && selectedClassId.isNotBlank() && (selectedClassNumber !in listOf(11, 12) || selectedStream.contains("_sem")),
                 onClick = onNext
             )
         }
