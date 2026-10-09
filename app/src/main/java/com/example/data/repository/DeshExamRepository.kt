@@ -1581,7 +1581,7 @@ class DeshExamRepository(
                     // 0. Check Firestore Test Template first
                     var firestoreTemplateQs: List<QuestionEntity> = emptyList()
                     try {
-                        val fs = com.example.data.firestore.FirestoreService()
+                        val fs = com.example.data.firestore.FirestoreService(context)
                         val testTemplateResult = fs.getTestById(targetId)
                         val testTemplate = testTemplateResult.getOrNull()
                         if (testTemplate != null && testTemplate.questions.isNotEmpty()) {

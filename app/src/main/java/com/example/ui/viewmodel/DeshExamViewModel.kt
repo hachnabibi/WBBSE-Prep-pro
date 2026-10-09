@@ -160,7 +160,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val database = DeshExamDatabase.getDatabase(application, viewModelScope)
     val repository = DeshExamRepository(database.deshExamDao(), application)
     val authRepository = FirebaseAuthRepository(application.applicationContext)
-    val firestoreService = FirestoreService()
+    val firestoreService = FirestoreService(application)
 
     private val _weakTopics = MutableStateFlow<List<com.example.data.local.TopicMistakeCount>>(emptyList())
     val weakTopics: StateFlow<List<com.example.data.local.TopicMistakeCount>> = _weakTopics.asStateFlow()

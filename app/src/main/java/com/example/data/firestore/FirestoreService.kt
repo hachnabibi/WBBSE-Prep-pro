@@ -24,11 +24,30 @@ import kotlinx.coroutines.withContext
  * 4. User Progress, Streaks and Statewide Leaderboard.
  */
 class FirestoreService(
+    private val context: android.content.Context? = null,
     firestoreOverride: FirebaseFirestore? = null
 ) {
     private val firestoreInstance: FirebaseFirestore? by lazy {
         firestoreOverride ?: try {
-            val db = FirebaseFirestore.getInstance()
+            val dbContext = context ?: try {
+                com.google.firebase.FirebaseApp.getInstance().applicationContext
+            } catch (_: Throwable) {
+                null
+            }
+            val db = if (dbContext != null) {
+                val dbIdRes = dbContext.resources.getIdentifier("firestore_database_id", "string", dbContext.packageName)
+                if (dbIdRes != 0) {
+                    val dbId = dbContext.getString(dbIdRes)
+                    Log.i(TAG, "Using Firestore custom database ID: $dbId")
+                    FirebaseFirestore.getInstance(dbId)
+                } else {
+                    Log.w(TAG, "firestore_database_id resource not found, using default instance.")
+                    FirebaseFirestore.getInstance()
+                }
+            } else {
+                Log.w(TAG, "No context or FirebaseApp found, using default instance.")
+                FirebaseFirestore.getInstance()
+            }
             try {
                 val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
                     .setLocalCacheSettings(com.google.firebase.firestore.PersistentCacheSettings.newBuilder().build())
