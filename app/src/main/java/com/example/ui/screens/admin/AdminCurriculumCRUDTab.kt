@@ -72,12 +72,14 @@ fun AdminCurriculumCRUDTab(
     // Selectors State
     var boardValue by remember { mutableStateOf("WBBSE") }
     var classIdValue by remember { mutableStateOf("class_10_wbbse") }
+    var streamValue by remember { mutableStateOf("all") } // "all", "science", "arts", "commerce", "common"
     var subjectIdValue by remember { mutableStateOf("") }
     var selectedChapter by remember { mutableStateOf<ChapterEntity?>(null) }
 
     // Dropdowns visibility
     var boardExpanded by remember { mutableStateOf(false) }
     var classExpanded by remember { mutableStateOf(false) }
+    var streamExpanded by remember { mutableStateOf(false) }
     var subjectExpanded by remember { mutableStateOf(false) }
 
     // Search query for chapters/topics
@@ -143,19 +145,26 @@ fun AdminCurriculumCRUDTab(
         classes.filter { it.board.equals(boardValue, ignoreCase = true) }
     }
 
-    val availableSubjects = remember(classIdValue, dbSubjects) {
-        val base = dbSubjects.filter { it.classId == classIdValue }
+    val availableSubjects = remember(classIdValue, dbSubjects, streamValue) {
+        val base = dbSubjects.filter { 
+            it.classId == classIdValue && (streamValue == "all" || it.stream.equals(streamValue, ignoreCase = true))
+        }
         if (base.isNotEmpty()) base else {
-            listOf(
-                SubjectEntity("${classIdValue}_bengali", "bengali", "বাংলা (Bengali)", "Bengali", 10, 0, 0, 0xFFE11D48L, classIdValue, "common"),
-                SubjectEntity("${classIdValue}_english", "english", "ইংরেজি (English)", "English", 10, 0, 0, 0xFF2563EBL, classIdValue, "common"),
-                SubjectEntity("${classIdValue}_mathematics", "mathematics", "গণিত (Mathematics)", "Mathematics", 10, 0, 0, 0xFF059669L, classIdValue, "common")
+            val allDefaults = listOf(
+                SubjectEntity("${classIdValue}_bengali", "bengali", "বাংলা", "Bengali", 10, 0, 0, 0xFFE11D48L, classIdValue, "common"),
+                SubjectEntity("${classIdValue}_english", "english", "ইংরেজি", "English", 10, 0, 0, 0xFF2563EBL, classIdValue, "common"),
+                SubjectEntity("${classIdValue}_mathematics", "mathematics", "গণিত", "Mathematics", 10, 0, 0, 0xFF059669L, classIdValue, "common"),
+                SubjectEntity("${classIdValue}_physical_science", "physical_science", "ভৌতবিজ্ঞান", "Physical Science", 10, 0, 0, 0xFF8B5CF6L, classIdValue, "science"),
+                SubjectEntity("${classIdValue}_life_science", "life_science", "জীবনবিজ্ঞান", "Life Science", 10, 0, 0, 0xFFF59E0BL, classIdValue, "science"),
+                SubjectEntity("${classIdValue}_history", "history", "ইতিহাস", "History", 10, 0, 0, 0xFFEF4444L, classIdValue, "arts"),
+                SubjectEntity("${classIdValue}_geography", "geography", "ভূগোল", "Geography", 10, 0, 0, 0xFF10B981L, classIdValue, "arts")
             )
+            allDefaults.filter { streamValue == "all" || it.stream.equals(streamValue, ignoreCase = true) }
         }
     }
 
-    // Auto select first subject when class changes
-    LaunchedEffect(classIdValue, availableSubjects) {
+    // Auto select first subject when class or stream changes
+    LaunchedEffect(classIdValue, streamValue, availableSubjects) {
         if (subjectIdValue.isBlank() || availableSubjects.none { it.id == subjectIdValue }) {
             subjectIdValue = availableSubjects.firstOrNull()?.id ?: ""
         }
@@ -190,22 +199,22 @@ fun AdminCurriculumCRUDTab(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // ==========================================
         // 1. PREMIUM FILTER & CONTROL CARD
         // ==========================================
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Header with Badge
                 Row(
@@ -258,7 +267,7 @@ fun AdminCurriculumCRUDTab(
                 // Dropdowns Grid (Board, Class, Subject)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Board Selector
                     Box(modifier = Modifier.weight(1f)) {
@@ -266,15 +275,15 @@ fun AdminCurriculumCRUDTab(
                             value = boardValue,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(if (isBengali) "বোর্ড" else "Board", fontSize = 11.sp) },
+                            label = { Text("বোর্ড", fontSize = 11.sp) },
                             leadingIcon = {
-                                Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryIndigo)
+                                Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(15.dp), tint = PrimaryIndigo)
                             },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { boardExpanded = true },
-                            textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryIndigo,
@@ -284,8 +293,8 @@ fun AdminCurriculumCRUDTab(
                         DropdownMenu(expanded = boardExpanded, onDismissRequest = { boardExpanded = false }) {
                             boards.forEach { b ->
                                 DropdownMenuItem(
-                                    text = { Text("${b.shortName} - ${b.fullNameBengali}", fontSize = 12.5.sp) },
-                                    leadingIcon = { Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(16.dp), tint = PrimaryIndigo) },
+                                    text = { Text("${b.shortName} - ${b.fullNameBengali}", fontSize = 12.0.sp) },
+                                    leadingIcon = { Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(15.dp), tint = PrimaryIndigo) },
                                     onClick = {
                                         boardValue = b.id
                                         boardExpanded = false
@@ -298,22 +307,22 @@ fun AdminCurriculumCRUDTab(
                     }
 
                     // Class Selector
-                    Box(modifier = Modifier.weight(1.2f)) {
+                    Box(modifier = Modifier.weight(1f)) {
                         val currentClassObj = classes.find { it.id == classIdValue }
                         val classLabel = currentClassObj?.name ?: classIdValue
                         OutlinedTextField(
                             value = classLabel,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(if (isBengali) "শ্রেণি (Class)" else "Class", fontSize = 11.sp) },
+                            label = { Text("শ্রেণি", fontSize = 11.sp) },
                             leadingIcon = {
-                                Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(16.dp), tint = CorrectGreen)
+                                Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(15.dp), tint = CorrectGreen)
                             },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(18.dp)) },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { classExpanded = true },
-                            textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = CorrectGreen,
@@ -323,11 +332,54 @@ fun AdminCurriculumCRUDTab(
                         DropdownMenu(expanded = classExpanded, onDismissRequest = { classExpanded = false }) {
                             filteredClasses.forEach { cls ->
                                 DropdownMenuItem(
-                                    text = { Text(cls.name, fontSize = 12.5.sp) },
-                                    leadingIcon = { Icon(Icons.Default.School, null, modifier = Modifier.size(16.dp), tint = CorrectGreen) },
+                                    text = { Text(cls.name, fontSize = 12.0.sp) },
+                                    leadingIcon = { Icon(Icons.Default.School, null, modifier = Modifier.size(15.dp), tint = CorrectGreen) },
                                     onClick = {
                                         classIdValue = cls.id
                                         classExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Sub-class / Stream Selector
+                    Box(modifier = Modifier.weight(1f)) {
+                        val streamsList = listOf(
+                            "all" to "সকল বিভাগ",
+                            "science" to "বিজ্ঞান শাখা",
+                            "arts" to "কলা বিভাগ",
+                            "commerce" to "বাণিজ্য শাখা",
+                            "common" to "সাধারণ বিষয়"
+                        )
+                        val currentStreamLabel = streamsList.find { it.first == streamValue }?.second ?: "সকল বিভাগ"
+                        OutlinedTextField(
+                            value = currentStreamLabel,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("শাখা / বিভাগ", fontSize = 11.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(15.dp), tint = ExamGold)
+                            },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { streamExpanded = true },
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ExamGold,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                            )
+                        )
+                        DropdownMenu(expanded = streamExpanded, onDismissRequest = { streamExpanded = false }) {
+                            streamsList.forEach { (id, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label, fontSize = 12.0.sp) },
+                                    leadingIcon = { Icon(Icons.Default.Category, null, modifier = Modifier.size(15.dp), tint = ExamGold) },
+                                    onClick = {
+                                        streamValue = id
+                                        streamExpanded = false
                                     }
                                 )
                             }
@@ -345,7 +397,7 @@ fun AdminCurriculumCRUDTab(
                         value = subLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text(if (isBengali) "বিষয় (Subject)" else "Subject", fontSize = 11.sp) },
+                        label = { Text(if (isBengali) "বিষয়" else "Subject", fontSize = 11.sp) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
@@ -1003,7 +1055,7 @@ fun AdminCurriculumCRUDTab(
                         value = formChId,
                         onValueChange = { if (!isEdit) formChId = it.lowercase().replace(" ", "_") },
                         readOnly = isEdit,
-                        label = { Text("Chapter ID") },
+                        label = { Text("অধ্যায় আইডি") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
@@ -1018,35 +1070,35 @@ fun AdminCurriculumCRUDTab(
                             }
                         },
                         readOnly = isEdit,
-                        label = { Text("Chapter Number") },
+                        label = { Text("অধ্যায় নম্বর") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChTitle,
                         onValueChange = { formChTitle = it },
-                        label = { Text("Chapter Title (Bengali)") },
+                        label = { Text("অধ্যায়ের শিরোনাম") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChDesc,
                         onValueChange = { formChDesc = it },
-                        label = { Text("Chapter Description") },
+                        label = { Text("অধ্যায়ের বিবরণ") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChTotalTopics,
                         onValueChange = { formChTotalTopics = it },
-                        label = { Text("Total Topics") },
+                        label = { Text("মোট টপিক সংখ্যা") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formChContentData,
                         onValueChange = { formChContentData = it },
-                        label = { Text("Chapter Content/Notes") },
+                        label = { Text("অধ্যায়ের নোট ও পড়াশোনা") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         maxLines = 4
@@ -1054,7 +1106,7 @@ fun AdminCurriculumCRUDTab(
                     OutlinedTextField(
                         value = formChSolutionData,
                         onValueChange = { formChSolutionData = it },
-                        label = { Text("Chapter Solutions") },
+                        label = { Text("অধ্যায়ের সমাধান ও প্রশ্নোত্তর") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         maxLines = 4
@@ -1132,7 +1184,7 @@ fun AdminCurriculumCRUDTab(
                         value = formTpId,
                         onValueChange = { if (!isEdit) formTpId = it.lowercase().replace(" ", "_") },
                         readOnly = isEdit,
-                        label = { Text("Topic ID") },
+                        label = { Text("টপিক আইডি") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
@@ -1146,42 +1198,42 @@ fun AdminCurriculumCRUDTab(
                             }
                         },
                         readOnly = isEdit,
-                        label = { Text("Topic Order Index") },
+                        label = { Text("টপিক ক্রমিক নম্বর") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpTitle,
                         onValueChange = { formTpTitle = it },
-                        label = { Text("Topic Title (Bengali)") },
+                        label = { Text("টপিকের নাম") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpSummary,
                         onValueChange = { formTpSummary = it },
-                        label = { Text("Summary") },
+                        label = { Text("সংক্ষিপ্ত সারসংক্ষেপ") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpKeyPoints,
                         onValueChange = { formTpKeyPoints = it },
-                        label = { Text("Key Points (Separate with '|')") },
+                        label = { Text("গুরুত্বপূর্ণ পয়েন্টসমূহ ('|' দিয়ে আলাদা করুন)") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpFormulae,
                         onValueChange = { formTpFormulae = it },
-                        label = { Text("Formulae / Solutions (Separate with '|')") },
+                        label = { Text("সূত্র বা সমাধানসমূহ ('|' দিয়ে আলাদা করুন)") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
                     OutlinedTextField(
                         value = formTpContentData,
                         onValueChange = { formTpContentData = it },
-                        label = { Text("Topic Content/Notes") },
+                        label = { Text("টপিক নোট / বিস্তারিত তথ্য") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         maxLines = 4
@@ -1189,7 +1241,7 @@ fun AdminCurriculumCRUDTab(
                     OutlinedTextField(
                         value = formTpVideoUrl,
                         onValueChange = { formTpVideoUrl = it },
-                        label = { Text("Video Tutorial URL") },
+                        label = { Text("ভিডিও টিউটোরিয়াল লিংক") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true

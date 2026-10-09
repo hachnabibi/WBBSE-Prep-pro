@@ -167,6 +167,11 @@ fun AdminPanelScreen(
 
     var selectedTab by remember { mutableStateOf(0) }
 
+    val authUser by viewModel.authUserState.collectAsState()
+    var showEditAdminDialog by remember { mutableStateOf(false) }
+    var editAdminNameText by remember { mutableStateOf("") }
+    var isSavingAdminProfile by remember { mutableStateOf(false) }
+
     var customTestTitle by remember { mutableStateOf("গণিত স্পেশাল মক টেস্ট") }
     var customTestId by remember { mutableStateOf("math_test_01") }
     var customTestTimeMins by remember { mutableStateOf("20") }
@@ -590,61 +595,159 @@ fun AdminPanelScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                val drawerItems = listOf(
-                    Triple("☁️ ক্লাউড ব্যাকআপ ও ড্যাশবোর্ড", "☁️ Cloud Backup & Dashboard", Icons.Default.CloudSync),
-                    Triple("✍️ নতুন প্রশ্ন আপলোড", "✍️ Add Question", Icons.Default.PlaylistAdd),
-                    Triple("📋 প্রশ্ন ব্যাংক সিএমেস", "📋 Question CMS", Icons.Default.MenuBook),
-                    Triple("📝 কাস্টম মক টেস্ট মেকার", "📝 Custom Test", Icons.Default.Quiz),
-                    Triple("🎯 লাইভ এক্সাম ক্রিয়েটর", "🎯 Live Exam Creator", Icons.Default.Stars),
-                    Triple("📑 পরীক্ষা টেমপ্লেট CMS", "📑 Test CMS", Icons.Default.Assignment),
-                    Triple("📦 বাল্ক ইমপোর্ট উইজার্ড", "📦 Bulk Import", Icons.Default.FileUpload),
-                    Triple("🏫 কারিকুলাম ক্রিয়েটর (CMS)", "🏫 Curriculum CMS", Icons.Default.AddBusiness),
-                    Triple("📖 অধ্যায় ও টপিক CRUD", "📖 Chapter & Topic CRUD", Icons.Default.FolderSpecial),
-                    Triple("⚡ ফায়ারস্টোর ইনডেক্স ম্যানেজার", "⚡ Firestore Index Manager", Icons.Default.FlashOn),
-                    Triple("🎙️ অডিও পডকাস্ট CMS", "🎙️ Audio Podcast CMS", Icons.Default.Audiotrack)
-                )
-
-                drawerItems.forEachIndexed { index, (bengaliTitle, englishTitle, icon) ->
-                    val isSelected = selectedTab == index
-                    NavigationDrawerItem(
-                        icon = { Icon(icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
-                        label = { 
-                            Text(
-                                text = if (isBengali) bengaliTitle else englishTitle,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 14.sp
-                            ) 
-                        },
-                        selected = isSelected,
-                        onClick = {
-                            selectedTab = index
-                            scope.launch { drawerState.close() }
-                            if (index == 2) viewModel.fetchFirestoreQuestions()
-                            if (index == 5) viewModel.fetchFirestoreTestTemplates()
-                            if (index == 10) viewModel.fetchCustomPodcasts()
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            selectedTextColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Close Drawer Button
-                TextButton(
-                    onClick = onBack,
+                // Scrollable Content Column (Only Menu Items)
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 12.dp)
                 ) {
-                    Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("ফিরে যান (Exit Admin)", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    val drawerItems = listOf(
+                        Triple("📊 ক্লাউড ব্যাকআপ ও ড্যাশবোর্ড", "📊 Cloud Backup & Dashboard", Icons.Default.CloudSync),
+                        Triple("✍️ নতুন প্রশ্ন সংযোজন", "✍️ Add New Question", Icons.Default.PlaylistAdd),
+                        Triple("📋 প্রশ্ন ব্যাংক ম্যানেজমেন্ট", "📋 Question Bank CMS", Icons.Default.MenuBook),
+                        Triple("📝 কাস্টম মক টেস্ট ক্রিয়েটর", "📝 Custom Mock Test Creator", Icons.Default.Quiz),
+                        Triple("🎯 লাইভ এক্সাম ক্রিয়েটর", "🎯 Live Exam Creator", Icons.Default.Stars),
+                        Triple("📑 টেস্ট টেমপ্লেট ম্যানেজমেন্ট", "📑 Test Template CMS", Icons.Default.Assignment),
+                        Triple("📦 বাল্ক ইমপোর্ট (CSV/JSON)", "📦 Bulk Import (CSV/JSON)", Icons.Default.FileUpload),
+                        Triple("🏫 কারিকুলাম ম্যানেজার (CMS)", "🏫 Curriculum Manager (CMS)", Icons.Default.AddBusiness),
+                        Triple("📖 অধ্যায় ও টপিক ম্যানেজমেন্ট", "📖 Chapter & Topic Management", Icons.Default.FolderSpecial),
+                        Triple("⚡ ফায়ারস্টোর ইনডেক্স ম্যানেজার", "⚡ Firestore Index Manager", Icons.Default.FlashOn),
+                        Triple("🎙️ অডিও পডকাস্ট ম্যানেজমেন্ট", "🎙️ Audio Podcast CMS", Icons.Default.Audiotrack)
+                    )
+
+                    drawerItems.forEachIndexed { index, (bengaliTitle, englishTitle, icon) ->
+                        val isSelected = selectedTab == index
+                        NavigationDrawerItem(
+                            icon = { Icon(icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                            label = { 
+                                Text(
+                                    text = if (isBengali) bengaliTitle else englishTitle,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 13.5.sp
+                                ) 
+                            },
+                            selected = isSelected,
+                            onClick = {
+                                selectedTab = index
+                                scope.launch { drawerState.close() }
+                                if (index == 2) viewModel.fetchFirestoreQuestions()
+                                if (index == 5) viewModel.fetchFirestoreTestTemplates()
+                                if (index == 10) viewModel.fetchCustomPodcasts()
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                selectedTextColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                // Fixed Bottom Area (Always visible at the bottom of the sidebar)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(bottom = 16.dp)
+                ) {
+                    // Divider separating menus from admin card
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Admin Info & Edit Profile Card
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Admin Avatar",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = authUser?.displayName ?: (if (isBengali) "অ্যাডমিন ইউজার" else "Admin User"),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = authUser?.email ?: "admin@wbbseprep.com",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    editAdminNameText = authUser?.displayName ?: ""
+                                    showEditAdminDialog = true
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Admin",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Close Drawer Button
+                    TextButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isBengali) "ফিরে যান (Exit Admin)" else "Exit Admin Dashboard",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
@@ -671,6 +774,7 @@ fun AdminPanelScreen(
                                     7 -> "কারিকুলাম সিএমএস"
                                     8 -> "অধ্যায় ও টপিক ম্যানেজার"
                                     9 -> "ফায়ারস্টোর ১-ক্লিক ইনডেক্স মেকার"
+                                    10 -> "অডিও পডকাস্ট সিএমএস"
                                     else -> "অ্যাডমিন মডিউল"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
@@ -7304,6 +7408,83 @@ fun AdminPanelScreen(
             dismissButton = {
                 TextButton(onClick = { deletingTestTemplate = null }) {
                     Text("বাতিল করুন")
+                }
+            }
+        )
+    }
+
+    if (showEditAdminDialog) {
+        val fbScope = rememberCoroutineScope()
+        AlertDialog(
+            onDismissRequest = { if (!isSavingAdminProfile) showEditAdminDialog = false },
+            title = {
+                Text(
+                    text = if (isBengali) "🛡️ অ্যাডমিন প্রোফাইল এডিট করুন" else "🛡️ Edit Admin Profile",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = if (isBengali) "আপনার নতুন ডিসপ্লে নাম লিখুন:" else "Enter your new display name:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = editAdminNameText,
+                        onValueChange = { editAdminNameText = it },
+                        placeholder = { Text("e.g. Super Admin") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    if (isSavingAdminProfile) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Text(
+                                text = if (isBengali) "সংরক্ষণ করা হচ্ছে..." else "Saving to Firebase...",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (editAdminNameText.isNotBlank()) {
+                            isSavingAdminProfile = true
+                            fbScope.launch {
+                                val result = viewModel.authRepository.updateDisplayName(editAdminNameText)
+                                isSavingAdminProfile = false
+                                if (result is com.example.data.auth.AuthResult.Success) {
+                                    showEditAdminDialog = false
+                                    actionSuccess = true
+                                    actionMessage = if (isBengali) "অ্যাডমিন ডিসপ্লে নাম সফলভাবে পরিবর্তিত হয়েছে!" else "Admin display name updated successfully!"
+                                } else {
+                                    actionSuccess = false
+                                    actionMessage = if (isBengali) "পরিবর্তন করতে ব্যর্থ হয়েছে!" else "Failed to update profile name."
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isSavingAdminProfile && editAdminNameText.isNotBlank(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(if (isBengali) "সংরক্ষণ" else "Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEditAdminDialog = false },
+                    enabled = !isSavingAdminProfile
+                ) {
+                    Text(if (isBengali) "বাতিল" else "Cancel")
                 }
             }
         )

@@ -905,6 +905,9 @@ fun ChapterRoadmapCard(
                                     topic.id,
                                     "${topic.getTitle(true)} - অনুশীলন"
                                 )
+                            },
+                            onTopicClick = {
+                                viewModel?.openTopicStudy(topic.id)
                             }
                         )
                     }
@@ -942,7 +945,8 @@ fun RoadmapTopicItemRow(
     onConceptClick: () -> Unit,
     onSolutionClick: () -> Unit,
     onVideoClick: () -> Unit,
-    onStartPractice: () -> Unit
+    onStartPractice: () -> Unit,
+    onTopicClick: () -> Unit = {}
 ) {
     val isMastered = topic.masteryPercentage >= 80
     val isUnlocked = topic.isUnlocked
@@ -1041,6 +1045,13 @@ fun RoadmapTopicItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("roadmap_topic_row_${topic.id}")
+            .then(
+                if (isUnlocked) {
+                    Modifier.clickable { onTopicClick() }
+                } else {
+                    Modifier
+                }
+            )
     ) {
 
         Column(
