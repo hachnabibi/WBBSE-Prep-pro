@@ -195,7 +195,9 @@ data class QuestionItem(
     val correctAnswerText: String,
     val explanation: String,
     val marks: Int = 1,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val podcastUrl: String = "",
+    val podcastTitle: String = ""
 )
 
 data class UserAnswer(

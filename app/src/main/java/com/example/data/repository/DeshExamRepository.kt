@@ -2272,7 +2272,9 @@ class DeshExamRepository(
                 correctAnswerText = correctAnswerText,
                 explanation = explanation,
                 marks = marks,
-                tags = tagsJson.split("|")
+                tags = tagsJson.split("|"),
+                podcastUrl = podcastUrl,
+                podcastTitle = podcastTitle
             )
         }
 
@@ -2299,7 +2301,9 @@ class DeshExamRepository(
             correctAnswerText = originalCorrectText,
             explanation = explanation,
             marks = marks,
-            tags = tagsJson.split("|")
+            tags = tagsJson.split("|"),
+            podcastUrl = podcastUrl,
+            podcastTitle = podcastTitle
         )
     }
 
@@ -2375,7 +2379,11 @@ class DeshExamRepository(
             correctAnswerText = fQuestion.correctAnswerText,
             explanation = fQuestion.explanation,
             marks = fQuestion.marks,
-            tagsJson = fQuestion.tags.joinToString("|")
+            tagsJson = fQuestion.tags.joinToString("|"),
+            pyqYear = if (fQuestion.tags.isNotEmpty()) fQuestion.tags.last() else "",
+            classId = fQuestion.classId,
+            podcastUrl = fQuestion.podcastUrl,
+            podcastTitle = fQuestion.podcastTitle
         )
         dao.insertQuestions(listOf(entity))
     }

@@ -222,7 +222,11 @@ fun DeshExamApp(
         val coroutineScope = rememberCoroutineScope()
 
         val showTopHeader = !isFullScreenMode && currentScreen == AppScreen.HOME
-        val showBottomBar = !isFullScreenMode && currentScreen != AppScreen.EDIT_PROFILE && currentScreen != AppScreen.ADMIN_PANEL && currentScreen != AppScreen.MEMBERSHIP
+        val showBottomBar = !isFullScreenMode &&
+                currentScreen != AppScreen.EDIT_PROFILE &&
+                currentScreen != AppScreen.ADMIN_PANEL &&
+                currentScreen != AppScreen.MEMBERSHIP &&
+                currentScreen != AppScreen.AUDIO_PODCASTS
 
         var isHeaderVisible by remember { mutableStateOf(true) }
 
@@ -558,6 +562,7 @@ fun DeshExamApp(
                         classId = profile.classId,
                         unlockedPodcasts = profile.unlockedPodcasts,
                         onUnlockPodcast = { title -> viewModel.unlockAudioPodcast(title) },
+                        viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

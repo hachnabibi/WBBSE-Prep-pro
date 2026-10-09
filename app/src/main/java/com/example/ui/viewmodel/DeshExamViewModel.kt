@@ -486,6 +486,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     private val _firestoreTestTemplates = MutableStateFlow<List<FirestoreTestTemplate>>(emptyList())
     val firestoreTestTemplates: StateFlow<List<FirestoreTestTemplate>> = _firestoreTestTemplates.asStateFlow()
 
+    private val _customPodcasts = MutableStateFlow<List<com.example.data.firestore.FirestorePodcast>>(emptyList())
+    val customPodcasts: StateFlow<List<com.example.data.firestore.FirestorePodcast>> = _customPodcasts.asStateFlow()
+
     private val _autoSyncStatus = MutableStateFlow(AutoSyncStatus())
     val autoSyncStatus: StateFlow<AutoSyncStatus> = _autoSyncStatus.asStateFlow()
 
@@ -2103,7 +2106,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         correctAnswerText = q.correctAnswerText.ifBlank { optionsList.getOrNull(q.correctOptionIndex) ?: "" },
                         explanation = q.explanation,
                         marks = if (q.marks > 0) q.marks else 1,
-                        tags = tagsList
+                        tags = tagsList,
+                        podcastUrl = q.podcastUrl,
+                        podcastTitle = q.podcastTitle
                     )
                 }
 
@@ -2275,7 +2280,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         correctAnswerText = q.correctAnswerText.ifBlank { optionsList.getOrNull(q.correctOptionIndex) ?: "" },
                         explanation = q.explanation,
                         marks = if (q.marks > 0) q.marks else 1,
-                        tags = tagsList
+                        tags = tagsList,
+                        podcastUrl = q.podcastUrl,
+                        podcastTitle = q.podcastTitle
                     )
                 }
 
@@ -2340,6 +2347,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         marks: Int,
         pyqYear: String,
         customQuestionId: String? = null,
+        podcastUrl: String = "",
+        podcastTitle: String = "",
         onComplete: (Boolean, String) -> Unit
     ) {
         viewModelScope.launch {
@@ -2357,7 +2366,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 explanation = explanationText,
                 marks = marks,
                 tags = listOf(topicId, pyqYear).filter { it.isNotBlank() },
-                classId = classId
+                classId = classId,
+                podcastUrl = podcastUrl,
+                podcastTitle = podcastTitle
             )
             val updated = _firestoreQuestions.value + q
             _firestoreQuestions.value = updated
@@ -2387,6 +2398,160 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 val updated = _firestoreQuestions.value.filter { it.id != questionId }
                 _firestoreQuestions.value = updated
                 onComplete(true, "প্রশ্ন মোছা হয়েছে")
+            }
+        }
+    }
+
+    fun fetchCustomPodcasts(className: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = firestoreService.getCustomPodcasts(className)
+                result.onSuccess { list ->
+                    withContext(Dispatchers.Main) {
+                        _customPodcasts.value = list
+                    }
+                }.onFailure { e ->
+                    Log.e("DeshExamViewModel", "Error fetching custom podcasts: ${e.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error in fetchCustomPodcasts: ${e.message}")
+            }
+        }
+    }
+
+    fun addCustomPodcast(
+        title: String,
+        subject: String,
+        duration: String,
+        narrator: String,
+        className: String,
+        audioUrl: String,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val p = com.example.data.firestore.FirestorePodcast(
+                    id = "podcast_${System.currentTimeMillis()}",
+                    title = title,
+                    subject = subject,
+                    duration = duration,
+                    narrator = narrator,
+                    className = className,
+                    audioUrl = audioUrl,
+                    createdAt = System.currentTimeMillis()
+                )
+                val result = firestoreService.savePodcast(p)
+                withContext(Dispatchers.Main) {
+                    if (result.isSuccess) {
+                        _customPodcasts.value = _customPodcasts.value + p
+                        onComplete(true, "পডকাস্ট সফলভাবে যুক্ত করা হয়েছে!")
+                    } else {
+                        onComplete(false, "❌ পডকাস্ট সংরক্ষণে ত্রুটি: ${result.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "❌ ভুল হয়েছে: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun importBulkCustomPodcasts(
+        rawInput: String,
+        onComplete: (Boolean, String, Int) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val list = mutableListOf<com.example.data.firestore.FirestorePodcast>()
+                val trimmed = rawInput.trim()
+                if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                    val array = if (trimmed.startsWith("[")) {
+                        org.json.JSONArray(trimmed)
+                    } else {
+                        val obj = org.json.JSONObject(trimmed)
+                        obj.optJSONArray("podcasts") ?: org.json.JSONArray()
+                    }
+                    val timestamp = System.currentTimeMillis()
+                    for (i in 0 until array.length()) {
+                        val item = array.optJSONObject(i) ?: continue
+                        val title = item.optString("title").trim()
+                        val subject = item.optString("subject").trim()
+                        val duration = item.optString("duration", "৫ মিনিট").trim()
+                        val narrator = item.optString("narrator", "সহায়ক শিক্ষক").trim()
+                        val className = item.optString("className", "Class 10").trim()
+                        val audioUrl = item.optString("audioUrl").trim()
+                        
+                        if (title.isNotBlank() && subject.isNotBlank() && audioUrl.isNotBlank()) {
+                            list.add(
+                                com.example.data.firestore.FirestorePodcast(
+                                    id = "podcast_${timestamp}_$i",
+                                    title = title,
+                                    subject = subject,
+                                    duration = duration,
+                                    narrator = narrator,
+                                    className = className,
+                                    audioUrl = audioUrl,
+                                    createdAt = timestamp
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    val lines = trimmed.split("\n")
+                    val timestamp = System.currentTimeMillis()
+                    var index = 0
+                    for (line in lines) {
+                        val l = line.trim()
+                        if (l.isBlank()) continue
+                        if (l.contains("title", ignoreCase = true) || l.contains("audioUrl", ignoreCase = true)) continue
+                        
+                        val parts = if (l.contains("|")) l.split("|") else l.split(",")
+                        val title = parts.getOrNull(0)?.trim() ?: ""
+                        val subject = parts.getOrNull(1)?.trim() ?: ""
+                        val duration = parts.getOrNull(2)?.trim()?.ifBlank { "৫ মিনিট" } ?: "৫ মিনিট"
+                        val narrator = parts.getOrNull(3)?.trim()?.ifBlank { "সহায়ক শিক্ষক" } ?: "সহায়ক শিক্ষক"
+                        val className = parts.getOrNull(4)?.trim()?.ifBlank { "Class 10" } ?: "Class 10"
+                        val audioUrl = parts.getOrNull(5)?.trim() ?: ""
+                        
+                        if (title.isNotBlank() && subject.isNotBlank() && audioUrl.isNotBlank()) {
+                            list.add(
+                                com.example.data.firestore.FirestorePodcast(
+                                    id = "podcast_${timestamp}_$index",
+                                    title = title,
+                                    subject = subject,
+                                    duration = duration,
+                                    narrator = narrator,
+                                    className = className,
+                                    audioUrl = audioUrl,
+                                    createdAt = timestamp
+                                )
+                            )
+                            index++
+                        }
+                    }
+                }
+
+                if (list.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "⚠️ কোনো বৈধ পডকাস্টের তথ্য পাওয়া যায়নি! নমুনা ফরম্যাট চেক করুন।", 0)
+                    }
+                    return@launch
+                }
+
+                val result = firestoreService.savePodcastsBatch(list)
+                withContext(Dispatchers.Main) {
+                    if (result.isSuccess) {
+                        _customPodcasts.value = _customPodcasts.value + list
+                        onComplete(true, "✅ সফলভাবে ${list.size} টি কাস্টম পডকাস্ট ব্যাচ আপলোড করা হয়েছে!", list.size)
+                    } else {
+                        onComplete(false, "❌ ব্যাচ সংরক্ষণে ত্রুটি: ${result.exceptionOrNull()?.localizedMessage}", 0)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "❌ আপলোডের সময় ভুল হয়েছে: ${e.localizedMessage}", 0)
+                }
             }
         }
     }
@@ -2680,6 +2845,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         val qChapterId = obj.optString("chapterId", chapterId).ifBlank { chapterId }
                         val qTopicId = obj.optString("topicId", topicId).ifBlank { topicId }
                         val qId = obj.optString("id", "q_${qSubjectId}_${timestamp}_$i").trim()
+                        val podcastUrl = obj.optString("podcastUrl", obj.optString("podcast_url", "")).trim()
+                        val podcastTitle = obj.optString("podcastTitle", obj.optString("podcast_title", "")).trim()
 
                         val optionsJson = org.json.JSONArray(optionsList).toString()
                         val correctAnsText = optionsList.getOrNull(correctIdx) ?: ""
@@ -2699,7 +2866,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                             explanation = explanation,
                             marks = marks,
                             tagsJson = if (qPyqYear.isNotBlank()) "PYQ_$qPyqYear" else "BULK_IMPORT",
-                            pyqYear = qPyqYear
+                            pyqYear = qPyqYear,
+                            podcastUrl = podcastUrl,
+                            podcastTitle = podcastTitle
                         )
                         newQuestions.add(entity)
 
@@ -2717,7 +2886,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                             correctAnswerText = correctAnsText,
                             explanation = explanation,
                             marks = marks,
-                            tags = if (qPyqYear.isNotBlank()) listOf("PYQ", qPyqYear) else listOf("BULK_IMPORT")
+                            tags = if (qPyqYear.isNotBlank()) listOf("PYQ", qPyqYear) else listOf("BULK_IMPORT"),
+                            podcastUrl = podcastUrl,
+                            podcastTitle = podcastTitle
                         )
                         firestoreQuestions.add(fQ)
                     }

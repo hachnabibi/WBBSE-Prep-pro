@@ -374,7 +374,9 @@ abstract class DeshExamDatabase : RoomDatabase() {
                                                 explanation = q.explanation ?: "",
                                                 tagsJson = q.tagsJson ?: "",
                                                 pyqYear = q.pyqYear ?: "",
-                                                classId = q.classId ?: inferredClassId
+                                                classId = q.classId ?: inferredClassId,
+                                                podcastUrl = q.podcastUrl ?: "",
+                                                podcastTitle = q.podcastTitle ?: ""
                                             )
                                         }
                                         dao.insertQuestions(safeQuestions)
@@ -399,7 +401,9 @@ abstract class DeshExamDatabase : RoomDatabase() {
                                         explanation = q.explanation ?: "",
                                         tagsJson = q.tagsJson ?: "",
                                         pyqYear = q.pyqYear ?: "",
-                                        classId = q.classId ?: inferredClassId
+                                        classId = q.classId ?: inferredClassId,
+                                                podcastUrl = q.podcastUrl ?: "",
+                                                podcastTitle = q.podcastTitle ?: ""
                                     )
                                 }
                                 dao.insertQuestions(safeQuestions)

@@ -109,7 +109,9 @@ data class QuestionEntity(
     val marks: Int,
     val tagsJson: String,
     val pyqYear: String = "",
-    val classId: String = "class_10_wbbse"
+    val classId: String = "class_10_wbbse",
+    val podcastUrl: String = "",
+    val podcastTitle: String = ""
 )
 
 @Entity(tableName = "question_attempts")

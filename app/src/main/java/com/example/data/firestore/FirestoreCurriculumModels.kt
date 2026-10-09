@@ -281,7 +281,9 @@ data class FirestoreQuestion(
     val correctAnswerText: String = "",
     val explanation: String = "",
     val marks: Int = 1,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val podcastUrl: String = "",
+    val podcastTitle: String = ""
 )
 
 /**
@@ -430,5 +432,19 @@ data class FirestoreSubjectProgress(
     val totalChapters: Int = 0,
     val masteryPercentage: Int = 0,
     val updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Independent Podcast added via Admin Panel in Firestore.
+ */
+data class FirestorePodcast(
+    val id: String = "",
+    val title: String = "",
+    val subject: String = "",
+    val duration: String = "",
+    val narrator: String = "",
+    val className: String = "Class 10",
+    val audioUrl: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 

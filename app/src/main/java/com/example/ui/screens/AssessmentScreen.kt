@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import com.example.util.AudioPodcastManager
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 import androidx.compose.animation.*
@@ -64,6 +66,7 @@ fun AssessmentScreen(
     
     // হ্যাপটিক ফিডব্যাকের জন্য
     val haptic = LocalHapticFeedback.current
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     if (session.mode == AssessmentMode.MOCK_TEST) {
         MockTestScreen(
@@ -447,15 +450,78 @@ fun AssessmentScreen(
                             )
                             .padding(horizontal = 20.dp, vertical = 22.dp)
                     ) {
-                        Text(
-                            text = currentQ.question,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                lineHeight = 30.sp,
-                                fontSize = 19.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Column {
+                            Text(
+                                text = currentQ.question,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 30.sp,
+                                    fontSize = 19.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            if (!currentQ.podcastUrl.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                val isPlaying = AudioPodcastManager.isPlaying && AudioPodcastManager.currentlyPlaying?.audioUrl == currentQ.podcastUrl
+                                Button(
+                                    onClick = {
+                                        if (isPlaying) {
+                                            AudioPodcastManager.onPlayPauseAction?.invoke()
+                                        } else {
+                                            // Play this specific question's podcast!
+                                            val podcast = AudioPodcast(
+                                                title = if (!currentQ.podcastTitle.isNullOrBlank()) currentQ.podcastTitle else currentQ.question,
+                                                subject = if (isBengali) "প্রশ্ন ব্যাখ্যা" else "Question explanation",
+                                                duration = "৩ মিনিট",
+                                                narrator = if (isBengali) "সহায়ক শিক্ষক" else "Assistant Teacher",
+                                                className = "Class 10",
+                                                audioUrl = currentQ.podcastUrl
+                                            )
+                                            // Play it via the service
+                                            val intent = Intent(context, com.example.notification.AudioPodcastService::class.java).apply {
+                                                action = com.example.notification.AudioPodcastService.ACTION_PLAY
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_TITLE, podcast.title)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_SUBJECT, podcast.subject)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_NARRATOR, podcast.narrator)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_DURATION, podcast.duration)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_CLASS, podcast.className)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_URL, podcast.audioUrl)
+                                            }
+                                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                                context.startForegroundService(intent)
+                                            } else {
+                                                context.startService(intent)
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isPlaying) CorrectGreen else ExamGold,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.VolumeUp,
+                                            contentDescription = "Play Explanation Podcast"
+                                        )
+                                        Text(
+                                            text = if (isPlaying) {
+                                                if (isBengali) "চলছে... বন্ধ করুন" else "Playing... Pause"
+                                            } else {
+                                                if (isBengali) "পডকাস্ট সমাধান শুনুন" else "Listen to Audio Podcast"
+                                            },
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 

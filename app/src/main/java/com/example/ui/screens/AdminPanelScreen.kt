@@ -513,6 +513,8 @@ fun AdminPanelScreen(
     var explanationText by remember { mutableStateOf("") }
     var pyqYear by remember { mutableStateOf("") }
     var difficulty by remember { mutableStateOf("EASY") }
+    var podcastUrlText by remember { mutableStateOf("") }
+    var podcastTitleText by remember { mutableStateOf("") }
 
     val defaultGeneratedId by remember(selectedSubject, selectedChapter, pyqYear) {
         derivedStateOf {
@@ -593,14 +595,15 @@ fun AdminPanelScreen(
                 val drawerItems = listOf(
                     Triple("☁️ ক্লাউড ব্যাকআপ ও ড্যাশবোর্ড", "☁️ Cloud Backup & Dashboard", Icons.Default.CloudSync),
                     Triple("✍️ নতুন প্রশ্ন আপলোড", "✍️ Add Question", Icons.Default.PlaylistAdd),
-                    Triple("📋 প্রশ্ন ব্যাংক সিএমএস", "📋 Question CMS", Icons.Default.MenuBook),
+                    Triple("📋 প্রশ্ন ব্যাংক সিএমেস", "📋 Question CMS", Icons.Default.MenuBook),
                     Triple("📝 কাস্টম মক টেস্ট মেকার", "📝 Custom Test", Icons.Default.Quiz),
                     Triple("🎯 লাইভ এক্সাম ক্রিয়েটর", "🎯 Live Exam Creator", Icons.Default.Stars),
                     Triple("📑 পরীক্ষা টেমপ্লেট CMS", "📑 Test CMS", Icons.Default.Assignment),
                     Triple("📦 বাল্ক ইমপোর্ট উইজার্ড", "📦 Bulk Import", Icons.Default.FileUpload),
                     Triple("🏫 কারিকুলাম ক্রিয়েটর (CMS)", "🏫 Curriculum CMS", Icons.Default.AddBusiness),
                     Triple("📖 অধ্যায় ও টপিক CRUD", "📖 Chapter & Topic CRUD", Icons.Default.FolderSpecial),
-                    Triple("⚡ ফায়ারস্টোর ইনডেক্স ম্যানেজার", "⚡ Firestore Index Manager", Icons.Default.FlashOn)
+                    Triple("⚡ ফায়ারস্টোর ইনডেক্স ম্যানেজার", "⚡ Firestore Index Manager", Icons.Default.FlashOn),
+                    Triple("🎙️ অডিও পডকাস্ট CMS", "🎙️ Audio Podcast CMS", Icons.Default.Audiotrack)
                 )
 
                 drawerItems.forEachIndexed { index, (bengaliTitle, englishTitle, icon) ->
@@ -620,6 +623,7 @@ fun AdminPanelScreen(
                             scope.launch { drawerState.close() }
                             if (index == 2) viewModel.fetchFirestoreQuestions()
                             if (index == 5) viewModel.fetchFirestoreTestTemplates()
+                            if (index == 10) viewModel.fetchCustomPodcasts()
                         },
                         colors = NavigationDrawerItemDefaults.colors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
@@ -1939,6 +1943,30 @@ fun AdminPanelScreen(
                 }
 
                 item {
+                    OutlinedTextField(
+                        value = podcastUrlText,
+                        onValueChange = { podcastUrlText = it },
+                        label = { Text("১২. পডকাস্ট অডিও লিংক / URL (ঐচ্ছিক)") },
+                        placeholder = { Text("যেমন: https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        leadingIcon = { Icon(Icons.Default.Audiotrack, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = podcastTitleText,
+                        onValueChange = { podcastTitleText = it },
+                        label = { Text("১৩. পডকাস্ট শিরোনাম (ঐচ্ছিক)") },
+                        placeholder = { Text("যেমন: চলতড়িৎ ও ওহমের সূত্রের গাণিতিক শর্টকাট") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    )
+                }
+
+                item {
                     Spacer(modifier = Modifier.height(6.dp))
                     Button(
                         onClick = {
@@ -1957,7 +1985,9 @@ fun AdminPanelScreen(
                                 difficulty = difficulty,
                                 marks = 1,
                                 pyqYear = pyqYear,
-                                customQuestionId = customQuestionId.ifBlank { null }
+                                customQuestionId = customQuestionId.ifBlank { null },
+                                podcastUrl = podcastUrlText.trim(),
+                                podcastTitle = podcastTitleText.trim()
                             ) { success, msg ->
                                 actionSuccess = success
                                 actionMessage = msg
@@ -1969,6 +1999,8 @@ fun AdminPanelScreen(
                                     opt3 = ""
                                     opt4 = ""
                                     explanationText = ""
+                                    podcastUrlText = ""
+                                    podcastTitleText = ""
                                 }
                             }
                         },
@@ -6063,6 +6095,362 @@ fun AdminPanelScreen(
                 isBengali = isBengali,
                 modifier = Modifier.weight(1f)
             )
+        } else if (selectedTab == 10) {
+            val customPds by viewModel.customPodcasts.collectAsState()
+            var pTitle by remember { mutableStateOf("") }
+            var pSubject by remember { mutableStateOf("") }
+            var pDuration by remember { mutableStateOf("") }
+            var pNarrator by remember { mutableStateOf("") }
+            var pClassName by remember { mutableStateOf("Class 10") }
+            var pAudioUrl by remember { mutableStateOf("") }
+            var classDropdownExp by remember { mutableStateOf(false) }
+
+            var pBulkInput by remember { mutableStateOf("") }
+            var bulkUploadStatusMessage by remember { mutableStateOf<String?>(null) }
+            var bulkUploadSuccess by remember { mutableStateOf(true) }
+
+            val pBulkSample = """শিরোনাম | বিষয় | সময়কাল | বক্তা | শ্রেণি | অডিও ফাইল লিংক
+বঙ্গভঙ্গ আন্দোলন ও স্বদেশী যুগ | ইতিহাস | ১২ মিনিট | ড. সুদীপ বোস | Class 10 | https://example.com/audio1.mp3
+উদ্ভিদের সংবেদনশীলতা | বিজ্ঞান | ১৫ মিনিট | শ্রীমতী সেন | Class 9 | https://example.com/audio2.mp3"""
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    Text(
+                        text = "🎙️ স্বাধীন অডিও পডকাস্ট তৈরি করুন",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "এখানে যুক্ত করা অডিও পডকাস্ট সরাসরি শিক্ষার্থীদের পডকাস্ট স্ক্রিনে প্রদর্শিত হবে (কোনো নির্দিষ্ট প্রশ্নের সাথে যুক্ত নয়)।",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = pTitle,
+                                onValueChange = { pTitle = it },
+                                label = { Text("১. পডকাস্টের শিরোনাম (Podcast Title)") },
+                                placeholder = { Text("যেমন: বঙ্গভঙ্গ আন্দোলন ও স্বদেশী যুগ") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            OutlinedTextField(
+                                value = pSubject,
+                                onValueChange = { pSubject = it },
+                                label = { Text("২. বিষয় (Subject)") },
+                                placeholder = { Text("যেমন: ইতিহাস") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = pDuration,
+                                    onValueChange = { pDuration = it },
+                                    label = { Text("৩. সময়কাল (Duration)") },
+                                    placeholder = { Text("যেমন: ১২ মিনিট") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                OutlinedTextField(
+                                    value = pNarrator,
+                                    onValueChange = { pNarrator = it },
+                                    label = { Text("৪. বক্তা / শিক্ষকের নাম") },
+                                    placeholder = { Text("যেমন: ড. সুদীপ বোস") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+
+                            // Class Selector Dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = pClassName,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("৫. শ্রেণি (Class Selection)") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classDropdownExp) },
+                                    modifier = Modifier.fillMaxWidth().clickable { classDropdownExp = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    enabled = true
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable { classDropdownExp = true }
+                                )
+                                DropdownMenu(
+                                    expanded = classDropdownExp,
+                                    onDismissRequest = { classDropdownExp = false }
+                                ) {
+                                    listOf("Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12").forEach { cls ->
+                                        DropdownMenuItem(
+                                            text = { Text(cls) },
+                                            onClick = {
+                                                pClassName = cls
+                                                classDropdownExp = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = pAudioUrl,
+                                onValueChange = { pAudioUrl = it },
+                                label = { Text("৬. অডিও ফাইল লিংক / URL") },
+                                placeholder = { Text("যেমন: https://example.com/audio.mp3") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) }
+                            )
+
+                            Button(
+                                onClick = {
+                                    viewModel.addCustomPodcast(
+                                        title = pTitle.trim(),
+                                        subject = pSubject.trim(),
+                                        duration = pDuration.trim(),
+                                        narrator = pNarrator.trim(),
+                                        className = pClassName,
+                                        audioUrl = pAudioUrl.trim()
+                                    ) { success, msg ->
+                                        actionSuccess = success
+                                        actionMessage = msg
+                                        if (success) {
+                                            pTitle = ""
+                                            pSubject = ""
+                                            pDuration = ""
+                                            pNarrator = ""
+                                            pAudioUrl = ""
+                                        }
+                                    }
+                                },
+                                enabled = pTitle.isNotBlank() && pSubject.isNotBlank() && pAudioUrl.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.RecordVoiceOver, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("🎙️ নতুন কাস্টম পডকাস্ট সংরক্ষণ করুন", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "📤 ব্যাচ পডকাস্ট আপলোড (CSV / JSON)",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                text = "নিচে পাইপ-সেপারেটেড (|) বা কমা-সেপারেটেড (,) CSV লাইনের মাধ্যমে একাধিক পডকাস্ট একসাথে কপি-পেস্ট করে আপলোড করুন। প্রথম লাইনটি হেডার হিসেবে উপেক্ষা করা হবে।",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        pBulkInput = pBulkSample
+                                        bulkUploadStatusMessage = "✓ নমুনা CSV লোড হয়েছে!"
+                                        bulkUploadSuccess = true
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("📋 নমুনা CSV লোড", fontSize = 11.sp, maxLines = 1)
+                                }
+
+                                if (pBulkInput.isNotBlank()) {
+                                    IconButton(
+                                        onClick = {
+                                            pBulkInput = ""
+                                            bulkUploadStatusMessage = null
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Clear", tint = WrongRed)
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = pBulkInput,
+                                onValueChange = { pBulkInput = it },
+                                placeholder = {
+                                    Text("শিরোনাম | বিষয় | সময়কাল | বক্তা | শ্রেণি | অডিও URL")
+                                },
+                                minLines = 5,
+                                maxLines = 10,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            bulkUploadStatusMessage?.let { msg ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (bulkUploadSuccess) CorrectGreen.copy(alpha = 0.15f) else WrongRed.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, if (bulkUploadSuccess) CorrectGreen.copy(alpha = 0.4f) else WrongRed.copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (bulkUploadSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = if (bulkUploadSuccess) CorrectGreen else WrongRed,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = msg,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = if (bulkUploadSuccess) CorrectGreen else WrongRed
+                                        )
+                                    }
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.importBulkCustomPodcasts(pBulkInput) { success, msg, count ->
+                                        bulkUploadSuccess = success
+                                        bulkUploadStatusMessage = msg
+                                        actionSuccess = success
+                                        actionMessage = msg
+                                        if (success) {
+                                            pBulkInput = ""
+                                        }
+                                    }
+                                },
+                                enabled = pBulkInput.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("📤 কাস্টম পডকাস্ট ব্যাচ আপলোড করুন", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "📋 বর্তমান কাস্টম পডকাস্টসমূহ (${customPds.size} টি)",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                if (customPds.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "কোনো কাস্টম পডকাস্ট পাওয়া যায়নি। উপরের ফর্মটি পূরণ করে যুক্ত করুন।",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(customPds) { p ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Audiotrack,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(p.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(
+                                        text = "${p.subject} • ${p.className} • ${p.narrator}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = p.audioUrl,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Text(
+                                    text = p.duration,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = ExamGold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

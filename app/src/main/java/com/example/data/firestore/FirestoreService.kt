@@ -73,6 +73,7 @@ class FirestoreService(
         private const val COLLECTION_VIDEO_PROGRESS = "video_progress"
         private const val COLLECTION_LEADERBOARD = "leaderboard"
         private const val COLLECTION_DISTRICTS = "districts"
+        private const val COLLECTION_PODCASTS = "podcasts"
     }
 
     suspend fun saveDistrictSchools(district: String, schools: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
@@ -1320,6 +1321,57 @@ class FirestoreService(
             Result.success(list)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting filtered test templates: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun savePodcast(podcast: FirestorePodcast): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val id = podcast.id.ifBlank { "podcast_${System.currentTimeMillis()}" }
+            val finalPodcast = podcast.copy(id = id)
+            firestore.collection(COLLECTION_PODCASTS)
+                .document(id)
+                .set(finalPodcast, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving custom podcast: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun savePodcastsBatch(podcasts: List<FirestorePodcast>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (podcasts.isEmpty()) return@withContext Result.success(Unit)
+            val chunks = podcasts.chunked(100)
+            for (chunk in chunks) {
+                val batch = firestore.batch()
+                for (p in chunk) {
+                    val id = p.id.ifBlank { "podcast_${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}" }
+                    val finalPodcast = p.copy(id = id)
+                    val docRef = firestore.collection(COLLECTION_PODCASTS).document(id)
+                    batch.set(docRef, finalPodcast, SetOptions.merge())
+                }
+                batch.commit().await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in batch saving custom podcasts: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCustomPodcasts(className: String? = null): Result<List<FirestorePodcast>> = withContext(Dispatchers.IO) {
+        try {
+            var query: Query = firestore.collection(COLLECTION_PODCASTS)
+            if (!className.isNullOrBlank()) {
+                query = query.whereEqualTo("className", className)
+            }
+            val snapshot = query.get().await()
+            val list = snapshot.documents.mapNotNull { it.toObject(FirestorePodcast::class.java) }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting custom podcasts: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }
