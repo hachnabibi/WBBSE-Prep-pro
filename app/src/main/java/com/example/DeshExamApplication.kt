@@ -16,10 +16,10 @@ class DeshExamApplication : Application() {
             var app = FirebaseApp.initializeApp(this)
             if (app == null && FirebaseApp.getApps(this).isEmpty()) {
                 val options = com.google.firebase.FirebaseOptions.Builder()
-                    .setApplicationId("1:123456789012:android:a1b2c3d4e5f6g7h8")
+                    .setApplicationId("1:950229620449:android:com.wbbseprep.app")
                     .setApiKey("AIzaSyFallbackDummyKeyForLocalPreview0000")
-                    .setProjectId("wbbseprep-app")
-                    .setGcmSenderId("123456789012")
+                    .setProjectId("ais-asia-southeast1-dd4cee0a05")
+                    .setGcmSenderId("950229620449")
                     .build()
                 app = FirebaseApp.initializeApp(this, options)
                 Log.i("DeshExamApplication", "FirebaseApp initialized with local fallback options.")
