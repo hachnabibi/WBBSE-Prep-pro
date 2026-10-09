@@ -2257,7 +2257,17 @@ class DeshExamRepository(
     )
 
     private fun QuestionEntity.toDomainModel(randomizeOptions: Boolean = true): QuestionItem {
-        val rawOptions = optionsJson.split("|").filter { it.isNotBlank() }
+        val rawOptions: List<String> = when {
+            optionsJson.isBlank() -> emptyList()
+            optionsJson.startsWith("[") -> try {
+                val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                com.google.gson.Gson().fromJson(optionsJson, type) ?: emptyList()
+            } catch (e: Exception) {
+                optionsJson.split("|").map { it.trim() }.filter { it.isNotBlank() }
+            }
+            optionsJson.contains("|") -> optionsJson.split("|").map { it.trim() }.filter { it.isNotBlank() }
+            else -> listOf(optionsJson)
+        }
         if (rawOptions.size <= 1 || !randomizeOptions) {
             return QuestionItem(
                 id = id,
