@@ -1,0 +1,12 @@
+{
+  "id": "class_2_wbbpe_amar_boi",
+  "code": "AMAR_BOI",
+  "name": "আমার বই",
+  "textbookName": "আমার বই",
+  "totalChapters": 2,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4278235212,
+  "classId": "class_2_wbbpe",
+  "stream": "common"
+}

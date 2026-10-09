@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c3_env_ch1_001",
+    "topicId": "",
+    "chapterId": "class_3_env_ch1",
+    "subjectId": "class_3_wbbpe_environment",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "কোন ইন্দ্রিয়ের সাহায্যে আমরা স্বাদ গ্রহণ করি?",
+    "optionsJson": "চোখ|নাক|জিভ|ত্বক",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "জিভ",
+    "explanation": "জিভের সাহায্যে আমরা যেকোনো খাবারের স্বাদ (মিষ্টি, টক, নোনতা, তেতো) বুঝতে পারি।",
+    "marks": 1,
+    "tagsJson": "আমাদের পরিবেশ|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  },
+  {
+    "id": "q_c3_env_ch2_001",
+    "topicId": "",
+    "chapterId": "class_3_env_ch2",
+    "subjectId": "class_3_wbbpe_environment",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "নিচের কোনটি প্রোটিন সমৃদ্ধ খাবার যা শরীরের বৃদ্ধিতে সাহায্য করে?",
+    "optionsJson": "ভাত|মাছ|তেল|চিনি",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "মাছ",
+    "explanation": "মাছ, ডিম এবং ডাল প্রোটিন জাতীয় খাবার, যা শরীরের মাংসপেশি গঠনে ও বৃদ্ধিতে অত্যন্ত গুরুত্বপূর্ণ।",
+    "marks": 1,
+    "tagsJson": "আমাদের পরিবেশ|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  }
+]

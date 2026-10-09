@@ -168,13 +168,12 @@ fun TextbooksScreen(
                     onValueChange = { searchQuery = it },
                     placeholder = { 
                         Text(
-                            text = "ইন্টারনেট আর্কাইভে বই খুঁজুন...",
+                            text = "বই খুঁজুন...",
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
                         ) 
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
+                        .fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     leadingIcon = {
                         Icon(

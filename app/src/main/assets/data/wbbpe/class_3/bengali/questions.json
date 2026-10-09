@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c3_ben_ch2_001",
+    "topicId": "",
+    "chapterId": "class_3_ben_ch2",
+    "subjectId": "class_3_wbbpe_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "সত্যি সোনা গল্পে চাষীর ছেলে কেমন ছিল?",
+    "optionsJson": "পরিশ্রমী|বুদ্ধিমান|অলস|লোভী",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "অলস",
+    "explanation": "গল্পের শুরুতে চাষীর ছেলে খুবই অলস ছিল, কোনো কাজ করতে চাইত না।",
+    "marks": 1,
+    "tagsJson": "পাতাবাহার|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  },
+  {
+    "id": "q_c3_ben_ch2_002",
+    "topicId": "",
+    "chapterId": "class_3_ben_ch2",
+    "subjectId": "class_3_wbbpe_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "চাষী মরার আগে ছেলেকে সোনা কোথায় লুকানো আছে বলে যায়?",
+    "optionsJson": "ঘরে|জলাশয়ে|চাষের জমিতে|বনে",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "চাষের জমিতে",
+    "explanation": "চাষী তার মৃত্যুর আগে অলস ছেলেকে বলেছিল যে চাষের জমির নিচে সোনা লুকানো আছে।",
+    "marks": 1,
+    "tagsJson": "পাতাবাহার|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  }
+]

@@ -290,6 +290,7 @@ data class StudentProfile(
     val classLevel: String = "দশম শ্রেণি (মাধ্যমিক)",
     val stream: String = "all",
     val streamBengali: String = "সকল বিষয়",
+    val profileImageUri: String = "",
     val studyGoals: List<String> = emptyList(),
     val phoneNumber: String = "",
     val gender: String = "male",

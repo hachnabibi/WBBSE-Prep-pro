@@ -971,6 +971,7 @@ class FirestoreService(
                 "classId" to profile.classId,
                 "classLevel" to profile.classLevel,
                 "stream" to profile.stream,
+                "profileImageUri" to profile.profileImageUri,
                 "currentXp" to profile.currentXp,
                 "level" to profile.level,
                 "currentStreak" to profile.currentStreak,

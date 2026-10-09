@@ -1,0 +1,12 @@
+{
+  "id": "class_4_wbbpe_english",
+  "code": "ENGLISH",
+  "name": "ইংরেজি",
+  "textbookName": "Butterfly",
+  "totalChapters": 2,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4281110255,
+  "classId": "class_4_wbbpe",
+  "stream": "common"
+}

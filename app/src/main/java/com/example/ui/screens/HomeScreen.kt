@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,10 +23,12 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -268,7 +271,7 @@ fun HomeScreen(
                         .testTag("subjects_search_input"),
                     placeholder = {
                         Text(
-                            text = if (isBengali) "বিষয় খুঁজুন (যেমন: গণিত, Physics, ইতিহাস)..." else "Search subject...",
+                            text = if (isBengali) "বিষয় খুঁজুন..." else "Search subject...",
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -332,7 +335,24 @@ fun HomeScreen(
                         }
                     }
                 } else {
+                    val subjectRowState = rememberLazyListState()
+                    if (filteredSubjects.size > 1) {
+                        LaunchedEffect(filteredSubjects) {
+                            delay(2000) // Initial wait
+                            while (true) {
+                                val currentVisible = subjectRowState.firstVisibleItemIndex
+                                val nextIndex = (currentVisible + 1) % filteredSubjects.size
+                                subjectRowState.animateScrollToItem(
+                                    index = nextIndex,
+                                    scrollOffset = 0
+                                )
+                                delay(4000) // Pause for 4 seconds on each card
+                            }
+                        }
+                    }
+
                     LazyRow(
+                        state = subjectRowState,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(vertical = 4.dp),
                         modifier = Modifier

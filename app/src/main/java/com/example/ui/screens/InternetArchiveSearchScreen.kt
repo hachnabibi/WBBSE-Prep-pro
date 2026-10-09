@@ -188,11 +188,10 @@ fun InternetArchiveSearchScreen(
                         onValueChange = { searchInput = it },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
                             .testTag("archive_header_search_input"),
                         placeholder = {
                             Text(
-                                text = "বইয়ের নাম বা বিষয় লিখুন...",
+                                text = "বই খুঁজুন...",
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis

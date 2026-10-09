@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c12_sem4_philosophy_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c12_sem4_philosophy_ch1",
+    "subjectId": "wbchse_c12_sem4_philosophy",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "একটি আদর্শ নিরপেক্ষ বচনের অংশ কয়টি?",
+    "optionsJson": "দুটি|তিনটি|চারটি|পাঁচটি",
+    "correctAnswerText": "চারটি",
+    "explanation": "একটি আদর্শ নিরপেক্ষ বচনের চারটি অংশ থাকে: পরিমাণক, উদ্দেশ্য, সংযোজক এবং বিধেয়।",
+    "tagsJson": "[\"Logic\"]",
+    "pyqYear": "",
+    "classId": "class_12_wbchse"
+  }
+]

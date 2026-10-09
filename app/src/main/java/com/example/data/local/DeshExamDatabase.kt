@@ -26,7 +26,7 @@ import com.example.data.repository.DeshExamRepository
         BoardEntity::class,
         AcademicClassEntity::class
     ],
-    version = 45,
+    version = 46,
     exportSchema = false
 )
 abstract class DeshExamDatabase : RoomDatabase() {
@@ -51,14 +51,31 @@ abstract class DeshExamDatabase : RoomDatabase() {
                     .build()
                 INSTANCE = instance
                 
-                // Trigger asset sync in background only if database is empty
+                // Trigger asset sync in background with version checking
                 scope.launch(Dispatchers.IO) {
                     try {
-                        if (instance.deshExamDao().getAllSubjectsOnce().isEmpty()) {
-                            populateDataFromAssets(context.applicationContext, instance.deshExamDao())
+                        val dao = instance.deshExamDao()
+                        val prefs = context.applicationContext.getSharedPreferences("desh_exam_prefs", Context.MODE_PRIVATE)
+                        val seededVersion = prefs.getInt("db_seeded_version", 0)
+                        val TARGET_VERSION = 18 // Incrementing this forces a full fresh seed of all asset files
+                        
+                        if (seededVersion < TARGET_VERSION || dao.getAllSubjectsOnce().isEmpty()) {
+                            Log.d(TAG, "Forcing database seed or update (seeded: $seededVersion, target: $TARGET_VERSION)")
+                            
+                            // Delete only the academic content tables to preserve user profile progress (coins, streak, level)
+                            dao.deleteAllSubjects()
+                            dao.deleteAllChapters()
+                            dao.deleteAllTopics()
+                            dao.deleteAllQuestions()
+                            
+                            // Repopulate from the fresh asset files
+                            populateDataFromAssets(context.applicationContext, dao, forceRefresh = true)
+                            
+                            // Save version
+                            prefs.edit().putInt("db_seeded_version", TARGET_VERSION).apply()
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error during initial database populate check: ${e.message}", e)
+                        Log.e(TAG, "Error during database populate check: ${e.message}", e)
                     }
                 }
                 instance
@@ -173,12 +190,19 @@ abstract class DeshExamDatabase : RoomDatabase() {
                     val inferredClassId = when {
                         path.contains("class_11") -> "class_11_wbchse"
                         path.contains("class_12") -> "class_12_wbchse"
+                        path.contains("class_10") && path.contains("cbse") -> "class_10_cbse"
+                        path.contains("cbse_10") -> "class_10_cbse"
+                        path.contains("class_10") -> "class_10_wbbse"
                         path.contains("class_5") -> "class_5_wbbse"
                         path.contains("class_6") -> "class_6_wbbse"
                         path.contains("class_7") -> "class_7_wbbse"
                         path.contains("class_8") -> "class_8_wbbse"
                         path.contains("class_9") -> "class_9_wbbse"
-                        path.contains("cbse_10") || (path.contains("class_10") && path.contains("cbse")) -> "class_10_cbse"
+                        path.contains("class_kg") -> "class_kg_wbbpe"
+                        path.contains("class_1") -> "class_1_wbbpe"
+                        path.contains("class_2") -> "class_2_wbbpe"
+                        path.contains("class_3") -> "class_3_wbbpe"
+                        path.contains("class_4") -> "class_4_wbbpe"
                         else -> "class_10_wbbse"
                     }
 

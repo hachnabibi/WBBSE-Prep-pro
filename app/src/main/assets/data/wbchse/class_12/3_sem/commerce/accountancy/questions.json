@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c12_sem3_accountancy_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c12_sem3_accountancy_ch1",
+    "subjectId": "wbchse_c12_sem3_accountancy",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "অংশীদারি চুক্তিপত্র (Partnership Deed) অনুযায়ী কোনো চুক্তি না থাকলে অংশীদারদের ঋণের ওপর সুদের হার কত হয়?",
+    "optionsJson": "৪% বার্ষিক|৫% বার্ষিক|৬% বার্ষিক|কোনো সুদ দেওয়া হয় না",
+    "correctAnswerText": "৬% বার্ষিক",
+    "explanation": "ভারতীয় অংশীদারি আইন ১৯৩২ অনুসারে, যদি অংশীদারি চুক্তিপত্রে কোনো উল্লেখ না থাকে, তবে অংশীদারদের প্রদত্ত ঋণের ওপর বার্ষিক ৬% হারে সুদ দিতে হয়।",
+    "tagsJson": "[\"Partnership Accounts\"]",
+    "pyqYear": "",
+    "classId": "class_12_wbchse"
+  }
+]

@@ -1081,6 +1081,17 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateProfileImageUri(uri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProfileImageUri(uri)
+            val uid = authRepository.currentUserState?.uid
+            if (uid != null) {
+                val currentProf = studentProfile.value
+                firestoreService.saveStudentProfile(uid, currentProf.copy(profileImageUri = uri))
+            }
+        }
+    }
+
     fun switchActiveExamClass(classId: String, stream: String = "all") {
         viewModelScope.launch {
             val classObj = AcademicClassProvider.ALL_CLASSES.find { it.id == classId }
@@ -3571,7 +3582,48 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
 
-                // 3. Restore Video Progress
+                // 3. Restore Student Profile Details
+                val profRes = firestoreService.getStudentProfile(userId)
+                profRes.onSuccess { data ->
+                    if (data != null) {
+                        val name = data["name"] as? String ?: ""
+                        val school = data["school"] as? String ?: ""
+                        val district = data["district"] as? String ?: ""
+                        val targetExam = data["targetExam"] as? String ?: ""
+                        val classId = data["classId"] as? String ?: ""
+                        val stream = data["stream"] as? String ?: ""
+                        val profileImageUri = data["profileImageUri"] as? String ?: ""
+                        
+                        val current = database.deshExamDao().getUserProgressOnce() ?: com.example.data.local.UserProgressEntity()
+                        val updated = current.copy(
+                            studentName = if (name.isNotBlank()) name else current.studentName,
+                            school = if (school.isNotBlank()) school else current.school,
+                            district = if (district.isNotBlank()) district else current.district,
+                            targetExam = if (targetExam.isNotBlank()) targetExam else current.targetExam,
+                            classId = if (classId.isNotBlank()) classId else current.classId,
+                            stream = if (stream.isNotBlank()) stream else current.stream,
+                            profileImageUri = if (profileImageUri.isNotBlank()) profileImageUri else current.profileImageUri
+                        )
+                        database.deshExamDao().insertOrUpdateProgress(updated)
+                    } else {
+                        // Pre-populate with Google details if available
+                        val authUser = authRepository.currentUserState
+                        if (authUser != null) {
+                            val name = authUser.displayName ?: ""
+                            val photoUrl = authUser.photoUrl ?: ""
+                            if (name.isNotBlank() || photoUrl.isNotBlank()) {
+                                val current = database.deshExamDao().getUserProgressOnce() ?: com.example.data.local.UserProgressEntity()
+                                val updated = current.copy(
+                                    studentName = if (name.isNotBlank()) name else current.studentName,
+                                    profileImageUri = if (photoUrl.isNotBlank()) photoUrl else current.profileImageUri
+                                )
+                                database.deshExamDao().insertOrUpdateProgress(updated)
+                            }
+                        }
+                    }
+                }
+
+                // 4. Restore Video Progress
                 loadUserVideoProgress()
             } catch (e: Exception) {
                 Log.w("DeshExamViewModel", "Failed to restore user progress from cloud: ${e.message}")

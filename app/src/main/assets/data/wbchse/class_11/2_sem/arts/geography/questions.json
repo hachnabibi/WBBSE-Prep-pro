@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c11_sem2_geography_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c11_sem2_geography_ch1",
+    "subjectId": "wbchse_c11_sem2_geography",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "পাত সংস্থান তত্ত্বের (Plate Tectonics Theory) জনক কাকে বলা হয়?",
+    "optionsJson": "আলফ্রেড ওয়েগনার|ডব্লিউ জে মরগ্যান|হ্যারি হেস|আর্থার হোমস",
+    "correctAnswerText": "হ্যারি হেস",
+    "explanation": "হ্যারি হেস ১৯৬০-এর দশকে সমুদ্রবক্ষ বিস্তারের ধারণা দেন, যা পাত সংস্থান বা প্লেট টেকটোনিক্স তত্ত্বের মূল ভিত্তি তৈরি করে।",
+    "tagsJson": "[\"Physical Geography\"]",
+    "pyqYear": "",
+    "classId": "class_11_wbchse"
+  }
+]

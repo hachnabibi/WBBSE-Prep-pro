@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -56,12 +58,13 @@ import com.example.util.PdfReportGenerator
 import com.example.util.StreamHelper
 import com.example.util.formatCompactNumber
 
+private val ExamGold = Color(0xFF38BDF8) // Modern Premium Sky Blue instead of Yellow
+
 enum class ProfileSubTab {
     OVERVIEW,
     SCORE_TRACKER,
     SUBJECT_MASTERY,
-    BADGES,
-    ACCOUNT_SETTINGS
+    BADGES
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +78,9 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(ProfileSubTab.OVERVIEW) }
+    BackHandler(enabled = selectedTab != ProfileSubTab.OVERVIEW) {
+        selectedTab = ProfileSubTab.OVERVIEW
+    }
     val badges by viewModel.badges.collectAsStateWithLifecycle()
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val authUser by viewModel.authUserState.collectAsStateWithLifecycle()
@@ -90,6 +96,7 @@ fun ProfileScreen(
 
     // Selected Badge for Detail Modal
     var selectedBadgeForDetail by remember { mutableStateOf<BadgeItem?>(null) }
+    var showLogoutConfirmationDialog by remember { mutableStateOf(false) }
 
     // Edit Profile State
     var isEditingProfile by remember { mutableStateOf(false) }
@@ -191,194 +198,220 @@ fun ProfileScreen(
                         )
                         .padding(20.dp)
                 ) {
+                    // Logout button in top right of the card
+                    IconButton(
+                        onClick = { showLogoutConfirmationDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(34.dp)
+                            .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                            .testTag("card_logout_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Log Out",
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Avatar Initial with Golden Halo & Floating Level Badge
-                        Box(
-                            modifier = Modifier.size(86.dp),
-                            contentAlignment = Alignment.Center
+                        // 1. Horizontal Row layout for Avatar (left) and Details (right)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // Left: Avatar Golden Circle Halo with Floating Level Badge
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(PrimaryIndigo, Color(0xFF4F46E5), Color(0xFF06B6D4))
-                                        )
-                                    )
-                                    .border(
-                                        3.dp,
-                                        Brush.sweepGradient(
-                                            listOf(
-                                                ExamGold,
-                                                Color(0xFFFFFBEB),
-                                                ExamGold,
-                                                Color(0xFFFDE68A),
-                                                ExamGold
-                                            )
-                                        ),
-                                        CircleShape
-                                    ),
+                                    .size(86.dp)
+                                    .clickable { viewModel.navigateTo(AppScreen.EDIT_PROFILE) },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = displayName.take(1).uppercase(),
-                                    style = MaterialTheme.typography.headlineLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 32.sp
-                                    ),
-                                    color = Color.White
-                                )
-                            }
-
-                            // Floating Level Badge on Avatar
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = Color(0xFF0F172A),
-                                border = BorderStroke(1.2.dp, ExamGold),
-                                shadowElevation = 4.dp,
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .offset(x = 2.dp, y = 2.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Stars,
-                                        contentDescription = null,
-                                        tint = ExamGold,
-                                        modifier = Modifier.size(11.dp)
-                                    )
-                                    Text(
-                                        text = "Lv ${profile.level}",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Black
+                                Box(
+                                    modifier = Modifier
+                                        .size(86.dp)
+                                        .border(
+                                            3.dp,
+                                            Brush.sweepGradient(
+                                                listOf(
+                                                    ExamGold,
+                                                    Color(0xFFFFEDD5),
+                                                    ExamGold,
+                                                    Color(0xFFFED7AA),
+                                                    ExamGold
+                                                )
+                                            ),
+                                            CircleShape
                                         ),
-                                        color = ExamGold
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    StudentAvatar(
+                                        profileImageUri = profile.profileImageUri,
+                                        displayName = displayName,
+                                        size = 78.dp,
+                                        googlePhotoUrl = authUser?.photoUrl
                                     )
                                 }
+
+                                // Floating Level Badge on Avatar (aligned bottom right)
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color(0xFF0F172A),
+                                    border = BorderStroke(1.2.dp, ExamGold),
+                                    shadowElevation = 4.dp,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .offset(x = 2.dp, y = 2.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Stars,
+                                            contentDescription = null,
+                                            tint = ExamGold,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                        Text(
+                                            text = "Lv ${profile.level}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Black
+                                            ),
+                                            color = ExamGold
+                                        )
+                                    }
+                                }
                             }
-                        }
 
-                        // Student Name with Blue Verified Tick
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = displayName,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 21.sp,
-                                    letterSpacing = 0.2.sp
-                                ),
-                                color = Color.White
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Verified,
-                                contentDescription = "Verified Student",
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        // Board Name, Class, District & School Info Section (নামের নিচে বোর্ড, শ্রেণি, জেলা এবং তার নিচে বিদ্যালয়)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            // 1. Board Name, Class, District Chip
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
+                            // Right: Left-aligned Student Details
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalAlignment = Alignment.Start
                             ) {
+                                // Name with Blue Verified Tick
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MenuBook,
-                                        contentDescription = null,
-                                        tint = Color(0xFF67E8F9),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    val districtText = profile.district.ifBlank { "কলকাতা" }
                                     Text(
-                                        text = "$boardLabel • $classLabel$streamLabel • $districtText",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 12.5.sp
+                                        text = displayName,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 20.sp,
+                                            letterSpacing = 0.2.sp
                                         ),
-                                        color = Color.White.copy(alpha = 0.95f),
+                                        color = Color.White,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
+                                    Icon(
+                                        imageVector = Icons.Default.Verified,
+                                        contentDescription = "Verified Student",
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
-                            }
 
-                            // 2. School Name Chip (তার নিচে স্কুলের নাম)
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.White.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                // Class Badge
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.12f),
+                                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.22f))
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.School,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFDE68A),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = profile.school.ifBlank { "বিদ্যালয়" },
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 12.sp
-                                        ),
-                                        color = Color.White.copy(alpha = 0.9f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MenuBook,
+                                            contentDescription = null,
+                                            tint = Color(0xFF67E8F9),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        val districtText = profile.district.ifBlank { "কলকাতা" }
+                                        Text(
+                                            text = "$boardLabel • $classLabel$streamLabel • $districtText",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 11.sp
+                                            ),
+                                            color = Color.White.copy(alpha = 0.95f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
-                            }
-                        }
 
-                        // League / Status Pill with Gold Border
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = ExamGold.copy(alpha = 0.16f),
-                            border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.6f))
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.EmojiEvents,
-                                    contentDescription = null,
-                                    tint = ExamGold,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = profile.league.ifBlank { "Platinum Scholar / প্ল্যাটিনাম যোদ্ধা" },
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = ExamGold
-                                )
+                                // School Badge
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.08f),
+                                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.15f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.School,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFED7AA),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            text = profile.school.ifBlank { "বিদ্যালয়" },
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 11.sp
+                                            ),
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                // League Status Badge
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = ExamGold.copy(alpha = 0.16f),
+                                    border = BorderStroke(0.8.dp, ExamGold.copy(alpha = 0.6f))
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.EmojiEvents,
+                                            contentDescription = null,
+                                            tint = ExamGold,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = profile.league.ifBlank { "Platinum Scholar / প্ল্যাটিনাম যোদ্ধা" },
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 10.sp
+                                            ),
+                                            color = ExamGold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -540,7 +573,7 @@ fun ProfileScreen(
             }
         }
 
-        // 2. Executive Segmented Navigation Tabs ("পরিসংখ্যান ও অ্যানালিটিক্স")
+        // 2. Executive Segmented Navigation Tabs ("পরিসংখ্যান ও অ্যানালিটিক্স") with auto scroll peeking and premium gradients
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -549,37 +582,82 @@ fun ProfileScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
+                val tabScrollState = rememberScrollState()
+                val coroutineScope = rememberCoroutineScope()
+
+                // Smoothly peek-scroll on launch so users discover horizontal scrollability
+                LaunchedEffect(Unit) {
+                    delay(1500)
+                    tabScrollState.animateScrollTo(280, tween(durationMillis = 1000, easing = FastOutSlowInEasing))
+                    delay(800)
+                    tabScrollState.animateScrollTo(80, tween(durationMillis = 800, easing = FastOutSlowInEasing))
+                    delay(600)
+                    tabScrollState.animateScrollTo(0, tween(durationMillis = 600, easing = FastOutSlowInEasing))
+                }
+
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .horizontalScroll(tabScrollState)
+                            .padding(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         val tabs = listOf(
                             Triple(ProfileSubTab.OVERVIEW, "সার্বিক অগ্রগতি", Icons.Default.Dashboard),
                             Triple(ProfileSubTab.SCORE_TRACKER, "স্কোর ট্র্যাকার", Icons.AutoMirrored.Filled.TrendingUp),
                             Triple(ProfileSubTab.SUBJECT_MASTERY, "বিষয়ভিত্তিক দক্ষতা", Icons.Default.MenuBook),
-                            Triple(ProfileSubTab.BADGES, "ব্যাজসমূহ", Icons.Default.MilitaryTech),
-                            Triple(ProfileSubTab.ACCOUNT_SETTINGS, "অ্যাকাউন্ট", Icons.Default.AccountCircle)
+                            Triple(ProfileSubTab.BADGES, "ব্যাজসমূহ", Icons.Default.MilitaryTech)
                         )
                         tabs.forEach { (tab, title, icon) ->
                             val isSelected = selectedTab == tab
+                            
+                            val tabGradient = when (tab) {
+                                ProfileSubTab.OVERVIEW -> Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF06B6D4)))
+                                ProfileSubTab.SCORE_TRACKER -> Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF0D9488)))
+                                ProfileSubTab.SUBJECT_MASTERY -> Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFFEC4899)))
+                                ProfileSubTab.BADGES -> Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFE11D48)))
+                            }
+                            
+                            val unselectedGradient = when (tab) {
+                                ProfileSubTab.OVERVIEW -> Brush.linearGradient(listOf(Color(0xFF6366F1).copy(alpha = 0.12f), Color(0xFF06B6D4).copy(alpha = 0.12f)))
+                                ProfileSubTab.SCORE_TRACKER -> Brush.linearGradient(listOf(Color(0xFF10B981).copy(alpha = 0.12f), Color(0xFF0D9488).copy(alpha = 0.12f)))
+                                ProfileSubTab.SUBJECT_MASTERY -> Brush.linearGradient(listOf(Color(0xFF8B5CF6).copy(alpha = 0.12f), Color(0xFFEC4899).copy(alpha = 0.12f)))
+                                ProfileSubTab.BADGES -> Brush.linearGradient(listOf(Color(0xFFF97316).copy(alpha = 0.12f), Color(0xFFE11D48).copy(alpha = 0.12f)))
+                            }
+
                             Surface(
                                 onClick = {
                                     selectedTab = tab
                                     viewModel.clearAuthMessages()
+                                    coroutineScope.launch {
+                                        val targetOffset = when (tab) {
+                                            ProfileSubTab.OVERVIEW -> 0
+                                            ProfileSubTab.SCORE_TRACKER -> 80
+                                            ProfileSubTab.SUBJECT_MASTERY -> 220
+                                            ProfileSubTab.BADGES -> 380
+                                        }
+                                        tabScrollState.animateScrollTo(targetOffset)
+                                    }
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) PrimaryIndigo else Color.Transparent,
-                                shadowElevation = if (isSelected) 3.dp else 0.dp,
-                                modifier = Modifier.testTag("tab_profile_${tab.name.lowercase()}")
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .testTag("tab_profile_${tab.name.lowercase()}")
+                                    .then(
+                                        if (isSelected) Modifier.background(tabGradient, RoundedCornerShape(12.dp))
+                                        else Modifier.background(unselectedGradient, RoundedCornerShape(12.dp))
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.06f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
@@ -589,7 +667,7 @@ fun ProfileScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -598,7 +676,7 @@ fun ProfileScreen(
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
                                         ),
-                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                                     )
                                 }
                             }
@@ -676,33 +754,35 @@ fun ProfileScreen(
             // 1. সার্বিক প্রস্তুতি স্তর (Readiness Gauge Bento Card)
             item {
                 Card(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "সার্বিক প্রস্তুতি স্তর",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "মক টেস্ট, অনুশীলন ও নির্ভুলতার সমন্বিত স্কোর",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
@@ -719,14 +799,14 @@ fun ProfileScreen(
                             }
 
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = statusColor.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
+                                shape = RoundedCornerShape(8.dp),
+                                color = statusColor.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
                             ) {
                                 Text(
                                     text = statusText,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = statusColor),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = statusColor, fontSize = 10.sp),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -736,34 +816,34 @@ fun ProfileScreen(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(90.dp)
+                                modifier = Modifier.size(70.dp)
                             ) {
                                 CircularProgressIndicator(
                                     progress = { 1f },
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    strokeWidth = 9.dp,
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    strokeWidth = 7.dp,
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 CircularProgressIndicator(
                                     progress = { readinessVal / 100f },
                                     color = if (readinessVal >= 75) CorrectGreen else ExamGold,
-                                    strokeWidth = 9.dp,
+                                    strokeWidth = 7.dp,
                                     strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = "$readinessVal%",
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "স্কোর",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -771,23 +851,23 @@ fun ProfileScreen(
 
                             Column(
                                 modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
                                     text = if (readinessVal >= 75) "আপনার সার্বিক প্রস্তুতি অত্যন্ত প্রশংসনীয়! প্রতিদিনের রিভিশন বজায় রাখুন।" else "মধ্যম প্রস্তুতি — দুর্বল অধ্যায়গুলোতে বাড়তি মনোযোগ দিন এবং সাপ্তাহিক মক টেস্ট দিন।",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 18.sp
+                                    lineHeight = 15.sp
                                 )
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.TrendingUp,
                                         contentDescription = null,
                                         tint = CorrectGreen,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = "গত সপ্তাহের তুলনায় +৮% বৃদ্ধি",
@@ -850,33 +930,72 @@ fun ProfileScreen(
             // 2. সাপ্তাহিক অধ্যয়ন লক্ষ্য (Weekly Study Goal & Habit Tracker)
             item {
                 Card(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        // 7-day strip based on actual system Calendar day of week
+                        val calendar = java.util.Calendar.getInstance()
+                        val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+                        val currentDayIdxIndex = when (dayOfWeek) {
+                            java.util.Calendar.MONDAY -> 0
+                            java.util.Calendar.TUESDAY -> 1
+                            java.util.Calendar.WEDNESDAY -> 2
+                            java.util.Calendar.THURSDAY -> 3
+                            java.util.Calendar.FRIDAY -> 4
+                            java.util.Calendar.SATURDAY -> 5
+                            java.util.Calendar.SUNDAY -> 6
+                            else -> 0
+                        }
+
+                        // Calculate completed days based on the user's actual currentStreak & todayStreakGoalMet
+                        val completedBeforeToday = if (profile.todayStreakGoalMet) (profile.currentStreak - 1).coerceAtLeast(0) else profile.currentStreak
+                        val days = listOf("সোম", "মঙ্গল", "বুধ", "বৃহঃ", "শুক্র", "শনি", "রবি").mapIndexed { idx, name ->
+                            val isToday = idx == currentDayIdxIndex
+                            val isDone = when {
+                                isToday -> profile.todayStreakGoalMet
+                                idx < currentDayIdxIndex -> {
+                                    val daysAgo = currentDayIdxIndex - idx
+                                    daysAgo <= completedBeforeToday
+                                }
+                                else -> false // Future days in this week
+                            }
+                            val durationText = when {
+                                isToday -> if (profile.todayStreakGoalMet) "আজ" else "বাকি"
+                                isDone -> "${toBengaliDigits(30 + (idx * 5))} মি."
+                                else -> "বাকি"
+                            }
+                            Triple(name, durationText, isDone)
+                        }
+
+                        val completedCount = days.count { it.third }
+                        val completedPercentage = (completedCount * 100) / 7
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "সাপ্তাহিক অধ্যয়ন লক্ষ্য",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "এই সপ্তাহে ৫ দিন লক্ষ্য অর্জন হয়েছে (৮০%)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "এই সপ্তাহে ${toBengaliDigits(completedCount)} দিন লক্ষ্য অর্জন হয়েছে (${toBengaliDigits(completedPercentage)}%)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
@@ -896,30 +1015,19 @@ fun ProfileScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${profile.currentStreak} দিন স্ট্রিক",
+                                        text = "${toBengaliDigits(profile.currentStreak)} দিন স্ট্রিক",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = ExamFlame)
                                     )
                                 }
                             }
                         }
 
-                        // 7-day strip
-                        val days = listOf(
-                            Triple("সোম", "৪৫ মি.", true),
-                            Triple("মঙ্গল", "৬০ মি.", true),
-                            Triple("বুধ", "৫০ মি.", true),
-                            Triple("বৃহঃ", "৪০ মি.", true),
-                            Triple("শুক্র", "৬৫ মি.", true),
-                            Triple("শনি", "আজ", true),
-                            Triple("রবি", "বাকি", false)
-                        )
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             days.forEachIndexed { idx, (dayName, duration, isDone) ->
-                                val isToday = idx == 5
+                                val isToday = idx == currentDayIdxIndex
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1122,6 +1230,365 @@ fun ProfileScreen(
                             modifier = Modifier.testTag("overview_share_pdf_btn")
                         ) {
                             Text("শেয়ার", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                        }
+                    }
+                }
+            }
+
+            // 5. Compact Score Tracker Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        selectedTab = ProfileSubTab.SCORE_TRACKER
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "স্কোর ট্র্যাকার অ্যানালিটিক্স",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "আপনার প্রস্তুতি ও নির্ভুলতার ধারা",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "View Details",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("সার্বিক সঠিকতা", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${toBengaliDigits(profile.overallAccuracy)}%", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = Color(0xFF10B981))
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("সমাধানকৃত প্রশ্ন", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(toBengaliDigits(profile.totalQuestionsAnswered), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = Color(0xFF3B82F6))
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("প্রস্তুতি মান", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${toBengaliDigits(profile.examReadinessPercentage)}%", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = ExamGold)
+                                }
+                            }
+                        }
+
+                        TextButton(
+                            onClick = { selectedTab = ProfileSubTab.SCORE_TRACKER },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("detailed অ্যানালিটিক্স ও ডায়াগনস্টিকস দেখুন →", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = PrimaryIndigo)
+                        }
+                    }
+                }
+            }
+
+            // 6. Compact Subject Mastery Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        selectedTab = ProfileSubTab.SUBJECT_MASTERY
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = null,
+                                        tint = Color(0xFF8B5CF6),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "বিষয়ভিত্তিক দক্ষতা অগ্রগতি",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "শ্রেণি ও বোর্ড অনুযায়ী প্রতিটি বিষয়ের প্রস্তুতি",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "View Details",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (subjects.isEmpty()) {
+                            Text(
+                                text = "কোনো বিষয় লোড হয়নি। শ্রেণি সেটিংস যাচাই করুন।",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                subjects.take(3).forEach { subject ->
+                                    val subjectTitle = subject.getTitle(isBengali).ifBlank {
+                                        subject.name.ifBlank {
+                                            if (isBengali) subject.code.subjectNameBengali else subject.code.subjectNameEnglish
+                                        }
+                                    }
+                                    val subjectColor = if (subject.colorHex != 0L) Color(subject.colorHex) else Color(subject.code.colorHex)
+                                    val displayMastery = if (subject.masteryPercentage > 0) {
+                                        subject.masteryPercentage
+                                    } else if (subject.completedChapters > 0 && subject.totalChapters > 0) {
+                                        ((subject.completedChapters.toFloat() / subject.totalChapters) * 100).toInt()
+                                    } else {
+                                        65
+                                    }
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = subjectTitle,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${toBengaliDigits(displayMastery)}%",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                                color = subjectColor
+                                            )
+                                        }
+                                        LinearProgressIndicator(
+                                            progress = { displayMastery / 100f },
+                                            color = subjectColor,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp))
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        TextButton(
+                            onClick = { selectedTab = ProfileSubTab.SUBJECT_MASTERY },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("সব বিষয়ের অধ্যায়ভিত্তিক অগ্রগতি দেখুন →", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = PrimaryIndigo)
+                        }
+                    }
+                }
+            }
+
+            // 7. Compact Badges Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        selectedTab = ProfileSubTab.BADGES
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFFF97316).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MilitaryTech,
+                                        contentDescription = null,
+                                        tint = Color(0xFFF97316),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "অর্জিত মেডেল ও ট্রফি কেবিনেট",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    val unlockedCount = badges.count { it.isUnlocked }
+                                    Text(
+                                        text = "আপনার অর্জিত ${toBengaliDigits(unlockedCount)} টি মেডেল",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "View Details",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        val unlockedBadges = badges.filter { it.isUnlocked }
+                        if (unlockedBadges.isEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "এখনও কোনো মেডেল অর্জিত হয়নি। কুইজ সমাধান করে মেডেল আনলক করুন!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(12.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                unlockedBadges.take(6).forEach { badge ->
+                                    val badgeVector = getBadgeVector(badge.iconName)
+                                    val badgeColor = getTierColor(badge.tier)
+                                    val badgeGradient = getTierBackgroundGradient(badge.tier, badge.isUnlocked)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.width(65.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .clip(CircleShape)
+                                                .background(badgeGradient)
+                                                .border(1.5.dp, badgeColor, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = badgeVector,
+                                                contentDescription = badge.name,
+                                                tint = badgeColor,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = if (isBengali) badge.nameBengali else badge.nameEnglish,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        TextButton(
+                            onClick = { selectedTab = ProfileSubTab.BADGES },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("পূর্ণাঙ্গ মেডেল কেবিনেট গ্যালারি দেখুন →", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = PrimaryIndigo)
                         }
                     }
                 }
@@ -1720,7 +2187,7 @@ fun ProfileScreen(
         // ==========================================
         // SUB-TAB 3: ACCOUNT SETTINGS & FIREBASE
         // ==========================================
-        if (selectedTab == ProfileSubTab.ACCOUNT_SETTINGS) {
+        if (false) {
             // 0. Class Selector Card (always visible, no edit mode needed)
             item {
                 Card(
@@ -2605,6 +3072,7 @@ fun ProfileScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
                                 contentDescription = "Sign Out",
+                                tint = WrongRed,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -2638,6 +3106,41 @@ fun ProfileScreen(
             badge = badge,
             isBengali = isBengali,
             onDismiss = { viewModel.dismissBadgeCelebration() }
+        )
+    }
+
+    if (showLogoutConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmationDialog = false },
+            title = {
+                Text(
+                    text = if (isBengali) "লগআউট নিশ্চিত করুন" else "Confirm Logout",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = if (isBengali) "আপনি কি নিশ্চিতভাবে লগআউট করতে চান? আপনার প্রগতি ক্লাউডে সংরক্ষিত রয়েছে।"
+                           else "Are you sure you want to log out? Your progress is securely saved in the cloud.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirmationDialog = false
+                        viewModel.signOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = if (isBengali) "হ্যাঁ, লগআউট" else "Yes, Logout")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirmationDialog = false }) {
+                    Text(text = if (isBengali) "বাতিল" else "Cancel")
+                }
+            }
         )
     }
 }
@@ -2684,41 +3187,46 @@ fun MetricHighlightCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(color.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+                
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Text(
                 text = title,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

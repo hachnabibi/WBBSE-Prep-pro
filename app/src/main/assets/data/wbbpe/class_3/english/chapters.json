@@ -1,0 +1,32 @@
+[
+  {
+    "id": "class_3_eng_ch1",
+    "subjectId": "class_3_wbbpe_english",
+    "chapterNumber": 1,
+    "title": "1. Revision Lesson (পুনরালোচনা)",
+    "description": "ইংরেজি বর্ণমালা, ছোট ছোট শব্দ ও বাক্যের সহজ পাঠ ও আলোচনা",
+    "totalTopics": 0,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_3_wbbpe",
+    "contentData": "# Revision Lesson\nএখানে আমরা ইংরেজি বর্ণমালা ও ছোট শব্দের ব্যবহার মনে করব।\n\n- **Vowels (স্বরবর্ণ):** a, e, i, o, u\n- **Consonants (ব্যঞ্জনবর্ণ):** b, c, d, f... ইত্যাদি।\n\nশব্দ গঠনের সময় সাধারণত Vowel-এর ব্যবহার অতি আবশ্যক।",
+    "solutionData": "## প্রশ্নোত্তর ও অনুশীলন\n১. ইংরেজিতে Vowel কয়টি ও কী কী?\n\n**উত্তর:** ৫টি (a, e, i, o, u)।"
+  },
+  {
+    "id": "class_3_eng_ch2",
+    "subjectId": "class_3_wbbpe_english",
+    "chapterNumber": 2,
+    "title": "2. My Friends (আমার বন্ধুরা)",
+    "description": "আমাদের চারপাশে থাকা পশু-পাখি ও প্রকৃতির সাথে বন্ধুত্বের সুন্দর গল্প",
+    "totalTopics": 0,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_3_wbbpe",
+    "contentData": "# My Friends (আমার বন্ধুরা)\nআমাদের চারপাশে অনেক জীবজন্তু থাকে। তারা আমাদের অনেক উপকারে আসে এবং তারা আমাদের বন্ধু।\n\n- **Cow (গরু):** Gives us milk (আমাদের দুধ দেয়)\n- **Dog (কুকুর):** Guards our house (আমাদের বাড়ি পাহারা দেয়)\n- **Cat (বিড়াল):** Catches mice (ইঁদুর ধরে)",
+    "solutionData": "## প্রশ্নোত্তর ও অনুবাদ\n১. Which animal guards our house?\n\n**উত্তর:** Dog (কুকুর)।"
+  }
+]

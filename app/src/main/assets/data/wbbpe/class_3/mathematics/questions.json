@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c3_math_ch1_001",
+    "topicId": "",
+    "chapterId": "class_3_math_ch1",
+    "subjectId": "class_3_wbbpe_mathematics",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "৩৫২ সংখ্যাটিতে ৫ এর স্থানীয় মান কত?",
+    "optionsJson": "৫|৫০|৫০০|৩৫",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "৫০",
+    "explanation": "৩৫২ সংখ্যাটির দশকের ঘরে ৫ আছে, তাই এর স্থানীয় মান ৫০।",
+    "marks": 1,
+    "tagsJson": "আমার গণিত|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  },
+  {
+    "id": "q_c3_math_ch2_001",
+    "topicId": "",
+    "chapterId": "class_3_math_ch2",
+    "subjectId": "class_3_wbbpe_mathematics",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "১৫০ + ৫০ = কত?",
+    "optionsJson": "১০০|১৫০|২০০|২৫০",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "২০০",
+    "explanation": "১৫০ এর সাথে ৫০ যোগ করলে ২০০ পাওয়া যায়।",
+    "marks": 1,
+    "tagsJson": "আমার গণিত|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  }
+]

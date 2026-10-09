@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c11_sem2_chemistry_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c11_sem2_chemistry_ch1",
+    "subjectId": "wbchse_c11_sem2_chemistry",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "জলের অণুর (H2O) জ্যামিতিক আকৃতি কেমন?",
+    "optionsJson": "রৈখিক|কৌণিক (V-আকৃতি)|সমতলীয়|চতুস্তলকীয়",
+    "correctAnswerText": "কৌণিক (V-আকৃতি)",
+    "explanation": "জলের অক্সিজেন পরমাণুর দুটি নিঃসঙ্গ ইলেকট্রন জোড়ের বিকর্ষণের কারণে জলের অণুর আকৃতি কৌণিক বা V-আকৃতির মতো হয় (কোণ প্রায় ১০৪.৫°)।",
+    "tagsJson": "[\"Chemical Bonding\"]",
+    "pyqYear": "",
+    "classId": "class_11_wbchse"
+  }
+]

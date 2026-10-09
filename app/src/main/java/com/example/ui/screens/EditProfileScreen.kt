@@ -36,6 +36,12 @@ import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.ExamGold
 import com.example.ui.theme.ExamFlame
 import com.example.ui.viewmodel.DeshExamViewModel
+import com.example.ui.components.StudentAvatar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+
+private val ExamGold = Color(0xFF38BDF8) // Modern Premium Sky Blue instead of Yellow
 
 /**
  * Data representation for Education Boards
@@ -79,6 +85,17 @@ fun EditProfileScreen(
     val isAuthLoading by viewModel.isAuthLoading.collectAsState()
     val authUserState by viewModel.authUserState.collectAsState()
     val focusManager = LocalFocusManager.current
+
+    var showAvatarSelectionDialog by remember { mutableStateOf(false) }
+
+    val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.updateProfileImageUri(uri.toString())
+            }
+        }
+    )
 
     val auth = authUserState
     val defaultEditName = remember(profile.name, auth) {
@@ -140,7 +157,7 @@ fun EditProfileScreen(
                 "WBCHSE" -> Color(0xFF7C3AED)
                 "CBSE" -> Color(0xFFEA580C)
                 "ICSE" -> Color(0xFF0D9488)
-                else -> Color(0xFF2563EB)
+                else -> Color(0xFF6366F1)
             }
             EducationBoardItem(
                 id = board.id,
@@ -164,7 +181,7 @@ fun EditProfileScreen(
                 titleEnglish = "Science Stream",
                 keySubjectsBengali = "পদার্থবিদ্যা, রসায়ন, গণিত, জীববিজ্ঞান ও কম্পিউটার সায়েন্স",
                 icon = Icons.Default.Science,
-                accentColor = Color(0xFF2563EB),
+                accentColor = Color(0xFF6366F1),
                 tagLabel = "STEM"
             ),
             SubClassStreamItem(
@@ -282,19 +299,45 @@ fun EditProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Clickable Avatar with floating camera edit badge
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(68.dp)
                                 .clip(CircleShape)
-                                .background(Color.White)
-                                .border(2.5.dp, ExamGold, CircleShape),
+                                .clickable { showAvatarSelectionDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = editName.take(1).ifBlank { "S" }.uppercase(),
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                                color = PrimaryIndigo
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(68.dp)
+                                    .border(2.dp, ExamGold, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                StudentAvatar(
+                                    profileImageUri = profile.profileImageUri,
+                                    displayName = editName,
+                                    size = 60.dp,
+                                    googlePhotoUrl = auth?.photoUrl
+                                )
+                            }
+                            
+                            // Floating edit badge (camera pencil)
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(PrimaryIndigo)
+                                    .border(1.dp, Color.White, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Profile Picture",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
                         }
 
                         Column(
@@ -341,7 +384,7 @@ fun EditProfileScreen(
                             // 2. Sub-Class / Stream Chip Badge
                             val streamColor = if (hasSubClasses) {
                                 when (selectedStream) {
-                                    "science" -> Color(0xFF2563EB)
+                                    "science" -> Color(0xFF6366F1)
                                     "commerce" -> Color(0xFF059669)
                                     "arts" -> Color(0xFFD97706)
                                     else -> PrimaryIndigo
@@ -979,11 +1022,12 @@ fun EditProfileScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (hasSubClasses) Color(0xFF059669) else MaterialTheme.colorScheme.outlineVariant,
+                                color = if (hasSubClasses) Color(0xFF6366F1) else MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(26.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
@@ -994,18 +1038,22 @@ fun EditProfileScreen(
                                     )
                                 }
                             }
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "ধাপ ৩: সাব-ক্লাস / শাখা নির্বাচন",
+                                    text = if (hasSubClasses) "ধাপ ৩: শাখা নির্বাচন" else "ধাপ ৩: পাঠ্যক্রম",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 val classShort = AcademicClassProvider.getBengaliClassShortBadge(selectedClass.classNumber)
                                 Text(
                                     text = if (hasSubClasses) "$classShort-এর জন্য আপনার শাখা নির্বাচন করুন:" 
                                     else "এই শ্রেণির জন্য কোনো সাব-ক্লাস প্রযোজ্য নয়",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -1013,18 +1061,19 @@ fun EditProfileScreen(
                         // Sub-class Badge (both when active and general)
                         if (hasSubClasses) {
                             val streamBadgeBg = when (selectedStream) {
-                                "science" -> Color(0xFF2563EB)
+                                "science" -> Color(0xFF6366F1)
                                 "commerce" -> Color(0xFF059669)
                                 "arts" -> Color(0xFFD97706)
                                 else -> PrimaryIndigo
                             }
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 color = streamBadgeBg.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, streamBadgeBg.copy(alpha = 0.35f))
+                                border = BorderStroke(1.dp, streamBadgeBg.copy(alpha = 0.35f)),
+                                modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -1054,12 +1103,13 @@ fun EditProfileScreen(
                             }
                         } else {
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFF059669).copy(alpha = 0.1f),
-                                border = BorderStroke(1.dp, Color(0xFF059669).copy(alpha = 0.3f))
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF059669).copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, Color(0xFF059669).copy(alpha = 0.35f)),
+                                modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -1374,5 +1424,140 @@ fun EditProfileScreen(
                 }
             }
         }
+    }
+
+    if (showAvatarSelectionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAvatarSelectionDialog = false },
+            title = {
+                Text(
+                    text = if (isBengali) "প্রোফাইল ছবি পরিবর্তন" else "Change Profile Photo",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (isBengali) "আপনার পছন্দের ছবি নির্বাচন করুন অথবা নীচের অবতারগুলির মধ্যে একটি বেছে নিন:" 
+                               else "Choose your preferred photo or select one of the avatars below:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Pick from Gallery Button
+                    OutlinedButton(
+                        onClick = {
+                            showAvatarSelectionDialog = false
+                            singlePhotoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isBengali) "গ্যালারি থেকে ছবি বাছুন" else "Choose from Gallery")
+                    }
+
+                    // Google Photo Option
+                    if (auth?.photoUrl != null) {
+                        Button(
+                            onClick = {
+                                showAvatarSelectionDialog = false
+                                viewModel.updateProfileImageUri(auth.photoUrl)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isBengali) "গুগল অ্যাকাউন্ট ছবি ব্যবহার করুন" else "Use Google Photo")
+                        }
+                    }
+
+                    // Clear photo option
+                    if (profile.profileImageUri.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                showAvatarSelectionDialog = false
+                                viewModel.updateProfileImageUri("")
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                if (isBengali) "ছবি মুছে ফেলুন" else "Remove Photo", 
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+
+                    Divider()
+
+                    Text(
+                        text = if (isBengali) "প্রিমিয়াম অবতারসমূহ:" else "Premium Avatars:",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    // Grid of preset avatars (8 options)
+                    val avatars = listOf(
+                        "1" to "🎓", "2" to "🔭", "3" to "💻", "4" to "📚",
+                        "5" to "🎨", "6" to "🚀", "7" to "🦁", "8" to "🧠"
+                    )
+
+                    // 4x2 grid of avatars
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val chunkedAvatars = avatars.chunked(4)
+                        chunkedAvatars.forEach { rowItems ->
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                rowItems.forEach { (code, emoji) ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(54.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                when (code) {
+                                                    "1" -> Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF8B5CF6)))
+                                                    "2" -> Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF06B6D4)))
+                                                    "3" -> Brush.linearGradient(listOf(Color(0xFF1E293B), Color(0xFF0F766E)))
+                                                    "4" -> Brush.linearGradient(listOf(Color(0xFF10B981), Color(0xFF047857)))
+                                                    "5" -> Brush.linearGradient(listOf(Color(0xFFEC4899), Color(0xFFF43F5E)))
+                                                    "6" -> Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFDC2626)))
+                                                    "7" -> Brush.linearGradient(listOf(Color(0xFFFBBF24), Color(0xFFD97706)))
+                                                    "8" -> Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFFD946EF)))
+                                                    else -> Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF8B5CF6)))
+                                                }
+                                            )
+                                            .clickable {
+                                                showAvatarSelectionDialog = false
+                                                viewModel.updateProfileImageUri("avatar:$code")
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(emoji, fontSize = 24.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAvatarSelectionDialog = false }) {
+                    Text(if (isBengali) "বন্ধ করুন" else "Close")
+                }
+            }
+        )
     }
 }

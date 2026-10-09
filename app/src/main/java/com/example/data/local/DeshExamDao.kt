@@ -99,6 +99,15 @@ interface DeshExamDao {
     @Query("SELECT COUNT(*) FROM questions")
     suspend fun getQuestionsCount(): Int
 
+    @Query("SELECT COUNT(*) FROM question_attempts")
+    suspend fun getAttemptsCountOnce(): Int
+
+    @Query("SELECT COUNT(*) FROM question_attempts WHERE isCorrect = 1")
+    suspend fun getCorrectAttemptsCountOnce(): Int
+
+    @Query("SELECT SUM(timeSpentSeconds) FROM question_attempts")
+    suspend fun getTotalTimeSpentSecondsOnce(): Long
+
     // Attempts and Weak Areas
     @Insert
     suspend fun insertAttempt(attempt: QuestionAttemptEntity)
@@ -174,6 +183,18 @@ interface DeshExamDao {
 
     @Query("DELETE FROM questions WHERE id = :id")
     suspend fun deleteQuestionById(id: String)
+
+    @Query("DELETE FROM subjects")
+    suspend fun deleteAllSubjects()
+
+    @Query("DELETE FROM chapters")
+    suspend fun deleteAllChapters()
+
+    @Query("DELETE FROM topics")
+    suspend fun deleteAllTopics()
+
+    @Query("DELETE FROM questions")
+    suspend fun deleteAllQuestions()
 
     // Bookmarks
     @Insert(onConflict = OnConflictStrategy.REPLACE)

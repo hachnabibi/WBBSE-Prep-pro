@@ -1,0 +1,32 @@
+[
+  {
+    "id": "class_3_math_ch1",
+    "subjectId": "class_3_wbbpe_mathematics",
+    "chapterNumber": 1,
+    "title": "১. সংখ্যার খেলা ও স্থানীয় মান",
+    "description": "দুই ও তিন অঙ্কের সংখ্যার গঠন ও স্থানীয় মান নির্ণয়",
+    "totalTopics": 0,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_3_wbbpe",
+    "contentData": "# স্থানীয় মান ও প্রকৃত মান\nযেকোনো সংখ্যার ক্ষেত্রে প্রতিটি অঙ্কের দুটি মান থাকে - প্রকৃত মান এবং স্থানীয় মান।\n\nউদাহরণস্বরূপ: ২৫৩ সংখ্যাটিতে ৫ এর প্রকৃত মান ৫, কিন্তু স্থানীয় মান ৫০ (যেহেতু ৫ দশকের ঘরে আছে)।",
+    "solutionData": "## প্রশ্নোত্তর\n১. ২৫৩ সংখ্যাটিতে ৫ এর স্থানীয় মান কত?\n\n**উত্তর:** ৫০।"
+  },
+  {
+    "id": "class_3_math_ch2",
+    "subjectId": "class_3_wbbpe_mathematics",
+    "chapterNumber": 2,
+    "title": "২. সহজ যোগ ও বিয়োগ",
+    "description": "হাতে রেখে ও হাতে না রেখে তিন অঙ্কের যোগ ও বিয়োগ",
+    "totalTopics": 0,
+    "completedTopics": 0,
+    "bossUnlocked": false,
+    "bossCompleted": false,
+    "masteryPercentage": 0,
+    "classId": "class_3_wbbpe",
+    "contentData": "# সহজ যোগ ও বিয়োগ\nআমরা তিন অঙ্কের সংখ্যা কীভাবে সহজে যোগ বা বিয়োগ করতে পারি তা শিখব।",
+    "solutionData": "## প্রশ্নোত্তর\n১. ১২০ + ৮০ কত হয়?\n\n**উত্তর:** ২০০।"
+  }
+]

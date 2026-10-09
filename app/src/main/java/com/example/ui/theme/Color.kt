@@ -33,7 +33,7 @@ val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFF1F5F9)
 
 // Feedback & Status
-val ExamGold = Color(0xFFFBBF24)
+val ExamGold = Color(0xFFF97316)
 val ExamFlame = Color(0xFFD76D1D)
 val ExamRose = Color(0xFFE11D48)
 val ExamCyan = Color(0xFF06B6D4)

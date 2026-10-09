@@ -130,6 +130,7 @@ data class UserProgressEntity(
     val school: String = "Kolkata Model High School",
     val district: String = "কলকাতা",
     val targetExam: String = "WBBSE Madhyamik 2026",
+    val profileImageUri: String = "",
     val currentXp: Int = 2450,
     val level: Int = 6,
     val currentStreak: Int = 7,

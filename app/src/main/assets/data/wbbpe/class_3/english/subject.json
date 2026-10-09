@@ -1,0 +1,12 @@
+{
+  "id": "class_3_wbbpe_english",
+  "code": "ENGLISH",
+  "name": "ইংরেজি (বাটারফ্লাই)",
+  "textbookName": "বাটারফ্লাই (Butterfly)",
+  "totalChapters": 2,
+  "completedChapters": 0,
+  "masteryPercentage": 0,
+  "colorHex": 4281110255,
+  "classId": "class_3_wbbpe",
+  "stream": "common"
+}

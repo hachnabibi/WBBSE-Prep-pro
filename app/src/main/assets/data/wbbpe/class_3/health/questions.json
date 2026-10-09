@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c3_health_ch1_001",
+    "topicId": "",
+    "chapterId": "class_3_health_ch1",
+    "subjectId": "class_3_wbbpe_health",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "সুস্থ থাকতে আমাদের প্রতিদিন কখন ঘুম থেকে ওঠা উচিত?",
+    "optionsJson": "খুব ভোরে|দুপুরে|অনেক দেরিতে|সন্ধ্যায়",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "খুব ভোরে",
+    "explanation": "ভোের ওঠা স্বাস্থ্যের পক্ষে খুবই ভালো। এটি মন ও শরীরকে সারাদিন সতেজ রাখে।",
+    "marks": 1,
+    "tagsJson": "স্বাস্থ্য ও শারীরশিক্ষা|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  },
+  {
+    "id": "q_c3_health_ch2_001",
+    "topicId": "",
+    "chapterId": "class_3_health_ch2",
+    "subjectId": "class_3_wbbpe_health",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "রাস্তা পার হওয়ার সময় নিচের কোনটি ব্যবহার করা নিরাপদ?",
+    "optionsJson": "যেকোনো জায়গা দিয়ে দৌড়ে পার হওয়া|জেব্রা ক্রসিং|গাড়ির মাঝখান দিয়ে চলা|চোখ বন্ধ করে হাঁটা",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "জেব্রা ক্রসিং",
+    "explanation": "জেব্রা ক্রসিং দিয়ে রাস্তা পার হওয়া অত্যন্ত নিরাপদ, কারণ চালকেরা সেখানে গতি কমিয়ে দেন ও পথচারীদের রাস্তা পার হতে সাহায্য করেন।",
+    "marks": 1,
+    "tagsJson": "স্বাস্থ্য ও শারীরশিক্ষা|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  }
+]

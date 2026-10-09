@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c11_sem1_accountancy_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c11_sem1_accountancy_ch1",
+    "subjectId": "wbchse_c11_sem1_accountancy",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "আধুনিক হিসাবশাস্ত্রের জনক কাকে বলা হয়?",
+    "optionsJson": "লুকা প্যাসিওলি|অ্যাডাম স্মিথ|আলফ্রেড মার্শাল|ফিলিপ কোটলার",
+    "correctAnswerText": "লুকা প্যাসিওলি",
+    "explanation": "ইতালীয় গণিতবিদ লুকা প্যাসিওলি (Luca Pacioli)-কে আধুনিক হিসাবশাস্ত্র ও দু-তরফা দাখিলা পদ্ধতির জনক বলা হয়।",
+    "tagsJson": "[\"Introduction\"]",
+    "pyqYear": "",
+    "classId": "class_11_wbchse"
+  }
+]

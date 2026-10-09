@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q_c3_eng_ch1_001",
+    "topicId": "",
+    "chapterId": "class_3_eng_ch1",
+    "subjectId": "class_3_wbbpe_english",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "নিচের কোনটি ইংরেজি স্বরবর্ণ বা Vowel?",
+    "optionsJson": "B|M|E|X",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "E",
+    "explanation": "ইংরেজি বর্ণমালায় ৫টি Vowel আছে (A, E, I, O, U)। সুতরাং E হলো একটি Vowel।",
+    "marks": 1,
+    "tagsJson": "বাটারফ্লাই|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  },
+  {
+    "id": "q_c3_eng_ch2_001",
+    "topicId": "",
+    "chapterId": "class_3_eng_ch2",
+    "subjectId": "class_3_wbbpe_english",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "Which animal gives us milk (কোন প্রাণী আমাদের দুধ দেয়)?",
+    "optionsJson": "Dog|Cat|Cow|Tiger",
+    "correctOptionIndex": 2,
+    "correctAnswerText": "Cow",
+    "explanation": "গরু (Cow) আমাদের দুধ দেয়। কুকুর আমাদের পাহারা দেয় ও বিড়াল ইঁদুর ধরে।",
+    "marks": 1,
+    "tagsJson": "বাটারফ্লাই|তৃতীয় শ্রেণি",
+    "pyqYear": "2024",
+    "classId": "class_3_wbbpe"
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "q_c12_sem4_business_studies_ch1_001",
+    "topicId": "",
+    "chapterId": "wbchse_c12_sem4_business_studies_ch1",
+    "subjectId": "wbchse_c12_sem4_business_studies",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "বিপণন মিশ্রণের (Marketing Mix) জনক কাকে বলা হয়?",
+    "optionsJson": "ফিলিপ কোটলার|ই জে ম্যাককার্থি|পিটার ড্রাকার|উইলিয়াম স্ট্যান্টন",
+    "correctAnswerText": "ই জে ম্যাককার্থি",
+    "explanation": "অধ্যাপক ই জে ম্যাককার্থি (E. J. McCarthy) প্রথম ১৯৬০ সালে বিপণন মিশ্রণ বা 4Ps (Product, Price, Place, Promotion) ধারণাটি প্রবর্তন করেন।",
+    "tagsJson": "[\"Marketing Management\"]",
+    "pyqYear": "",
+    "classId": "class_12_wbchse"
+  }
+]

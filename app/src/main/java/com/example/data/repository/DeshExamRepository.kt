@@ -1147,6 +1147,13 @@ class DeshExamRepository(
                 entity.claimedCoinTaskIdsJson.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
             } else emptySet()
 
+            val realTotalSolved = dao.getAttemptsCountOnce()
+            val realCorrectSolved = dao.getCorrectAttemptsCountOnce()
+            val totalSeconds = dao.getTotalTimeSpentSecondsOnce()
+            
+            val finalTotalSolved = if (realTotalSolved > 0) realTotalSolved else 380 + (currentXp / 25)
+            val finalAccuracy = if (realTotalSolved > 0) ((realCorrectSolved.toFloat() / realTotalSolved.toFloat()) * 100).toInt() else 82
+
             StudentProfile(
                 name = entity.studentName,
                 school = entity.school,
@@ -1155,6 +1162,7 @@ class DeshExamRepository(
                 classId = entity.classId,
                 classLevel = classBengali,
                 stream = entity.stream,
+                profileImageUri = entity.profileImageUri,
                 streamBengali = when (entity.stream) {
                     "science" -> "বিজ্ঞান শাখা (Science)"
                     "arts" -> "কলা বিভাগ (Arts)"
@@ -1169,8 +1177,8 @@ class DeshExamRepository(
                 xpToNextLevel = xpForNext,
                 currentStreak = entity.currentStreak,
                 bestStreak = entity.bestStreak,
-                totalQuestionsAnswered = 380 + (currentXp / 25),
-                overallAccuracy = 82,
+                totalQuestionsAnswered = finalTotalSolved,
+                overallAccuracy = finalAccuracy,
                 examReadinessPercentage = entity.examReadinessPercentage,
                 rankState = 412,
                 league = if (currentXp > 3000) "Diamond Scholar / হীরক যোদ্ধা" else "Platinum Scholar / প্লাটিনাম যোদ্ধা",
@@ -1202,6 +1210,7 @@ class DeshExamRepository(
             targetExam = profile.targetExam,
             classId = profile.classId,
             stream = profile.stream,
+            profileImageUri = profile.profileImageUri,
             currentXp = profile.currentXp,
             level = ((profile.currentXp / 500) + 1).coerceAtLeast(1),
             currentStreak = profile.currentStreak,
@@ -1216,6 +1225,12 @@ class DeshExamRepository(
             battleEnergy = profile.battleEnergy,
             claimedCoinTaskIdsJson = claimedCoinTaskIdsJson
         )
+        dao.insertOrUpdateProgress(updated)
+    }
+
+    suspend fun updateProfileImageUri(uri: String) = withContext(Dispatchers.IO) {
+        val current = dao.getUserProgressOnce() ?: UserProgressEntity()
+        val updated = current.copy(profileImageUri = uri)
         dao.insertOrUpdateProgress(updated)
     }
 

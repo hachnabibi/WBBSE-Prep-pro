@@ -153,58 +153,60 @@ fun VideoHubScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             subjects.forEach { subject ->
                                 val isSelected = subject.id == selectedSubjectId
                                 val titleText = if (isBengali) subject.nameBengali else subject.nameEnglish
 
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.selectSubject(subject.id) },
-                                    label = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary 
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                        .clickable { viewModel.selectSubject(subject.id) }
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary 
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = titleText,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 11.5.sp,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        // Ultra-sleek transparent badge with a thin border
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color.Transparent, CircleShape)
+                                                .border(
+                                                    width = 0.5.dp,
+                                                    color = if (isSelected) Color.White.copy(alpha = 0.6f) 
+                                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                                    shape = CircleShape
+                                                )
+                                                .padding(horizontal = 3.dp, vertical = 0.5.dp)
                                         ) {
                                             Text(
-                                                text = titleText,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                fontSize = 13.sp
+                                                text = if (isBengali) "ভিডিও" else "Video",
+                                                fontSize = 7.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
                                             )
-                                            // Ultra-sleek transparent badge with a thin border
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(Color.Transparent, CircleShape)
-                                                    .border(
-                                                        width = 0.75.dp,
-                                                        color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                                        shape = CircleShape
-                                                    )
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (isBengali) "ভিডিও" else "Video",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
-                                                )
-                                            }
                                         }
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    border = BorderStroke(
-                                        width = 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                    ),
-                                    shape = RoundedCornerShape(20.dp)
-                                )
+                                    }
+                                }
                             }
                         }
                     }
