@@ -2402,10 +2402,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun fetchCustomPodcasts(className: String? = null) {
+    fun fetchCustomPodcasts(className: String? = null, boardId: String? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = firestoreService.getCustomPodcasts(className)
+                val result = firestoreService.getCustomPodcasts(className, boardId)
                 result.onSuccess { list ->
                     withContext(Dispatchers.Main) {
                         _customPodcasts.value = list
@@ -2426,6 +2426,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         narrator: String,
         className: String,
         audioUrl: String,
+        boardId: String = "WBBSE",
         onComplete: (Boolean, String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -2437,6 +2438,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     duration = duration,
                     narrator = narrator,
                     className = className,
+                    boardId = boardId,
                     audioUrl = audioUrl,
                     createdAt = System.currentTimeMillis()
                 )
@@ -2452,6 +2454,52 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     onComplete(false, "❌ ভুল হয়েছে: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun updateCustomPodcast(
+        podcast: com.example.data.firestore.FirestorePodcast,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = firestoreService.savePodcast(podcast)
+                withContext(Dispatchers.Main) {
+                    if (result.isSuccess) {
+                        _customPodcasts.value = _customPodcasts.value.map { if (it.id == podcast.id) podcast else it }
+                        onComplete(true, "পডকাস্ট সফলভাবে আপডেট করা হয়েছে!")
+                    } else {
+                        onComplete(false, "❌ পডকাস্ট আপডেটে ত্রুটি: ${result.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "❌ ভুল হয়েছে: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteCustomPodcast(
+        podcastId: String,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = firestoreService.deletePodcast(podcastId)
+                withContext(Dispatchers.Main) {
+                    if (result.isSuccess) {
+                        _customPodcasts.value = _customPodcasts.value.filter { it.id != podcastId }
+                        onComplete(true, "পডকাস্ট সফলভাবে মুছে ফেলা হয়েছে!")
+                    } else {
+                        onComplete(false, "❌ পডকাস্ট ডিলিট করতে সমস্যা হয়েছে: ${result.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "❌ ত্রুটি: ${e.localizedMessage}")
                 }
             }
         }
@@ -2480,6 +2528,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         val duration = item.optString("duration", "৫ মিনিট").trim()
                         val narrator = item.optString("narrator", "সহায়ক শিক্ষক").trim()
                         val className = item.optString("className", "Class 10").trim()
+                        val boardId = item.optString("boardId", if (className.contains("11") || className.contains("12")) "WBCHSE" else "WBBSE").trim()
                         val audioUrl = item.optString("audioUrl").trim()
                         
                         if (title.isNotBlank() && subject.isNotBlank() && audioUrl.isNotBlank()) {
@@ -2491,6 +2540,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                                     duration = duration,
                                     narrator = narrator,
                                     className = className,
+                                    boardId = boardId,
                                     audioUrl = audioUrl,
                                     createdAt = timestamp
                                 )
@@ -2512,7 +2562,17 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         val duration = parts.getOrNull(2)?.trim()?.ifBlank { "৫ মিনিট" } ?: "৫ মিনিট"
                         val narrator = parts.getOrNull(3)?.trim()?.ifBlank { "সহায়ক শিক্ষক" } ?: "সহায়ক শিক্ষক"
                         val className = parts.getOrNull(4)?.trim()?.ifBlank { "Class 10" } ?: "Class 10"
-                        val audioUrl = parts.getOrNull(5)?.trim() ?: ""
+                        
+                        // Support both 6-column (without explicit board) and 7-column (with board) formats
+                        val (boardId, audioUrl) = if (parts.size >= 7) {
+                            val b = parts.getOrNull(5)?.trim()?.ifBlank { "WBBSE" } ?: "WBBSE"
+                            val u = parts.getOrNull(6)?.trim() ?: ""
+                            Pair(b, u)
+                        } else {
+                            val defaultBoard = if (className.contains("11") || className.contains("12")) "WBCHSE" else "WBBSE"
+                            val u = parts.getOrNull(5)?.trim() ?: ""
+                            Pair(defaultBoard, u)
+                        }
                         
                         if (title.isNotBlank() && subject.isNotBlank() && audioUrl.isNotBlank()) {
                             list.add(
@@ -2523,6 +2583,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                                     duration = duration,
                                     narrator = narrator,
                                     className = className,
+                                    boardId = boardId,
                                     audioUrl = audioUrl,
                                     createdAt = timestamp
                                 )

@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.example.util.AudioPodcastManager
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -225,8 +228,7 @@ fun DeshExamApp(
         val showBottomBar = !isFullScreenMode &&
                 currentScreen != AppScreen.EDIT_PROFILE &&
                 currentScreen != AppScreen.ADMIN_PANEL &&
-                currentScreen != AppScreen.MEMBERSHIP &&
-                currentScreen != AppScreen.AUDIO_PODCASTS
+                currentScreen != AppScreen.MEMBERSHIP
 
         var isHeaderVisible by remember { mutableStateOf(true) }
 
@@ -559,6 +561,7 @@ fun DeshExamApp(
                     AudioPodcastsScreen(
                         isBengali = isBengali,
                         onBack = { viewModel.goBack() },
+                        onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
                         classId = profile.classId,
                         unlockedPodcasts = profile.unlockedPodcasts,
                         onUnlockPodcast = { title -> viewModel.unlockAudioPodcast(title) },
@@ -867,6 +870,42 @@ fun DeshExamApp(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+            }
+
+            // Global persistent mini-player across the app when podcast is active
+            if (currentScreen != AppScreen.AUDIO_PODCASTS && AudioPodcastManager.currentlyPlaying != null) {
+                com.example.ui.components.PodcastMiniPlayer(
+                    podcast = AudioPodcastManager.currentlyPlaying,
+                    isPlaying = AudioPodcastManager.isPlaying,
+                    progress = AudioPodcastManager.currentProgress,
+                    currentPositionMs = AudioPodcastManager.currentPositionMs,
+                    durationMs = AudioPodcastManager.durationMs,
+                    playbackSpeed = AudioPodcastManager.playbackSpeed,
+                    isBengali = isBengali,
+                    hasPreviousTrack = false,
+                    hasNextTrack = false,
+                    onPlayPause = { AudioPodcastManager.togglePlayPause(context) },
+                    onRewind10 = { AudioPodcastManager.seekRelative(-10000L, context) },
+                    onForward10 = { AudioPodcastManager.seekRelative(10000L, context) },
+                    onPreviousTrack = null,
+                    onNextTrack = null,
+                    onSeek = { fraction ->
+                        val targetMs = (fraction * AudioPodcastManager.durationMs).toLong()
+                        AudioPodcastManager.seekTo(targetMs, context)
+                    },
+                    onSpeedChange = { speed ->
+                        AudioPodcastManager.setSpeed(speed, context)
+                    },
+                    onClose = {
+                        AudioPodcastManager.stop(context)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .then(
+                            if (showBottomBar) Modifier.padding(bottom = 2.dp)
+                            else Modifier.navigationBarsPadding().padding(bottom = 2.dp)
+                        )
+                )
             }
         }
     }

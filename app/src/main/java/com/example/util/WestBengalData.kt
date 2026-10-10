@@ -88,7 +88,7 @@ object WestBengalData {
             "রাণীগঞ্জ হাই স্কুল"
         ),
         "পশ্চিম মেদিনীপুর" to listOf(
-            "মেদিনীপুর ক Collegiate স্কুল",
+            "মেদিনীপুর কলেজিয়েট স্কুল",
             "আড়াবাড়ি হাই স্কুল",
             "খড়গপুর ট্রাফিক হাই স্কুল",
             "ঘাটাল বিদ্যাসাগর উচ্চ বিদ্যালয়"
@@ -181,7 +181,7 @@ object WestBengalData {
 
     val districtBlocksMap: Map<String, List<String>> = mapOf(
         "কলকাতা" to listOf(
-            "কলকাতা পৌরসংস্থা এলাকা (KMC)",
+            "কলকাতা পৌরসংস্থা এলাকা",
             "উত্তর কলকাতা জোন",
             "দক্ষিণ কলকাতা জোন",
             "মধ্য কলকাতা জোন",
@@ -313,8 +313,8 @@ object WestBengalData {
     )
 
     fun getBlocksForDistrict(districtName: String?): List<String> {
-        if (districtName.isNullOrBlank()) return listOf("সদর ব্লক (Sadar Block)", "১ম ব্লক / থানা অঞ্চল", "পৌরসভা এলাকা", "অন্যান্য ব্লক")
-        return districtBlocksMap[districtName] ?: listOf("সদর ব্লক (Sadar Block)", "১ম ব্লক / থানা অঞ্চল", "পৌরসভা এলাকা", "অন্যান্য ব্লক")
+        if (districtName.isNullOrBlank()) return listOf("সদর ব্লক", "১ম ব্লক / থানা অঞ্চল", "পৌরসভা এলাকা", "অন্যান্য ব্লক")
+        return districtBlocksMap[districtName] ?: listOf("সদর ব্লক", "১ম ব্লক / থানা অঞ্চল", "পৌরসভা এলাকা", "অন্যান্য ব্লক")
     }
 
     val blockSchoolsMap: MutableMap<String, MutableList<String>> = mutableMapOf(
@@ -334,7 +334,7 @@ object WestBengalData {
         "কালনা-১" to mutableListOf("কালনা মহারাজা উচ্চ বিদ্যালয়"),
         "আসানসোল" to mutableListOf("আসানসোল রামকৃষ্ণ মিশন উচ্চ বিদ্যালয়", "আসানসোল ওল্ড স্টেশন হাই স্কুল"),
         "দুর্গাপুর" to mutableListOf("দুর্গাপুর ডি.এ.ভি. মডেল স্কুল"),
-        "মেদিনীপুর সদর" to mutableListOf("মেদিনীপুর ক Collegiate স্কুল", "মেদিনীপুর টাউন হাই স্কুল"),
+        "মেদিনীপুর সদর" to mutableListOf("মেদিনীপুর কলেজিয়েট স্কুল", "মেদিনীপুর টাউন হাই স্কুল"),
         "খড়গপুর-১" to mutableListOf("খড়গপুর ট্রাফিক হাই স্কুল", "খড়গপুর রেলওয়ে হাই স্কুল"),
         "ঘাটাল" to mutableListOf("ঘাটাল বিদ্যাসাগর উচ্চ বিদ্যালয়"),
         "তমলুক" to mutableListOf("তমলুক হ্যামিল্টন হাই স্কুল"),

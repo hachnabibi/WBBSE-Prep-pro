@@ -444,6 +444,7 @@ data class FirestorePodcast(
     val duration: String = "",
     val narrator: String = "",
     val className: String = "Class 10",
+    val boardId: String = "WBBSE",
     val audioUrl: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )

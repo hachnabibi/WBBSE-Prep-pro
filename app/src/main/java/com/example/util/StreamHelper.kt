@@ -94,7 +94,7 @@ object StreamHelper {
     fun getFormattedStreamLabel(streamString: String?, isBengali: Boolean = true): String {
         val streams = parseStreams(streamString)
         if (streams.isEmpty() || streams.contains("common") || streams.contains("all")) {
-            return if (isBengali) "সকল বিভাগ (Common)" else "Common / All"
+            return if (isBengali) "সকল বিভাগ" else "Common / All"
         }
 
         return streams.joinToString(" • ") { s ->

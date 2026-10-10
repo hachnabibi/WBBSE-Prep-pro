@@ -117,12 +117,12 @@ fun AssessmentScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .padding(16.dp),
-                contentAlignment = Alignment.TopCenter
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Card(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isDark) Color(0xFF1E293B) else Color.White
                     ),
@@ -130,20 +130,39 @@ fun AssessmentScreen(
                         1.dp,
                         if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 32.dp)
+                    modifier = Modifier.fillMaxWidth(0.92f)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 44.dp),
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Warning Icon in the CENTER TOP of the card
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color(0xFF7F1D1D).copy(alpha = 0.4f) else Color(0xFFFEE2E2))
+                                .border(
+                                    2.dp,
+                                    if (isDark) Color(0xFFEF4444).copy(alpha = 0.5f) else Color(0xFFFECACA),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = "Warning",
+                                tint = WrongRed,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
                         Text(
                             text = if (isBengali) "টেস্ট ছেড়ে বের হতে চান?" else "Exit Test?",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             textAlign = TextAlign.Center,
                             color = if (isDark) Color.White else Color(0xFF0F172A)
                         )
@@ -158,7 +177,7 @@ fun AssessmentScreen(
                             color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -196,27 +215,6 @@ fun AssessmentScreen(
                             }
                         }
                     }
-                }
-
-                // Overlapping Warning Sign in the CENTER TOP of the card
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF7F1D1D) else Color(0xFFFEF2F2))
-                        .border(
-                            2.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WarningAmber,
-                        contentDescription = "Warning",
-                        tint = WrongRed,
-                        modifier = Modifier.size(36.dp)
-                    )
                 }
             }
         }
@@ -499,6 +497,7 @@ fun AssessmentScreen(
                                                 putExtra(com.example.notification.AudioPodcastService.EXTRA_DURATION, podcast.duration)
                                                 putExtra(com.example.notification.AudioPodcastService.EXTRA_CLASS, podcast.className)
                                                 putExtra(com.example.notification.AudioPodcastService.EXTRA_URL, podcast.audioUrl)
+                                                putExtra(com.example.notification.AudioPodcastService.EXTRA_BOARD_ID, podcast.boardId)
                                             }
                                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                                                 context.startForegroundService(intent)

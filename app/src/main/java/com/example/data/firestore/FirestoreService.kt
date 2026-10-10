@@ -1380,17 +1380,42 @@ class FirestoreService(
         }
     }
 
-    suspend fun getCustomPodcasts(className: String? = null): Result<List<FirestorePodcast>> = withContext(Dispatchers.IO) {
+    suspend fun getCustomPodcasts(className: String? = null, boardId: String? = null): Result<List<FirestorePodcast>> = withContext(Dispatchers.IO) {
         try {
-            var query: Query = firestore.collection(COLLECTION_PODCASTS)
-            if (!className.isNullOrBlank()) {
-                query = query.whereEqualTo("className", className)
-            }
-            val snapshot = query.get().await()
+            val snapshot = firestore.collection(COLLECTION_PODCASTS).get().await()
             val list = snapshot.documents.mapNotNull { it.toObject(FirestorePodcast::class.java) }
-            Result.success(list)
+            val filtered = list.filter { item ->
+                val matchesClass = if (!className.isNullOrBlank() && className != "ALL") {
+                    item.className.equals(className, ignoreCase = true) ||
+                    item.className.replace(" ", "").equals(className.replace(" ", ""), ignoreCase = true) ||
+                    item.className == "ALL" ||
+                    item.className.isBlank()
+                } else true
+
+                val matchesBoard = if (!boardId.isNullOrBlank() && boardId != "ALL") {
+                    item.boardId.equals(boardId, ignoreCase = true) ||
+                    item.boardId == "ALL" ||
+                    item.boardId.isBlank()
+                } else true
+
+                matchesClass && matchesBoard
+            }
+            Result.success(filtered)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting custom podcasts: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deletePodcast(podcastId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection(COLLECTION_PODCASTS)
+                .document(podcastId)
+                .delete()
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting podcast: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }

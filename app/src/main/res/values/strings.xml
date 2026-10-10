@@ -53,8 +53,8 @@
 
     <!-- Home & Dashboard Screen -->
     <string name="home_greeting">নমস্কার, পরীক্ষার্থী!</string>
-    <string name="home_daily_streak">ধারাবাহিকতা (Streak)</string>
-    <string name="home_total_xp">মোট অর্জিত পয়েন্ট (XP)</string>
+    <string name="home_daily_streak">ধারাবাহিকতা</string>
+    <string name="home_total_xp">মোট অর্জিত পয়েন্ট</string>
     <string name="home_current_level">বর্তমান লেভেল</string>
     <string name="home_daily_challenge">আজকের চ্যালেঞ্জ</string>
     <string name="home_quick_practice">দ্রুত অনুশীলন</string>
@@ -100,7 +100,7 @@
     <string name="mock_duration">সময়সীমা</string>
     <string name="mock_full_marks">মোট নম্বর</string>
     <string name="mock_pass_marks">উত্তীর্ণ নম্বর</string>
-    <string name="mock_pyq_title">বিগত বছরের প্রশ্নপত্র (PYQ)</string>
+    <string name="mock_pyq_title">বিগত বছরের প্রশ্নপত্র</string>
     <string name="mock_year_2025">মাধ্যমিক ২০২৫</string>
     <string name="mock_year_2024">মাধ্যমিক ২০২৪</string>
     <string name="mock_year_2023">মাধ্যমিক ২০২৩</string>
@@ -153,18 +153,18 @@
     <string name="settings_title">অ্যাপ সেটিংস ও সুবিধা</string>
     <string name="settings_display_section">ডিসপ্লে ও টেক্সট ভিজিবিলিটি</string>
     <string name="settings_font_size">ফন্ট সাইজ ও লেখার স্পষ্টতা</string>
-    <string name="settings_dark_theme">ডার্ক মোড (অন্ধকার থিম)</string>
-    <string name="settings_sound_fx">শব্দ প্রভাব (Sound FX)</string>
+    <string name="settings_dark_theme">অন্ধকার থিম</string>
+    <string name="settings_sound_fx">শব্দ প্রভাব</string>
     <string name="settings_notifications">দৈনিক পরীক্ষার নোটিফিকেশন</string>
-    <string name="settings_language">ভাষা নির্বাচন (Language)</string>
-    <string name="settings_bengali">বাংলা (Bengali)</string>
-    <string name="settings_english">ইংরেজি (English)</string>
+    <string name="settings_language">ভাষা নির্বাচন</string>
+    <string name="settings_bengali">বাংলা</string>
+    <string name="settings_english">ইংরেজি</string>
     <string name="settings_district_school">জেলা ও বিদ্যালয় নির্বাচন</string>
     <string name="settings_about_app">অ্যাপ সম্পর্কে</string>
-    <string name="settings_app_version">ভার্সন: ২.৫.০ (WBBSE Madhyamik)</string>
+    <string name="settings_app_version">সংস্করণ: ২.৫.০</string>
 
     <!-- Pro Membership -->
-    <string name="pro_title">WBBSE Prep প্রো মেম্বারশিপ</string>
+    <string name="pro_title">প্রো মেম্বারশিপ</string>
     <string name="pro_feature_1">✓ আনলিমিটেড মক টেস্ট ও চ্যাপ্টার ব্যাটল</string>
     <string name="pro_feature_2">✓ সম্পূর্ণ অফলাইন মোড ও পিডিএফ ডাউনলোড</string>
     <string name="pro_feature_3">✓ বিশেষজ্ঞ শিক্ষক দ্বারা তৈরি বিশেষ লাস্ট মিনিট সাজেশন</string>

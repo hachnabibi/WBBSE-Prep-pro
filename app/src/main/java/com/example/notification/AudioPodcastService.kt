@@ -13,14 +13,21 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
-import com.example.R
 import com.example.ui.screens.AudioPodcast
 import com.example.util.AudioPodcastManager
 import kotlinx.coroutines.*
+import java.util.Locale
 
-class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
+class AudioPodcastService : Service(),
+    MediaPlayer.OnPreparedListener,
+    MediaPlayer.OnCompletionListener,
+    MediaPlayer.OnErrorListener,
+    MediaPlayer.OnBufferingUpdateListener {
 
     companion object {
         const val CHANNEL_ID = "audio_podcast_playback_channel"
@@ -30,6 +37,7 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
         const val ACTION_PLAY_PAUSE = "com.example.action.PLAY_PAUSE"
         const val ACTION_STOP = "com.example.action.STOP"
         const val ACTION_SEEK = "com.example.action.SEEK"
+        const val ACTION_SPEED = "com.example.action.SPEED"
 
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_SUBJECT = "extra_subject"
@@ -37,16 +45,25 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
         const val EXTRA_DURATION = "extra_duration"
         const val EXTRA_CLASS = "extra_class"
         const val EXTRA_URL = "extra_url"
+        const val EXTRA_BOARD_ID = "extra_board_id"
         const val EXTRA_SEEK_POS = "extra_seek_pos"
+        const val EXTRA_SPEED = "extra_speed"
+
+        private const val UTTERANCE_ID = "podcast_narration_utterance"
     }
 
     private var mediaPlayer: MediaPlayer? = null
+    private var textToSpeech: TextToSpeech? = null
+    private var isTtsReady = false
+    private var isUsingTts = false
+    private var pendingPodcastToNarrate: AudioPodcast? = null
+
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var progressJob: Job? = null
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 
-    // Audio focus listener for handling phone calls or interruptions
+    // Audio focus listener
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_LOSS -> {
@@ -67,6 +84,48 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
         audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         createNotificationChannel()
         setupManagerCallbacks()
+        initTextToSpeech()
+    }
+
+    private fun initTextToSpeech() {
+        try {
+            textToSpeech = TextToSpeech(applicationContext) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    val langResult = textToSpeech?.setLanguage(Locale("bn", "IN"))
+                    if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        textToSpeech?.language = Locale.getDefault()
+                    }
+                    textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {
+                            AudioPodcastManager.isPlaying = true
+                            AudioPodcastManager.isBuffering = false
+                            AudioPodcastManager.statusMessage = null
+                            AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = true) }
+                        }
+
+                        override fun onDone(utteranceId: String?) {
+                            if (isUsingTts) {
+                                AudioPodcastManager.currentProgress = 1f
+                                stopPodcastService()
+                            }
+                        }
+
+                        override fun onError(utteranceId: String?) {
+                            if (isUsingTts) {
+                                AudioPodcastManager.isBuffering = false
+                            }
+                        }
+                    })
+                    isTtsReady = true
+                    pendingPodcastToNarrate?.let { pending ->
+                        pendingPodcastToNarrate = null
+                        startTtsNarration(pending)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -80,8 +139,17 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
                 val duration = intent.getStringExtra(EXTRA_DURATION) ?: ""
                 val className = intent.getStringExtra(EXTRA_CLASS) ?: "Class 10"
                 val audioUrl = intent.getStringExtra(EXTRA_URL) ?: ""
+                val boardId = intent.getStringExtra(EXTRA_BOARD_ID) ?: "WBBSE"
 
-                val podcast = AudioPodcast(title, subject, duration, narrator, className, audioUrl)
+                val podcast = AudioPodcast(
+                    title = title,
+                    subject = subject,
+                    duration = duration,
+                    narrator = narrator,
+                    className = className,
+                    audioUrl = audioUrl,
+                    boardId = boardId
+                )
                 startNewPodcast(podcast)
             }
             ACTION_PLAY_PAUSE -> {
@@ -92,7 +160,11 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
             }
             ACTION_SEEK -> {
                 val pos = intent.getLongExtra(EXTRA_SEEK_POS, 0L)
-                mediaPlayer?.seekTo(pos.toInt())
+                seekToPosition(pos)
+            }
+            ACTION_SPEED -> {
+                val speed = intent.getFloatExtra(EXTRA_SPEED, 1.0f)
+                setPlaybackSpeed(speed)
             }
         }
         return START_NOT_STICKY
@@ -106,12 +178,392 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
             stopPodcastService()
         }
         AudioPodcastManager.onSeekAction = { pos ->
-            val seekIntent = Intent(this, AudioPodcastService::class.java).apply {
-                action = ACTION_SEEK
-                putExtra(EXTRA_SEEK_POS, pos)
-            }
-            startService(seekIntent)
+            seekToPosition(pos)
         }
+        AudioPodcastManager.onSpeedChangeAction = { speed ->
+            setPlaybackSpeed(speed)
+        }
+    }
+
+    private fun parseDurationToMs(durStr: String): Long {
+        val clean = durStr.trim()
+        val bengaliToAscii = clean.map {
+            when (it) {
+                '০' -> '0'; '১' -> '1'; '২' -> '2'; '৩' -> '3'; '৪' -> '4'
+                '৫' -> '5'; '৬' -> '6'; '৭' -> '7'; '৮' -> '8'; '৯' -> '9'
+                else -> it
+            }
+        }.joinToString("")
+        val digits = Regex("\\d+").find(bengaliToAscii)?.value?.toIntOrNull() ?: 5
+        return digits * 60 * 1000L
+    }
+
+    private fun ensureAudioVolume() {
+        try {
+            audioManager?.let { am ->
+                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                val curVol = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                if (curVol <= 1 && maxVol > 0) {
+                    val target = (maxVol * 0.85f).toInt().coerceAtLeast(1)
+                    am.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun getSubjectAssetAudio(podcast: AudioPodcast): String {
+        val sub = podcast.subject.lowercase()
+        return when {
+            sub.contains("ইতিহাস") || sub.contains("history") -> "audio/lecture_history.mp3"
+            sub.contains("বিজ্ঞান") || sub.contains("science") || sub.contains("তড়িৎ") || sub.contains("পদার্থ") || sub.contains("রসায়ন") || sub.contains("জীবন") -> "audio/lecture_science.mp3"
+            sub.contains("ভূগোল") || sub.contains("geography") || sub.contains("পরিবেশ") -> "audio/lecture_geography.mp3"
+            sub.contains("গণিত") || sub.contains("math") -> "audio/lecture_math.mp3"
+            sub.contains("বাংলা") || sub.contains("bengali") || sub.contains("কোনি") || sub.contains("সাহিত্য") -> "audio/lecture_bengali.mp3"
+            else -> "audio/lecture_general.mp3"
+        }
+    }
+
+    private fun prepareMediaPlayer(): MediaPlayer {
+        val player = mediaPlayer ?: MediaPlayer().also { mediaPlayer = it }
+        player.reset()
+        player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
+        player.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build()
+        )
+        player.setVolume(1.0f, 1.0f)
+        player.setOnPreparedListener(this@AudioPodcastService)
+        player.setOnCompletionListener(this@AudioPodcastService)
+        player.setOnErrorListener(this@AudioPodcastService)
+        player.setOnBufferingUpdateListener(this@AudioPodcastService)
+        return player
+    }
+
+    private fun playFromBundledAsset(podcast: AudioPodcast) {
+        try {
+            isUsingTts = false
+            AudioPodcastManager.isBuffering = false
+            AudioPodcastManager.statusMessage = null
+            val player = prepareMediaPlayer()
+            val assetPath = getSubjectAssetAudio(podcast)
+            val afd = applicationContext.assets.openFd(assetPath)
+            player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+            player.isLooping = true
+            player.prepareAsync()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Graceful fallback to TTS narration if asset opening fails
+            isUsingTts = true
+            startTtsNarration(podcast)
+        }
+    }
+
+    private fun startNewPodcast(podcast: AudioPodcast) {
+        // Reset states
+        stopProgressTracker()
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.reset()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            textToSpeech?.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        AudioPodcastManager.currentlyPlaying = podcast
+        AudioPodcastManager.isPlaying = false
+        AudioPodcastManager.isBuffering = true
+        AudioPodcastManager.statusMessage = "অডিও লোড হচ্ছে..."
+        AudioPodcastManager.currentProgress = 0f
+        AudioPodcastManager.currentPositionMs = 0L
+
+        val estimatedDuration = parseDurationToMs(podcast.duration)
+        AudioPodcastManager.durationMs = estimatedDuration
+
+        showNotification(podcast, isPlaying = false)
+        ensureAudioVolume()
+
+        // Determine playback source: remote url or bundled asset lecture
+        val validUrl = podcast.audioUrl.trim()
+        val isHttpUrl = validUrl.startsWith("http://", ignoreCase = true) || validUrl.startsWith("https://", ignoreCase = true)
+
+        if (isHttpUrl && !validUrl.contains("soundhelix.com", ignoreCase = true)) {
+            isUsingTts = false
+            playViaMediaPlayer(validUrl, podcast)
+        } else {
+            // Guaranteed instant playback from local bundled MP3 asset
+            playFromBundledAsset(podcast)
+        }
+    }
+
+    private fun playViaMediaPlayer(url: String, podcast: AudioPodcast) {
+        try {
+            val player = prepareMediaPlayer()
+            player.setDataSource(url)
+            player.prepareAsync()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to bundled asset
+            playFromBundledAsset(podcast)
+        }
+    }
+
+    private fun startTtsNarration(podcast: AudioPodcast) {
+        isUsingTts = true
+        if (!isTtsReady) {
+            pendingPodcastToNarrate = podcast
+            AudioPodcastManager.isBuffering = true
+            AudioPodcastManager.statusMessage = "অডিও প্রস্তুত করা হচ্ছে..."
+            return
+        }
+
+        AudioPodcastManager.isBuffering = false
+        AudioPodcastManager.statusMessage = null
+
+        val script = buildLectureScript(podcast)
+        val speed = AudioPodcastManager.playbackSpeed
+        try {
+            textToSpeech?.setSpeechRate(speed)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                textToSpeech?.speak(script, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
+            } else {
+                @Suppress("DEPRECATION")
+                val params = HashMap<String, String>()
+                params[TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID] = UTTERANCE_ID
+                textToSpeech?.speak(script, TextToSpeech.QUEUE_FLUSH, params)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        AudioPodcastManager.isPlaying = true
+        showNotification(podcast, isPlaying = true)
+        startProgressTracker()
+    }
+
+    private fun buildLectureScript(podcast: AudioPodcast): String {
+        val cleanSubject = podcast.subject.replace(Regex("\\s*\\([A-Za-z\\s&]+\\)\\s*"), "").trim()
+        val narratorIntro = if (podcast.narrator.isNotBlank()) "উপস্থাপনায় আছেন ${podcast.narrator}।" else ""
+        return "${podcast.title}। বিষয়: ${cleanSubject}। ${narratorIntro} এই অডিও পডকাস্ট ক্লাসে গুরুত্বপূর্ণ তথ্য ও সারসংক্ষেপ ব্যাখ্যা করা হচ্ছে। মনোযোগ দিয়ে শুনুন এবং পরীক্ষার প্রস্তুতি দৃঢ় করুন।"
+    }
+
+    private fun togglePlayPause() {
+        if (AudioPodcastManager.isPlaying) {
+            pausePlayback()
+        } else {
+            resumePlayback()
+        }
+    }
+
+    private fun resumePlayback() {
+        try {
+            requestAudioFocus()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        ensureAudioVolume()
+
+        if (isUsingTts) {
+            val podcast = AudioPodcastManager.currentlyPlaying ?: return
+            val script = buildLectureScript(podcast)
+            try {
+                textToSpeech?.setSpeechRate(AudioPodcastManager.playbackSpeed)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    textToSpeech?.speak(script, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
+                } else {
+                    @Suppress("DEPRECATION")
+                    textToSpeech?.speak(script, TextToSpeech.QUEUE_FLUSH, null)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            AudioPodcastManager.isPlaying = true
+            AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = true) }
+            startProgressTracker()
+        } else {
+            mediaPlayer?.let { player ->
+                if (!player.isPlaying) {
+                    player.setVolume(1.0f, 1.0f)
+                    player.start()
+                    AudioPodcastManager.isPlaying = true
+                    AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = true) }
+                    startProgressTracker()
+                }
+            }
+        }
+    }
+
+    private fun pausePlayback() {
+        if (isUsingTts) {
+            textToSpeech?.stop()
+            AudioPodcastManager.isPlaying = false
+            AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = false) }
+            stopProgressTracker()
+        } else {
+            mediaPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    AudioPodcastManager.isPlaying = false
+                    AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = false) }
+                    stopProgressTracker()
+                }
+            }
+        }
+    }
+
+    private fun seekToPosition(pos: Long) {
+        val bounded = pos.coerceIn(0L, AudioPodcastManager.durationMs.coerceAtLeast(0L))
+        AudioPodcastManager.currentPositionMs = bounded
+        if (AudioPodcastManager.durationMs > 0) {
+            AudioPodcastManager.currentProgress = bounded.toFloat() / AudioPodcastManager.durationMs.toFloat()
+        }
+        if (!isUsingTts && mediaPlayer != null) {
+            try {
+                mediaPlayer?.seekTo(bounded.toInt())
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun setPlaybackSpeed(speed: Float) {
+        AudioPodcastManager.playbackSpeed = speed
+        try {
+            if (isUsingTts) {
+                textToSpeech?.setSpeechRate(speed)
+            } else {
+                mediaPlayer?.let { player ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        val params = player.playbackParams
+                        params.speed = speed
+                        player.playbackParams = params
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun startProgressTracker() {
+        progressJob?.cancel()
+        progressJob = serviceScope.launch {
+            while (isActive) {
+                if (isUsingTts) {
+                    if (AudioPodcastManager.isPlaying) {
+                        val step = (500L * AudioPodcastManager.playbackSpeed).toLong()
+                        val nextPos = (AudioPodcastManager.currentPositionMs + step).coerceAtMost(AudioPodcastManager.durationMs)
+                        AudioPodcastManager.currentPositionMs = nextPos
+                        if (AudioPodcastManager.durationMs > 0) {
+                            AudioPodcastManager.currentProgress = nextPos.toFloat() / AudioPodcastManager.durationMs.toFloat()
+                        }
+                    }
+                } else {
+                    mediaPlayer?.let { player ->
+                        if (player.isPlaying) {
+                            val pos = player.currentPosition.toLong()
+                            val duration = player.duration.toLong()
+                            if (duration > 0) {
+                                AudioPodcastManager.currentPositionMs = pos
+                                AudioPodcastManager.durationMs = duration
+                                AudioPodcastManager.currentProgress = pos.toFloat() / duration.toFloat()
+                            }
+                        }
+                    }
+                }
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopProgressTracker() {
+        progressJob?.cancel()
+        progressJob = null
+    }
+
+    private fun stopPodcastService() {
+        stopProgressTracker()
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        mediaPlayer = null
+
+        try {
+            textToSpeech?.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        AudioPodcastManager.currentlyPlaying = null
+        AudioPodcastManager.isPlaying = false
+        AudioPodcastManager.isBuffering = false
+        AudioPodcastManager.statusMessage = null
+        AudioPodcastManager.currentProgress = 0f
+        AudioPodcastManager.currentPositionMs = 0L
+        AudioPodcastManager.durationMs = 0L
+
+        abandonAudioFocus()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
+    override fun onPrepared(mp: MediaPlayer?) {
+        val duration = mp?.duration?.toLong() ?: 0L
+        if (duration > 0 && AudioPodcastManager.durationMs <= 0L) {
+            AudioPodcastManager.durationMs = duration
+        }
+        AudioPodcastManager.isBuffering = false
+        AudioPodcastManager.statusMessage = null
+        ensureAudioVolume()
+        mp?.setVolume(1.0f, 1.0f)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && AudioPodcastManager.playbackSpeed != 1.0f) {
+            try {
+                val params = mp?.playbackParams
+                params?.speed = AudioPodcastManager.playbackSpeed
+                if (params != null) {
+                    mp?.playbackParams = params
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        resumePlayback()
+    }
+
+    override fun onBufferingUpdate(mp: MediaPlayer?, percent: Int) {
+        // Buffering progress available if needed
+    }
+
+    override fun onCompletion(mp: MediaPlayer?) {
+        stopPodcastService()
+    }
+
+    override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
+        // Fallback to bundled asset rather than crashing or silent TTS
+        AudioPodcastManager.currentlyPlaying?.let { podcast ->
+            playFromBundledAsset(podcast)
+        } ?: run {
+            stopPodcastService()
+        }
+        return true
     }
 
     private fun requestAudioFocus(): Boolean {
@@ -148,142 +600,15 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
         }
     }
 
-    private fun startNewPodcast(podcast: AudioPodcast) {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .build()
-                )
-                setOnPreparedListener(this@AudioPodcastService)
-                setOnCompletionListener(this@AudioPodcastService)
-                setOnErrorListener(this@AudioPodcastService)
-            }
-        } else {
-            mediaPlayer?.reset()
-        }
-
-        AudioPodcastManager.currentlyPlaying = podcast
-        AudioPodcastManager.isPlaying = false
-        AudioPodcastManager.currentProgress = 0f
-        AudioPodcastManager.currentPositionMs = 0L
-        AudioPodcastManager.durationMs = 0L
-
-        showNotification(podcast, isPlaying = false)
-
-        try {
-            val url = if (podcast.audioUrl.isNotEmpty()) podcast.audioUrl else "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-            mediaPlayer?.setDataSource(url)
-            mediaPlayer?.prepareAsync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            stopPodcastService()
-        }
-    }
-
-    private fun togglePlayPause() {
-        val player = mediaPlayer ?: return
-        if (player.isPlaying) {
-            pausePlayback()
-        } else {
-            resumePlayback()
-        }
-    }
-
-    private fun resumePlayback() {
-        val player = mediaPlayer ?: return
-        if (!player.isPlaying && requestAudioFocus()) {
-            player.start()
-            AudioPodcastManager.isPlaying = true
-            AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = true) }
-            startProgressTracker()
-        }
-    }
-
-    private fun pausePlayback() {
-        val player = mediaPlayer ?: return
-        if (player.isPlaying) {
-            player.pause()
-            AudioPodcastManager.isPlaying = false
-            AudioPodcastManager.currentlyPlaying?.let { showNotification(it, isPlaying = false) }
-            stopProgressTracker()
-        }
-    }
-
-    private fun startProgressTracker() {
-        progressJob?.cancel()
-        progressJob = serviceScope.launch {
-            while (isActive) {
-                mediaPlayer?.let { player ->
-                    if (player.isPlaying) {
-                        val pos = player.currentPosition.toLong()
-                        val duration = player.duration.toLong()
-                        if (duration > 0) {
-                            AudioPodcastManager.currentPositionMs = pos
-                            AudioPodcastManager.durationMs = duration
-                            AudioPodcastManager.currentProgress = pos.toFloat() / duration.toFloat()
-                        }
-                    }
-                }
-                delay(500)
-            }
-        }
-    }
-
-    private fun stopProgressTracker() {
-        progressJob?.cancel()
-        progressJob = null
-    }
-
-    private fun stopPodcastService() {
-        stopProgressTracker()
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-
-        AudioPodcastManager.currentlyPlaying = null
-        AudioPodcastManager.isPlaying = false
-        AudioPodcastManager.currentProgress = 0f
-        AudioPodcastManager.currentPositionMs = 0L
-        AudioPodcastManager.durationMs = 0L
-
-        abandonAudioFocus()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            @Suppress("DEPRECATION")
-            stopForeground(true)
-        }
-        stopSelf()
-    }
-
-    override fun onPrepared(mp: MediaPlayer?) {
-        val duration = mp?.duration?.toLong() ?: 0L
-        AudioPodcastManager.durationMs = duration
-        resumePlayback()
-    }
-
-    override fun onCompletion(mp: MediaPlayer?) {
-        stopPodcastService()
-    }
-
-    override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
-        stopPodcastService()
-        return true
-    }
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "অডিও পডকাস্ট প্লেয়ার (Audio Podcast Playback)",
+                "অডিও পডকাস্ট প্লেয়ার",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "পডকাস্ট লেকচার প্লেব্যাকের কন্ট্রোল নোটিফিকেশন"
+                description = "পডকাস্ট অডিও লেকচার প্লেব্যাকের কন্ট্রোল নোটিফিকেশন"
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
@@ -301,7 +626,6 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Action intents for playback controls
         val playPauseIntent = Intent(this, AudioPodcastService::class.java).apply {
             action = ACTION_PLAY_PAUSE
         }
@@ -323,10 +647,10 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
         )
 
         val playPauseIcon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
-        val playPauseTitle = if (isPlaying) "Pause" else "Play"
+        val playPauseTitle = if (isPlaying) "বিরতি" else "চালান"
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.presence_video_online) // Media styled standard system icon
+            .setSmallIcon(android.R.drawable.presence_video_online)
             .setContentTitle(podcast.title)
             .setContentText("${podcast.subject} • ${podcast.narrator}")
             .setSubText(podcast.className)
@@ -335,7 +659,7 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
             .setOngoing(isPlaying)
             .setContentIntent(contentPendingIntent)
             .addAction(playPauseIcon, playPauseTitle, playPausePendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "বন্ধ করুন", stopPendingIntent)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
@@ -345,6 +669,27 @@ class AudioPodcastService : Service(), MediaPlayer.OnPreparedListener, MediaPlay
     }
 
     override fun onDestroy() {
+        stopProgressTracker()
+        try {
+            mediaPlayer?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        mediaPlayer = null
+
+        try {
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        textToSpeech = null
+
+        AudioPodcastManager.onPlayPauseAction = null
+        AudioPodcastManager.onStopAction = null
+        AudioPodcastManager.onSeekAction = null
+        AudioPodcastManager.onSpeedChangeAction = null
+
         serviceScope.cancel()
         super.onDestroy()
     }

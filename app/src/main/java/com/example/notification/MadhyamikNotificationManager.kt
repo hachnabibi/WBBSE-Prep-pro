@@ -51,10 +51,10 @@ object MadhyamikNotificationManager {
             // 1. Daily Study Reminders Channel
             val reminderChannel = NotificationChannel(
                 CHANNEL_STUDY_REMINDERS,
-                "দৈনিক স্টাডি রিমাইন্ডার (Daily Study Reminders)",
+                "দৈনিক পড়াশোনা অনুস্মারক",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "WBBSE মাধ্যমিক পরীক্ষার নিয়মিত প্রস্তুতি ও দৈনিক পড়ার তাগিদ"
+                description = "মাধ্যমিক পরীক্ষার নিয়মিত প্রস্তুতি ও দৈনিক পড়ার তাগিদ"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 250, 150, 250)
                 setSound(soundUri, audioAttributes)
@@ -64,10 +64,10 @@ object MadhyamikNotificationManager {
             // 2. Mock Test & Exam Alerts Channel
             val mockTestChannel = NotificationChannel(
                 CHANNEL_MOCK_TESTS,
-                "মক টেস্ট ও পরীক্ষার সময়সূচী (Mock Test & Exam Alerts)",
+                "মক টেস্ট ও পরীক্ষার সময়সূচী",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "রবিবাসরীয় অল-বেঙ্গল মক টেস্ট ও চ্যাপ্টার ওয়াইজ টেস্টের সতর্কতা"
+                description = "রবিবাসরীয় পশ্চিমবঙ্গ মক টেস্ট ও অধ্যায়ভিত্তিক পরীক্ষার সতর্কতা"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 300, 200, 300)
                 setSound(soundUri, audioAttributes)
@@ -77,10 +77,10 @@ object MadhyamikNotificationManager {
             // 3. Streak Saver Channel
             val streakChannel = NotificationChannel(
                 CHANNEL_STREAK_SAVER,
-                "স্ট্রিক সেভার সতর্কতা (Streak Saver Alerts)",
+                "ধারাবাহিকতা রক্ষা সতর্কতা",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "দৈনিক লার্নিং স্ট্রিক যাতে ভেঙে না যায় তার জন্য রাতের অ্যালার্ট"
+                description = "দৈনিক পড়াশোনার ধারাবাহিকতা যাতে বজায় থাকে তার জন্য সান্ধ্যকালীন অ্যালার্ট"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 200, 100, 200)
                 setSound(soundUri, audioAttributes)
@@ -90,10 +90,10 @@ object MadhyamikNotificationManager {
             // 4. Board Notices & Tips Channel
             val noticesChannel = NotificationChannel(
                 CHANNEL_BOARD_NOTICES,
-                "বোর্ড নোটিশ ও টিপস (Board Notices & Tips)",
+                "পর্ষদ নোটিশ ও পরামর্শ",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "WBBSE সিলেবাস আপডেট, পরীক্ষার টিপস ও ফর্মুলা রিভিশন"
+                description = "সিলেবাস আপডেট, পরীক্ষার টিপস ও ফর্মুলা রিভিশন"
                 setShowBadge(true)
             }
 

@@ -10,6 +10,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -146,63 +147,113 @@ fun RewardedAdDialog(
 
     // Early Close Warning Dialog
     if (showSkipWarningDialog) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showSkipWarningDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.WarningAmber,
-                    contentDescription = "Warning",
-                    tint = ExamGold,
-                    modifier = Modifier.size(36.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "বিজ্ঞাপন বন্ধ করতে চান?",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Text(
-                    text = if (isBengali)
-                        "এখনই বিজ্ঞাপন বন্ধ করলে আপনি '$rewardTitle' রিওয়ার্ডটি পাবেন না। আপনি কি নিশ্চিত?"
-                    else
-                        "If you close the video now, you will not receive '$rewardTitle'. Are you sure?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-            },
-            confirmButton = {
-                OutlinedButton(
-                    onClick = {
-                        showSkipWarningDialog = false
-                        onDismiss()
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = WrongRed),
-                    shape = RoundedCornerShape(10.dp)
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth(0.92f)
                 ) {
-                    Text(
-                        text = "হ্যাঁ, কেটে দিন",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Warning Icon in the CENTER TOP of the card
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(ExamGold.copy(alpha = 0.15f))
+                                .border(
+                                    2.dp,
+                                    ExamGold.copy(alpha = 0.45f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = "Warning",
+                                tint = ExamGold,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "বিজ্ঞাপন বন্ধ করতে চান?",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = if (isBengali)
+                                "এখনই বিজ্ঞাপন বন্ধ করলে আপনি '$rewardTitle' রিওয়ার্ডটি পাবেন না। আপনি কি নিশ্চিত?"
+                            else
+                                "If you close the video now, you will not receive '$rewardTitle'. Are you sure?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    showSkipWarningDialog = false
+                                    onDismiss()
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                modifier = Modifier.weight(1f),
+                                border = BorderStroke(1.5.dp, WrongRed.copy(alpha = 0.6f))
+                            ) {
+                                Text(
+                                    text = "হ্যাঁ, কেটে দিন",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = WrongRed
+                                )
+                            }
+
+                            Button(
+                                onClick = { showSkipWarningDialog = false },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "বিজ্ঞাপন দেখুন (${timeLeft}s)",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showSkipWarningDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(
-                        text = "বিজ্ঞাপন দেখুন (${timeLeft}s)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            }
+        }
     }
 
     Dialog(

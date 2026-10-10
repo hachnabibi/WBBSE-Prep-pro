@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.QuestionItem
 import com.example.ui.components.RealtimeCountdownTimer
 import com.example.ui.theme.*
@@ -738,64 +740,117 @@ fun MockTestScreen(
 
     // Exit Assessment Confirmation Dialog
     if (showExitDialog) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showExitDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.WarningAmber,
-                    contentDescription = null,
-                    tint = WrongRed,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "মক টেস্ট বাতিল করতে চান?",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Text(
-                    text = if (isBengali)
-                        "এখন বেরিয়ে গেলে আপনার দেওয়া উত্তর ও স্কোর সংরক্ষিত হবে না। আপনি কি নিশ্চিত বের হতে চান?"
-                    else
-                        "If you leave now, your answers and test score will not be saved. Are you sure you want to exit?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showExitDialog = false
-                        onExit()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.testTag("confirm_exit_mock_btn")
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth(0.92f)
                 ) {
-                    Text(
-                        text = "হ্যাঁ, বের হন",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Warning Icon in the CENTER TOP of the card
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(WrongRed.copy(alpha = 0.12f))
+                                .border(
+                                    2.dp,
+                                    WrongRed.copy(alpha = 0.35f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = "Warning",
+                                tint = WrongRed,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Text(
+                            text = if (isBengali) "মক টেস্ট বাতিল করতে চান?" else "Cancel Mock Test?",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = if (isBengali)
+                                "এখন বেরিয়ে গেলে আপনার দেওয়া উত্তর ও স্কোর সংরক্ষিত হবে না। আপনি কি নিশ্চিত বের হতে চান?"
+                            else
+                                "If you leave now, your answers and test score will not be saved. Are you sure you want to exit?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showExitDialog = false },
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("cancel_exit_mock_btn"),
+                                border = BorderStroke(1.5.dp, PrimaryIndigo)
+                            ) {
+                                Text(
+                                    text = if (isBengali) "চালিয়ে যান" else "Continue",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = PrimaryIndigo
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    showExitDialog = false
+                                    onExit()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("confirm_exit_mock_btn")
+                            ) {
+                                Text(
+                                    text = if (isBengali) "বের হন" else "Exit",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showExitDialog = false },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.testTag("cancel_exit_mock_btn")
-                ) {
-                    Text(
-                        text = "পরীক্ষা চালিয়ে যান",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-            },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            }
+        }
     }
 }
 

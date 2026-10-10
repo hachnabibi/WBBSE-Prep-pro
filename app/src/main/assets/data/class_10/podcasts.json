@@ -1,7 +1,7 @@
 [
   {
-    "title": "মহাবিদ্রোহ ১৮৫৭: কারণ ও প্রভাব (ইতিহাস)",
-    "subject": "ইতিহাস (History)",
+    "title": "মহাবিদ্রোহ ১৮৫৭: কারণ ও প্রভাব",
+    "subject": "ইতিহাস",
     "duration": "১২ মিনিট",
     "narrator": "প্রফেসর এ. কে. সেন",
     "className": "Class 10",
@@ -9,15 +9,15 @@
   },
   {
     "title": "চলতড়িৎ ও ওহমের সূত্রের গাণিতিক শর্টকাট",
-    "subject": "ভৌতবিজ্ঞান (Physical Science)",
+    "subject": "ভৌতবিজ্ঞান",
     "duration": "১৫ মিনিট",
     "narrator": "ড. সমীর রায়",
     "className": "Class 10",
     "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
   },
   {
-    "title": "জীবের জনন ও বংশগতিবিদ্যা (Mendel's Laws)",
-    "subject": "जीवनবিজ্ঞান (Life Science)",
+    "title": "জীবের জনন ও বংশগতিবিদ্যা: মেন্ডেলের সূত্র",
+    "subject": "জীবনবিজ্ঞান",
     "duration": "১০ মিনিট",
     "narrator": "ডা. সুপর্ণা দাস",
     "className": "Class 10",
@@ -25,7 +25,7 @@
   },
   {
     "title": "ভারতের নদনদী ও জলবায়ু রিভিশন",
-    "subject": "ভূগোল (Geography)",
+    "subject": "ভূগোল",
     "duration": "১৪ মিনিট",
     "narrator": "অধ্যাপক এস. বোস",
     "className": "Class 10",
@@ -33,7 +33,7 @@
   },
   {
     "title": "কোনি উপন্যাস: ক্ষিতীশ সিংহ ও কোনির লড়াই",
-    "subject": "বাংলা (Bengali)",
+    "subject": "বাংলা",
     "duration": "১৮ মিনিট",
     "narrator": "শান্তনু চ্যাটার্জী",
     "className": "Class 10",
