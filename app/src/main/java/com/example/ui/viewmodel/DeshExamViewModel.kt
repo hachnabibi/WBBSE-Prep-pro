@@ -412,6 +412,18 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
     }
 
+    private fun isRestorableTabScreen(screen: AppScreen): Boolean {
+        return screen != AppScreen.SPLASH &&
+                screen != AppScreen.AUTH &&
+                screen != AppScreen.ONBOARDING &&
+                screen != AppScreen.ASSESSMENT &&
+                screen != AppScreen.RESULT &&
+                screen != AppScreen.CHAPTER_DETAIL &&
+                screen != AppScreen.SUBJECT_DETAIL &&
+                screen != AppScreen.LEARN_TOPIC &&
+                screen != AppScreen.CONTENT_SOLUTION
+    }
+
     private fun resolveInitialScreen(): AppScreen {
         return try {
             val p = getApplication<Application>().getSharedPreferences("desh_exam_preferences", Context.MODE_PRIVATE)
@@ -426,7 +438,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 if (!saved.isNullOrBlank()) {
                     try {
                         val screen = AppScreen.valueOf(saved)
-                        if (screen != AppScreen.SPLASH && screen != AppScreen.AUTH && screen != AppScreen.ONBOARDING && screen != AppScreen.ASSESSMENT && screen != AppScreen.RESULT) {
+                        if (isRestorableTabScreen(screen)) {
                             return screen
                         }
                     } catch (_: Exception) {}
@@ -514,10 +526,11 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         // Sync & update database from assets only when needed (first launch or version update) to avoid startup lag
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val currentAssetVersion = 6
+                val currentAssetVersion = 25
                 val lastSyncedVersion = prefs.getInt("pref_asset_sync_version", 0)
-                if (lastSyncedVersion < currentAssetVersion || database.deshExamDao().getAllSubjectsOnce().isEmpty()) {
-                    repository.syncDatabaseWithAssets()
+                val qCount = database.deshExamDao().getQuestionsCount()
+                if (lastSyncedVersion < currentAssetVersion || database.deshExamDao().getAllSubjectsOnce().isEmpty() || qCount < 500) {
+                    repository.syncDatabaseWithAssets(forceRefresh = true)
                     prefs.edit().putInt("pref_asset_sync_version", currentAssetVersion).apply()
                 }
             } catch (e: Exception) {
@@ -641,7 +654,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                             val restoredScreen = saved?.let {
                                 try {
                                     val s = AppScreen.valueOf(it)
-                                    if (s != AppScreen.SPLASH && s != AppScreen.AUTH && s != AppScreen.ONBOARDING && s != AppScreen.ASSESSMENT && s != AppScreen.RESULT) s else null
+                                    if (isRestorableTabScreen(s)) s else null
                                 } catch (_: Throwable) { null }
                             }
                             _currentScreen.value = restoredScreen ?: AppScreen.HOME
@@ -740,12 +753,68 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 val target = saved?.let {
                     try {
                         val s = AppScreen.valueOf(it)
-                        if (s != AppScreen.SPLASH && s != AppScreen.AUTH && s != AppScreen.ONBOARDING && s != AppScreen.ASSESSMENT && s != AppScreen.RESULT) s else null
+                        if (isRestorableTabScreen(s)) s else null
                     } catch (_: Throwable) { null }
                 } ?: AppScreen.HOME
                 _currentScreen.value = target
             } else {
                 _currentScreen.value = AppScreen.AUTH
+            }
+        }
+    }
+
+    fun recoverChapterEntityOrHome() {
+        viewModelScope.launch {
+            val savedChapterId = prefs.getString("saved_last_chapter_id", null)
+            var recovered: ChapterEntity? = null
+            if (!savedChapterId.isNullOrBlank()) {
+                recovered = database.deshExamDao().getChapterById(savedChapterId)
+            }
+            if (recovered == null) {
+                recovered = chapters.value.firstOrNull()
+            }
+            if (recovered != null) {
+                _selectedChapterEntity.value = recovered
+                _selectedChapterId.value = recovered.id
+            } else {
+                navigateTo(AppScreen.HOME)
+            }
+        }
+    }
+
+    fun recoverSubjectEntityOrHome() {
+        viewModelScope.launch {
+            val savedSubId = prefs.getString("saved_last_subject_id", null)
+            var recovered: SubjectEntity? = null
+            if (!savedSubId.isNullOrBlank()) {
+                recovered = repository.getSubjectById(savedSubId)
+            }
+            if (recovered == null) {
+                val firstId = subjects.value.firstOrNull()?.id
+                if (firstId != null) {
+                    recovered = repository.getSubjectById(firstId)
+                }
+            }
+            if (recovered != null) {
+                _selectedSubjectEntity.value = recovered
+                _selectedSubjectId.value = recovered.id
+            } else {
+                navigateTo(AppScreen.HOME)
+            }
+        }
+    }
+
+    fun recoverTopicEntityOrHome() {
+        viewModelScope.launch {
+            val savedTopicId = prefs.getString("saved_last_topic_id", null)
+            var recovered: TopicItem? = null
+            if (!savedTopicId.isNullOrBlank()) {
+                recovered = repository.getTopicById(savedTopicId)
+            }
+            if (recovered != null) {
+                _activeTopicStudy.value = recovered
+            } else {
+                navigateTo(AppScreen.HOME)
             }
         }
     }
@@ -800,7 +869,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private fun saveCurrentScreenState(screen: AppScreen) {
         try {
-            if (screen != AppScreen.SPLASH && screen != AppScreen.AUTH && screen != AppScreen.ONBOARDING && screen != AppScreen.ASSESSMENT && screen != AppScreen.RESULT) {
+            if (isRestorableTabScreen(screen)) {
                 prefs.edit().putString("saved_last_screen", screen.name).apply()
             }
         } catch (_: Throwable) {}
@@ -1717,8 +1786,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun isTopicSetUnlocked(topicId: String, setNumber: Int, passThreshold: Int = 60): Boolean = setNumber <= 1 || repository.getTopicSetScore(topicId, setNumber - 1) >= passThreshold
     fun isTopicMockUnlocked(topicId: String, passThreshold: Int = 60): Boolean = repository.getTopicSetScore(topicId, 1) >= passThreshold
     fun isTopicSpeedUnlocked(topicId: String, passThreshold: Int = 60): Boolean = repository.getTopicMockScore(topicId) >= passThreshold || repository.getTopicSetScore(topicId, 1) >= passThreshold
-    fun getTopicMockScore(topicId: String): Int = repository.getTopicMockScore(topicId)
-    fun getTopicSpeedScore(topicId: String): Int = repository.getTopicSpeedScore(topicId)
+    fun getTopicMockScore(topicId: String, setNumber: Int = 1): Int = repository.getTopicMockScore(topicId, setNumber)
+    fun getTopicSpeedScore(topicId: String, setNumber: Int = 1): Int = repository.getTopicSpeedScore(topicId, setNumber)
+    fun getTopicBossScore(topicId: String, setNumber: Int = 1): Int = repository.getTopicBossScore(topicId, setNumber)
+    fun getTopicPYQScore(topicId: String, setNumber: Int = 1): Int = repository.getTopicPYQScore(topicId, setNumber)
     fun getTopicExtraSets(topicId: String): Int = repository.getExtraGeneratedSets(topicId)
     fun generateNewDynamicSet(topicId: String): Int {
         val newTotal = repository.addExtraGeneratedSet(topicId, 1)
@@ -1735,6 +1806,7 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     }
 
     suspend fun getTopicQuestionCount(topicId: String): Int = repository.getTopicQuestionCount(topicId)
+    suspend fun getChapterQuestionCount(chapterId: String): Int = repository.getChapterQuestionCount(chapterId)
 
     fun repairDailyStreakFromAd() {
         viewModelScope.launch {

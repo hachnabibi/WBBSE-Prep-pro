@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -744,11 +746,49 @@ fun MockTestScreen(
             onDismissRequest = { showExitDialog = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            val infiniteTransition = rememberInfiniteTransition(label = "warning_exit_mock_animation")
+            val iconScale by infiniteTransition.animateFloat(
+                initialValue = 0.94f,
+                targetValue = 1.10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(900, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "icon_scale"
+            )
+            val ringScale by infiniteTransition.animateFloat(
+                initialValue = 0.95f,
+                targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "ring_scale"
+            )
+            val ringAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "ring_alpha"
+            )
+            val iconRotation by infiniteTransition.animateFloat(
+                initialValue = -5f,
+                targetValue = 5f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(650, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "icon_rotation"
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
                 Card(
                     shape = RoundedCornerShape(24.dp),
@@ -759,36 +799,18 @@ fun MockTestScreen(
                         1.dp,
                         MaterialTheme.colorScheme.outlineVariant
                     ),
-                    modifier = Modifier.fillMaxWidth(0.92f)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .padding(top = 36.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(start = 24.dp, end = 24.dp, top = 48.dp, bottom = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Warning Icon in the CENTER TOP of the card
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(WrongRed.copy(alpha = 0.12f))
-                                .border(
-                                    2.dp,
-                                    WrongRed.copy(alpha = 0.35f),
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.WarningAmber,
-                                contentDescription = "Warning",
-                                tint = WrongRed,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
                         Text(
                             text = if (isBengali) "মক টেস্ট বাতিল করতে চান?" else "Cancel Mock Test?",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -847,6 +869,52 @@ fun MockTestScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // Animated Warning Icon Badge positioned at the top-center edge of the card
+                Box(
+                    modifier = Modifier.size(72.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Pulsing radar ripple ring
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = ringScale
+                                scaleY = ringScale
+                                alpha = ringAlpha
+                            }
+                            .clip(CircleShape)
+                            .background(WrongRed.copy(alpha = 0.35f))
+                    )
+
+                    // Core Circular Badge with border & glowing background
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(WrongRed.copy(alpha = 0.15f))
+                            .border(
+                                3.dp,
+                                WrongRed.copy(alpha = 0.45f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = "Warning",
+                            tint = WrongRed,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                    rotationZ = iconRotation
+                                }
+                        )
                     }
                 }
             }

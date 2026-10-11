@@ -25,6 +25,8 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -718,7 +720,8 @@ fun DeshExamApp(
                     val topicsList by viewModel.topics.collectAsState()
                     val questionsList by viewModel.questions.collectAsState()
 
-                    selectedSubjectEntity?.let { sub ->
+                    if (selectedSubjectEntity != null) {
+                        val sub = selectedSubjectEntity!!
                         SubjectDetailScreen(
                             subject = sub,
                             chapters = chaptersList.filter { it.subjectId == sub.id },
@@ -739,6 +742,16 @@ fun DeshExamApp(
                             viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        LaunchedEffect(Unit) {
+                            viewModel.recoverSubjectEntityOrHome()
+                        }
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
                 AppScreen.CHAPTER_DETAIL -> {
@@ -746,7 +759,8 @@ fun DeshExamApp(
                     val selectedSubjectEntity by viewModel.selectedSubjectEntity.collectAsState()
                     val topicsList by viewModel.topics.collectAsState()
 
-                    selectedChapterEntity?.let { ch ->
+                    if (selectedChapterEntity != null) {
+                        val ch = selectedChapterEntity!!
                         val chTopics = topicsList.filter { it.chapterId == ch.id }
                         ChapterDetailScreen(
                             chapter = ch,
@@ -766,10 +780,21 @@ fun DeshExamApp(
                             viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        LaunchedEffect(Unit) {
+                            viewModel.recoverChapterEntityOrHome()
+                        }
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
                 AppScreen.LEARN_TOPIC -> {
-                    activeTopicStudy?.let { topic ->
+                    if (activeTopicStudy != null) {
+                        val topic = activeTopicStudy!!
                         LearnTopicScreen(
                             topic = topic,
                             isBengali = isBengali,
@@ -781,6 +806,16 @@ fun DeshExamApp(
                             getQuestionCount = { topicId -> viewModel.getTopicQuestionCount(topicId) },
                             modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        LaunchedEffect(Unit) {
+                            viewModel.recoverTopicEntityOrHome()
+                        }
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
                 AppScreen.VIDEO_LESSON -> {

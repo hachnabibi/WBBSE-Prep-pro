@@ -528,265 +528,700 @@ fun LearnTopicScreen(
                     }
                 }
 
-            // DYNAMIC AUTOMATIC TEST SETS SECTION
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "⚡ এই টপিকের কুইজ টেস্ট সিরিজ",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "পূর্ববর্তী সেটে ৬০% পেলে পরবর্তী সেট আনলক হবে",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            // DYNAMIC AUTOMATIC TEST SETS SECTION WITH TABS
+            var selectedTestTab by remember { mutableIntStateOf(0) }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                ) {
-                    Text(
-                        text = "মোট $totalSets টি সেট",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+            ScrollableTabRow(
+                selectedTabIndex = selectedTestTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                edgePadding = 16.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Tab(
+                    selected = selectedTestTab == 0,
+                    onClick = { selectedTestTab = 0 },
+                    text = { Text("⚡ অনুশীলন কুইজ সেট (${totalSets.toBengaliDigits()}টি)", fontWeight = FontWeight.Bold) }
+                )
+                Tab(
+                    selected = selectedTestTab == 1,
+                    onClick = { selectedTestTab = 1 },
+                    text = { Text("🏆 মক ও স্পিড টেস্ট", fontWeight = FontWeight.Bold) }
+                )
+                Tab(
+                    selected = selectedTestTab == 2,
+                    onClick = { selectedTestTab = 2 },
+                    text = { Text("⚔️ স্পেশাল চ্যালেঞ্জ", fontWeight = FontWeight.Bold) }
+                )
             }
 
-            // Generate Automatic Set Cards with Progressive Locking
-            for (setIdx in 1..totalSets) {
-                val isUnlocked = setUnlocks[setIdx] == true
-                val score = setScores[setIdx] ?: -1
-                val isAttempted = score >= 0
-                val isPassed = score >= 60
-                val isDynamicExtra = setIdx > baseSets
+            Spacer(modifier = Modifier.height(4.dp))
 
-                val startQ = (setIdx - 1) * chunkSize + 1
-                val endQ = (setIdx * chunkSize).coerceAtMost(totalQuestions.coerceAtLeast(setIdx * chunkSize))
-                val setQCount = if (isDynamicExtra) 15 else (endQ - startQ + 1).coerceIn(10, 15)
-
-                Card(
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = when {
-                            !isUnlocked -> if (isDark) Color(0xFF131B2A) else Color(0xFFF1F5F9)
-                            isPassed -> if (isDark) Color(0xFF0F2D1F) else Color(0xFFECFDF5)
-                            isAttempted -> if (isDark) Color(0xFF2C2210) else Color(0xFFFFFBEB)
-                            else -> if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
-                        }
-                    ),
-                    border = BorderStroke(
-                        width = if (isPassed) 1.5.dp else 1.dp,
-                        color = when {
-                            !isUnlocked -> if (isDark) Color(0xFF243247) else Color(0xFFCBD5E1)
-                            isPassed -> CorrectGreen
-                            isAttempted -> ExamGold
-                            else -> if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                        }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (isUnlocked) {
-                                onStartPractice(
-                                    AssessmentMode.PRACTICE,
-                                    topic.id,
-                                    "${topic.getTitle(true)} - কুইজ সেট $setIdx",
-                                    setIdx
-                                )
-                            } else {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        message = if (isBengali) 
-                                            "🔒 সেট $setIdx আনলক করতে পূর্ববর্তী সেট ${setIdx - 1}-এ অন্তত ৬০% নম্বর অর্জন করতে হবে!" 
-                                        else 
-                                            "🔒 Score 60%+ in Set ${setIdx - 1} to unlock Set $setIdx!"
-                                    )
-                                }
-                            }
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 92.dp)
-                            .padding(horizontal = 16.dp, vertical = 18.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            when (selectedTestTab) {
+                0 -> {
+                    // TAB 0: QUIZ SETS (15 questions per set, progressive locking 60%)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = when {
-                                                    !isUnlocked -> listOf(Color(0xFF64748B), Color(0xFF475569))
-                                                    isPassed -> listOf(Color(0xFF059669), Color(0xFF10B981))
-                                                    isAttempted -> listOf(Color(0xFFD97706), Color(0xFFF59E0B))
-                                                    else -> listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
-                                                }
-                                            )
-                                        )
-                                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "সেট $setIdx",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                        color = Color.White
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
+                            Column {
                                 Text(
-                                    text = "অনুশীলন কুইজ",
+                                    text = "⚡ এই টপিকের কুইজ টেস্ট সিরিজ",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isUnlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "পূর্ববর্তী সেটে ৬০% পেলে পরবর্তী সেট আনলক হবে (প্রতি সেটে ১৫ প্রশ্ন)",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
-                            Text(
-                                text = "$setQCount প্রশ্ন • ১৫ মি. • ৫০ XP",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        }
 
-                            // Status requirement or result badge
-                            when {
-                                !isUnlocked -> {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Lock,
-                                            contentDescription = "Locked",
-                                            tint = Color(0xFFD97706),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                        // Generate Automatic Set Cards with Progressive Locking
+                        for (setIdx in 1..totalSets) {
+                            val isUnlocked = setUnlocks[setIdx] == true
+                            val score = setScores[setIdx] ?: -1
+                            val isAttempted = score >= 0
+                            val isPassed = score >= 60
+                            val isDynamicExtra = setIdx > baseSets
+
+                            val startQ = (setIdx - 1) * chunkSize + 1
+                            val endQ = (setIdx * chunkSize).coerceAtMost(totalQuestions.coerceAtLeast(setIdx * chunkSize))
+                            val setQCount = if (isDynamicExtra) 15 else (endQ - startQ + 1).coerceIn(10, 15)
+
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = when {
+                                        !isUnlocked -> if (isDark) Color(0xFF131B2A) else Color(0xFFF1F5F9)
+                                        isPassed -> if (isDark) Color(0xFF0F2D1F) else Color(0xFFECFDF5)
+                                        isAttempted -> if (isDark) Color(0xFF2C2210) else Color(0xFFFFFBEB)
+                                        else -> if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.surface
+                                    }
+                                ),
+                                border = BorderStroke(
+                                    width = if (isPassed) 1.5.dp else 1.dp,
+                                    color = when {
+                                        !isUnlocked -> if (isDark) Color(0xFF243247) else Color(0xFFCBD5E1)
+                                        isPassed -> CorrectGreen
+                                        isAttempted -> ExamGold
+                                        else -> if (isDark) Color(0xFF334155) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                    }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (isUnlocked) {
+                                            onStartPractice(
+                                                AssessmentMode.PRACTICE,
+                                                topic.id,
+                                                "${topic.getTitle(true)} - কুইজ সেট $setIdx",
+                                                setIdx
+                                            )
+                                        } else {
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    message = if (isBengali) 
+                                                        "🔒 সেট $setIdx আনলক করতে পূর্ববর্তী সেট ${setIdx - 1}-এ অন্তত ৬০% নম্বর অর্জন করতে হবে!" 
+                                                    else 
+                                                        "🔒 Score 60%+ in Set ${setIdx - 1} to unlock Set $setIdx!"
+                                                )
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .defaultMinSize(minHeight = 92.dp)
+                                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        Brush.horizontalGradient(
+                                                            colors = when {
+                                                                !isUnlocked -> listOf(Color(0xFF64748B), Color(0xFF475569))
+                                                                isPassed -> listOf(Color(0xFF059669), Color(0xFF10B981))
+                                                                isAttempted -> listOf(Color(0xFFD97706), Color(0xFFF59E0B))
+                                                                else -> listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+                                                            }
+                                                        )
+                                                    )
+                                                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "সেট $setIdx",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                    color = Color.White
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "অনুশীলন কুইজ",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = if (isUnlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                        
                                         Text(
-                                            text = "সেট ${setIdx - 1}-এ ৬০% পেলে আনলক হবে",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                                            color = Color(0xFFD97706)
+                                            text = "$setQCount প্রশ্ন • ১৫ মি. • ৫০ XP",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+
+                                        when {
+                                            !isUnlocked -> {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = "Locked",
+                                                        tint = Color(0xFFD97706),
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "সেট ${setIdx - 1}-এ ৬০% পেলে আনলক হবে",
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                                                        color = Color(0xFFD97706)
+                                                    )
+                                                }
+                                            }
+                                            isPassed -> {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = "Passed",
+                                                        tint = CorrectGreen,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "✓ $score% স্কোর অর্জিত (উত্তীর্ণ)",
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = CorrectGreen)
+                                                    )
+                                                }
+                                            }
+                                            isAttempted -> {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Warning,
+                                                        contentDescription = "Needs improvement",
+                                                        tint = ExamGold,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "$score% স্কোর • পুনরায় চেষ্টা করুন (৬০% চাই)",
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, color = if (isDark) ExamGold else Color(0xFFD97706))
+                                                    )
+                                                }
+                                            }
+                                            else -> {
+                                                Text(
+                                                    text = "🔓 আনলকড • শুরু করার জন্য প্রস্তুত",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, color = Color(0xFF6366F1))
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    if (isUnlocked) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        colors = if (isPassed) {
+                                                            listOf(Color(0xFF059669), Color(0xFF10B981))
+                                                        } else {
+                                                            listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+                                                        }
+                                                    )
+                                                )
+                                                .clickable {
+                                                    onStartPractice(
+                                                        AssessmentMode.PRACTICE,
+                                                        topic.id,
+                                                        "${topic.getTitle(true)} - কুইজ সেট $setIdx",
+                                                        setIdx
+                                                    )
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = when {
+                                                    isPassed -> "পুনরায় পরীক্ষা"
+                                                    isAttempted -> "আবার চেষ্টা"
+                                                    else -> "কুইজ শুরু"
+                                                },
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                color = Color.White
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isDark) {
+                                                        Brush.horizontalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
+                                                    } else {
+                                                        Brush.horizontalGradient(listOf(Color(0xFFFEF3C7), Color(0xFFFDE68A)))
+                                                    }
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+                                                    RoundedCornerShape(8.dp)
+                                                )
+                                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Lock,
+                                                    contentDescription = "Locked",
+                                                    tint = Color(0xFFD97706),
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    text = "লকড",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                    color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                                isPassed -> {
+                            }
+                        }
+                    }
+                }
+                1 -> {
+                    // TAB 1: MOCK & SPEED TESTS
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "🏆 মক ও স্পিড টেস্টসমূহ (সেট ১-এ ৬০% পেলে আনলক হবে)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        // Test: Topic Full Mock Test (30 Questions)
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = when {
+                                    !isMockUnlocked -> if (isDark) Color(0xFF131B2A) else Color(0xFFF1F5F9)
+                                    mockScore >= 60 -> if (isDark) Color(0xFF0F2D1F) else Color(0xFFECFDF5)
+                                    else -> if (isDark) Color(0xFF0F2A28) else Color(0xFFF0FDFA)
+                                }
+                            ),
+                            border = BorderStroke(
+                                1.5.dp, 
+                                if (!isMockUnlocked) Color.Gray.copy(alpha = 0.4f) else if (isDark) Color(0xFF0D9488) else Color(0xFF99F6E4)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isMockUnlocked) {
+                                        onStartPractice(
+                                            AssessmentMode.MOCK_TEST,
+                                            topic.id,
+                                            "${topic.getTitle(true)} - ৩০ নম্বরের মক টেস্ট",
+                                            1
+                                        )
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = if (isBengali) 
+                                                    "🔒 মক টেস্ট আনলক করতে অন্তত সেট ১-এ ৬০% নম্বর পেতে হবে!" 
+                                                else 
+                                                    "🔒 Score 60%+ in Set 1 to unlock Topic Full Mock Test!"
+                                            )
+                                        }
+                                    }
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 92.dp)
+                                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = "Passed",
-                                            tint = CorrectGreen,
-                                            modifier = Modifier.size(14.dp)
+                                            imageVector = if (isMockUnlocked) Icons.AutoMirrored.Filled.Assignment else Icons.Default.Lock,
+                                            contentDescription = "Mock Test",
+                                            tint = if (isMockUnlocked) Color(0xFF0D9488) else Color(0xFFD97706),
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "✓ $score% স্কোর অর্জিত (উত্তীর্ণ)",
+                                            text = "টপিক পূর্ণাঙ্গ মক টেস্ট",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isMockUnlocked) (if (isDark) Color(0xFF2DD4BF) else Color(0xFF0F766E)) else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = "৩০ প্রশ্ন • ৩০ মি. • ১০০ XP",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    if (!isMockUnlocked) {
+                                        Text(
+                                            text = "🔒 কুইজ সেট ১-এ ৬০% পেলে আনলক হবে",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD97706))
+                                        )
+                                    } else if (mockScore >= 0) {
+                                        Text(
+                                            text = "✓ অর্জিত স্কোর: $mockScore%",
                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = CorrectGreen)
                                         )
                                     }
                                 }
-                                isAttempted -> {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Warning,
-                                            contentDescription = "Needs improvement",
-                                            tint = ExamGold,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                if (isMockUnlocked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFF0D9488), Color(0xFF0F766E))
+                                                )
+                                            )
+                                            .clickable {
+                                                onStartPractice(
+                                                    AssessmentMode.MOCK_TEST,
+                                                    topic.id,
+                                                    "${topic.getTitle(true)} - ৩০ নম্বরের মক টেস্ট",
+                                                    1
+                                                )
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            text = "$score% স্কোর • পুনরায় চেষ্টা করুন (৬০% চাই)",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, color = if (isDark) ExamGold else Color(0xFFD97706))
+                                            text = if (mockScore >= 0) ("পুনরায় মক") else ("মক টেস্ট শুরু"),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                            color = Color.White
                                         )
                                     }
-                                }
-                                else -> {
-                                    Text(
-                                        text = "🔓 আনলকড • শুরু করার জন্য প্রস্তুত",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, color = Color(0xFF6366F1))
-                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isDark) {
+                                                    Brush.horizontalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
+                                                } else {
+                                                    Brush.horizontalGradient(listOf(Color(0xFFFEF3C7), Color(0xFFFDE68A)))
+                                                }
+                                            )
+                                            .border(
+                                                1.dp,
+                                                Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = "Locked",
+                                                tint = Color(0xFFD97706),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = "লকড",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        if (isUnlocked) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = if (isPassed) {
-                                                listOf(Color(0xFF059669), Color(0xFF10B981))
-                                            } else {
-                                                listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
-                                            }
-                                        )
-                                    )
-                                    .clickable {
+                        // Test: Rapid Speed Challenge
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = when {
+                                    !isSpeedUnlocked -> if (isDark) Color(0xFF131B2A) else Color(0xFFF1F5F9)
+                                    speedScore >= 60 -> if (isDark) Color(0xFF0F2D1F) else Color(0xFFECFDF5)
+                                    else -> if (isDark) Color(0xFF2C2210) else Color(0xFFFFFBEB)
+                                }
+                            ),
+                            border = BorderStroke(1.5.dp, if (!isSpeedUnlocked) Color.Gray.copy(alpha = 0.4f) else ExamGold),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isSpeedUnlocked) {
                                         onStartPractice(
-                                            AssessmentMode.PRACTICE,
+                                            AssessmentMode.SPEED_BLITZ,
                                             topic.id,
-                                            "${topic.getTitle(true)} - কুইজ সেট $setIdx",
-                                            setIdx
+                                            "${topic.getTitle(true)} - স্পিড টেস্ট",
+                                            1
+                                        )
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = if (isBengali)
+                                                    "🔒 স্পিড টেস্ট আনলক করতে মক টেস্ট অথবা সেট ১-এ ৬০% নম্বর পেতে হবে!"
+                                                else
+                                                    "🔒 Score 60%+ in Mock Test or Set 1 to unlock Speed Blitz!"
+                                            )
+                                        }
+                                    }
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 92.dp)
+                                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (isSpeedUnlocked) Icons.Default.EmojiEvents else Icons.Default.Lock,
+                                            contentDescription = "Challenge",
+                                            tint = if (isSpeedUnlocked) ExamGold else Color(0xFFD97706),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "টপিক র‍্যাপিড স্পিড টেস্ট",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isSpeedUnlocked) (if (isDark) ExamGold else Color(0xFF92400E)) else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = when {
-                                        isPassed -> "পুনরায় পরীক্ষা"
-                                        isAttempted -> "আবার চেষ্টা"
-                                        else -> "কুইজ শুরু"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                    color = Color.White
-                                )
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isDark) {
-                                            Brush.horizontalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
-                                        } else {
-                                            Brush.horizontalGradient(listOf(Color(0xFFFEF3C7), Color(0xFFFDE68A)))
-                                        }
-                                    )
-                                    .border(
-                                        1.dp,
-                                        Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(horizontal = 9.dp, vertical = 5.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "Locked",
-                                        tint = Color(0xFFD97706),
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = "লকড",
+                                        text = "১৫ প্রশ্ন • স্পিড চ্যালেঞ্জ • ১৫০ XP • দ্রুত উত্তরের পরীক্ষা",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = if (isSpeedUnlocked) (if (isDark) Color(0xFFFDE68A) else Color(0xFF92400E)) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    if (!isSpeedUnlocked) {
+                                        Text(
+                                            text = "🔒 মক টেস্ট বা সেট ১-এ ৬০% পেলে আনলক হবে",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD97706))
+                                        )
+                                    } else if (speedScore >= 0) {
+                                        Text(
+                                            text = "✓ অর্জিত স্কোর: $speedScore%",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = CorrectGreen)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                if (isSpeedUnlocked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                )
+                                            )
+                                            .clickable {
+                                                onStartPractice(
+                                                    AssessmentMode.SPEED_BLITZ,
+                                                    topic.id,
+                                                    "${topic.getTitle(true)} - স্পিড টেস্ট",
+                                                    1
+                                                )
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (speedScore >= 0) ("পুনরায় স্পিড") else ("স্পিড চ্যালেঞ্জ"),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isDark) {
+                                                    Brush.horizontalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
+                                                } else {
+                                                    Brush.horizontalGradient(listOf(Color(0xFFFEF3C7), Color(0xFFFDE68A)))
+                                                }
+                                            )
+                                            .border(
+                                                1.dp,
+                                                Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = "Locked",
+                                                tint = Color(0xFFD97706),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = "লকড",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                2 -> {
+                    // TAB 2: SPECIAL CHALLENGES (Boss Battle & PYQ)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "⚔️ বস ব্যাটল ও বিগত বছরের প্রশ্ন (PYQ)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        // Boss Battle
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDark) Color(0xFF2C1A1A) else Color(0xFFFEF2F2)
+                            ),
+                            border = BorderStroke(1.5.dp, Color(0xFFEF4444).copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onStartPractice(
+                                        AssessmentMode.BOSS_BATTLE,
+                                        topic.id,
+                                        "${topic.getTitle(true)} - বস ব্যাটল",
+                                        1
+                                    )
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 92.dp)
+                                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    Brush.horizontalGradient(
+                                                        listOf(Color(0xFFDC2626), Color(0xFFEF4444))
+                                                    )
+                                                )
+                                                .padding(horizontal = 7.dp, vertical = 2.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "বস ব্যাটল",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                                color = Color.White
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "টপিক বস ব্যাটল চ্যালেঞ্জ",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isDark) Color(0xFFFECACA) else Color(0xFF991B1B)
+                                        )
+                                    }
+                                    Text(
+                                        text = "কঠিন প্রশ্ন ও চ্যালেঞ্জিং লড়াই • বড় কয়েন ও XP পুরস্কার",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(Color(0xFFDC2626), Color(0xFFEF4444))
+                                            )
+                                        )
+                                        .clickable {
+                                            onStartPractice(
+                                                AssessmentMode.BOSS_BATTLE,
+                                                topic.id,
+                                                "${topic.getTitle(true)} - বস ব্যাটল",
+                                                1
+                                            )
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "বস ব্যাটল",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                        color = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
+                                        color = Color.White
                                     )
                                 }
                             }

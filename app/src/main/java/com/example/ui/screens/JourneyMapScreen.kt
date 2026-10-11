@@ -435,7 +435,7 @@ fun ChapterBannerCard(
                 }
 
                 Text(
-                    text = "${chapter.completedTopics}/${chapter.totalTopics} টপিক সম্পন্ন",
+                    text = if (chapter.totalTopics > 0) "${chapter.completedTopics}/${chapter.totalTopics} টপিক সম্পন্ন" else "কুইজ টেস্ট ও প্রস্তুতি",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF4338CA)
                 )

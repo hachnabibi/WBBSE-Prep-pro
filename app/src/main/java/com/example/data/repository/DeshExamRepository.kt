@@ -51,8 +51,8 @@ class DeshExamRepository(
         context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.edit()?.putInt(key, bestScore)?.apply()
     }
 
-    fun getTopicMockScore(topicId: String): Int {
-        val key = "topic_${topicId}_mock"
+    fun getTopicMockScore(topicId: String, setNumber: Int = 1): Int {
+        val key = if (setNumber <= 1) "topic_${topicId}_mock" else "topic_${topicId}_mock_$setNumber"
         val memory = scoresMap[key]
         if (memory != null) return memory
         val disk = context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.getInt(key, -1) ?: -1
@@ -60,16 +60,16 @@ class DeshExamRepository(
         return disk
     }
 
-    fun saveTopicMockScore(topicId: String, scorePercent: Int) {
-        val key = "topic_${topicId}_mock"
-        val existing = getTopicMockScore(topicId)
+    fun saveTopicMockScore(topicId: String, scorePercent: Int, setNumber: Int = 1) {
+        val key = if (setNumber <= 1) "topic_${topicId}_mock" else "topic_${topicId}_mock_$setNumber"
+        val existing = getTopicMockScore(topicId, setNumber)
         val bestScore = maxOf(existing, scorePercent)
         scoresMap[key] = bestScore
         context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.edit()?.putInt(key, bestScore)?.apply()
     }
 
-    fun getTopicSpeedScore(topicId: String): Int {
-        val key = "topic_${topicId}_speed"
+    fun getTopicSpeedScore(topicId: String, setNumber: Int = 1): Int {
+        val key = if (setNumber <= 1) "topic_${topicId}_speed" else "topic_${topicId}_speed_$setNumber"
         val memory = scoresMap[key]
         if (memory != null) return memory
         val disk = context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.getInt(key, -1) ?: -1
@@ -77,9 +77,43 @@ class DeshExamRepository(
         return disk
     }
 
-    fun saveTopicSpeedScore(topicId: String, scorePercent: Int) {
-        val key = "topic_${topicId}_speed"
-        val existing = getTopicSpeedScore(topicId)
+    fun saveTopicSpeedScore(topicId: String, scorePercent: Int, setNumber: Int = 1) {
+        val key = if (setNumber <= 1) "topic_${topicId}_speed" else "topic_${topicId}_speed_$setNumber"
+        val existing = getTopicSpeedScore(topicId, setNumber)
+        val bestScore = maxOf(existing, scorePercent)
+        scoresMap[key] = bestScore
+        context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.edit()?.putInt(key, bestScore)?.apply()
+    }
+
+    fun getTopicBossScore(topicId: String, setNumber: Int = 1): Int {
+        val key = if (setNumber <= 1) "topic_${topicId}_boss" else "topic_${topicId}_boss_$setNumber"
+        val memory = scoresMap[key]
+        if (memory != null) return memory
+        val disk = context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.getInt(key, -1) ?: -1
+        if (disk != -1) scoresMap[key] = disk
+        return disk
+    }
+
+    fun saveTopicBossScore(topicId: String, scorePercent: Int, setNumber: Int = 1) {
+        val key = if (setNumber <= 1) "topic_${topicId}_boss" else "topic_${topicId}_boss_$setNumber"
+        val existing = getTopicBossScore(topicId, setNumber)
+        val bestScore = maxOf(existing, scorePercent)
+        scoresMap[key] = bestScore
+        context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.edit()?.putInt(key, bestScore)?.apply()
+    }
+
+    fun getTopicPYQScore(topicId: String, setNumber: Int = 1): Int {
+        val key = if (setNumber <= 1) "topic_${topicId}_pyq" else "topic_${topicId}_pyq_$setNumber"
+        val memory = scoresMap[key]
+        if (memory != null) return memory
+        val disk = context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.getInt(key, -1) ?: -1
+        if (disk != -1) scoresMap[key] = disk
+        return disk
+    }
+
+    fun saveTopicPYQScore(topicId: String, scorePercent: Int, setNumber: Int = 1) {
+        val key = if (setNumber <= 1) "topic_${topicId}_pyq" else "topic_${topicId}_pyq_$setNumber"
+        val existing = getTopicPYQScore(topicId, setNumber)
         val bestScore = maxOf(existing, scorePercent)
         scoresMap[key] = bestScore
         context?.getSharedPreferences("desh_exam_test_scores", android.content.Context.MODE_PRIVATE)?.edit()?.putInt(key, bestScore)?.apply()
@@ -1431,6 +1465,20 @@ class DeshExamRepository(
         }
     }
 
+    suspend fun getChapterQuestionCount(chapterId: String): Int = withContext(Dispatchers.IO) {
+        val count = dao.getQuestionCountForChapter(chapterId)
+        if (count > 0) {
+            count
+        } else {
+            val chapterQs = dao.getQuestionsForChapter(chapterId)
+            if (chapterQs.isNotEmpty()) {
+                chapterQs.size
+            } else {
+                dao.getAllQuestions().count { it.chapterId.equals(chapterId, ignoreCase = true) }
+            }
+        }
+    }
+
     suspend fun getTopicQuestionCount(topicId: String): Int = withContext(Dispatchers.IO) {
         val topicQs = dao.getQuestionsForTopic(topicId)
         if (topicQs.isNotEmpty()) {
@@ -1529,20 +1577,21 @@ class DeshExamRepository(
         if (chapterQs.isNotEmpty()) {
             val chunkSize = 15
             val chunks = chapterQs.chunked(chunkSize)
-            val safeSetIndex = (setNumber - 1).coerceIn(0, (chunks.size - 1).coerceAtLeast(0))
-            return if (chunks.isNotEmpty()) chunks[safeSetIndex] else chapterQs
+            // Each unique 15-question chunk creates 2 sets: odd = standard order, even = randomized
+            val chunkIndex = if (chunks.isNotEmpty()) ((setNumber - 1) / 2) % chunks.size else 0
+            return if (chunks.isNotEmpty()) chunks[chunkIndex] else chapterQs
         }
 
         // Strict exact chapterId matching from all questions
         val strictChapterQs = dao.getAllQuestions().filter {
             it.chapterId == chapterId && 
             (it.classId == resolvedClassId || resolvedClassId.isBlank() || it.classId.isBlank())
-        }
+        }.sortedBy { it.id }
         if (strictChapterQs.isNotEmpty()) {
             val chunkSize = 15
             val chunks = strictChapterQs.chunked(chunkSize)
-            val safeSetIndex = (setNumber - 1).coerceIn(0, (chunks.size - 1).coerceAtLeast(0))
-            return if (chunks.isNotEmpty()) chunks[safeSetIndex] else strictChapterQs
+            val chunkIndex = if (chunks.isNotEmpty()) ((setNumber - 1) / 2) % chunks.size else 0
+            return if (chunks.isNotEmpty()) chunks[chunkIndex] else strictChapterQs
         }
 
         return emptyList()
@@ -1561,7 +1610,12 @@ class DeshExamRepository(
         val questionsList: List<QuestionEntity> = when (mode) {
             AssessmentMode.PRACTICE -> {
                 if (!targetId.isNullOrBlank()) {
-                    getStrictlyIsolatedQuestionsForTopic(targetId, setNumber, resolvedClassId)
+                    val topicQs = getStrictlyIsolatedQuestionsForTopic(targetId, setNumber, resolvedClassId)
+                    if (topicQs.isNotEmpty()) {
+                        topicQs
+                    } else {
+                        getStrictlyIsolatedQuestionsForChapter(targetId, setNumber, resolvedClassId)
+                    }
                 } else {
                     dao.getRandomQuestionsForClass(resolvedClassId, 10).ifEmpty { dao.getRandomQuestions(10) }
                 }
@@ -1578,7 +1632,17 @@ class DeshExamRepository(
             }
             AssessmentMode.MOCK_TEST -> {
                 if (!targetId.isNullOrBlank()) {
-                    // 0. Check Firestore Test Template first
+                    // Check if target is a chapter first
+                    val targetChapter = dao.getChapterById(targetId)
+                    if (targetChapter != null) {
+                        val chQs = dao.getQuestionsForChapter(targetId).filter { it.classId == resolvedClassId || it.classId.isBlank() }
+                        if (chQs.isNotEmpty()) {
+                            chQs.shuffled().take(30)
+                        } else {
+                            getStrictlyIsolatedQuestionsForChapter(targetId, setNumber, resolvedClassId)
+                        }
+                    } else {
+                        // 0. Check Firestore Test Template first
                     var firestoreTemplateQs: List<QuestionEntity> = emptyList()
                     try {
                         val fs = com.example.data.firestore.FirestoreService(context)
@@ -1663,6 +1727,7 @@ class DeshExamRepository(
                             }
                         }
                     }
+                    }
                 } else {
                     dao.getRandomQuestionsForClass(resolvedClassId, 30).ifEmpty { dao.getRandomQuestions(30) }
                 }
@@ -1670,7 +1735,12 @@ class DeshExamRepository(
             AssessmentMode.SPEED_BLITZ -> {
                 if (!targetId.isNullOrBlank()) {
                     val topicQs = getStrictlyIsolatedQuestionsForTopic(targetId, setNumber, resolvedClassId)
-                    if (topicQs.isNotEmpty()) topicQs.shuffled().take(15) else dao.getRandomQuestionsForClass(resolvedClassId, 15).ifEmpty { dao.getRandomQuestions(15) }
+                    if (topicQs.isNotEmpty()) {
+                        topicQs.shuffled().take(15)
+                    } else {
+                        val chQs = getStrictlyIsolatedQuestionsForChapter(targetId, setNumber, resolvedClassId)
+                        if (chQs.isNotEmpty()) chQs.shuffled().take(15) else dao.getRandomQuestionsForClass(resolvedClassId, 15).ifEmpty { dao.getRandomQuestions(15) }
+                    }
                 } else {
                     dao.getRandomQuestionsForClass(resolvedClassId, 15).ifEmpty { dao.getRandomQuestions(15) }
                 }
@@ -1717,7 +1787,14 @@ class DeshExamRepository(
             }
         }
 
-        val domainQuestions = questionsList.map { it.toDomainModel() }.shuffled()
+        val isOddSet = ((setNumber - 1) % 2) == 0
+        val isPracticeMode = mode == AssessmentMode.PRACTICE
+        val shouldRandomize = !isPracticeMode || !isOddSet
+        val domainQuestions = if (shouldRandomize) {
+            questionsList.map { it.toDomainModel(randomizeOptions = true) }.shuffled()
+        } else {
+            questionsList.map { it.toDomainModel(randomizeOptions = false) }
+        }
         val timeSeconds = when (mode) {
             AssessmentMode.SPEED_BLITZ -> domainQuestions.size * 15
             AssessmentMode.DAILY_10 -> domainQuestions.size * 30
@@ -1742,13 +1819,13 @@ class DeshExamRepository(
             AssessmentMode.CHAPTER_MARATHON_QUIZ -> "চ্যাপ্টার ম্যারাথন কুইজ (Chapter Marathon Quiz)"
         }
 
-        val topicId = if (mode == AssessmentMode.PRACTICE || mode == AssessmentMode.SPEED_BLITZ || mode == AssessmentMode.MOCK_TEST) targetId else domainQuestions.firstOrNull()?.topicId
+        val topicId = if (mode == AssessmentMode.PRACTICE || mode == AssessmentMode.SPEED_BLITZ || mode == AssessmentMode.MOCK_TEST || mode == AssessmentMode.BOSS_BATTLE || mode == AssessmentMode.CHAPTER_PYQ) targetId else domainQuestions.firstOrNull()?.topicId
 
         AssessmentSession(
             mode = mode,
             title = title,
             subjectId = domainQuestions.firstOrNull()?.subjectId,
-            chapterId = domainQuestions.firstOrNull()?.chapterId,
+            chapterId = domainQuestions.firstOrNull()?.chapterId ?: targetId,
             topicId = topicId,
             setNumber = setNumber,
             questions = domainQuestions,
@@ -1857,25 +1934,34 @@ class DeshExamRepository(
         dao.insertOrUpdateProgress(currentProgress)
 
         // Save test/quiz scores for progressive unlocking and automatic endless test generation
-        if (session.mode == AssessmentMode.PRACTICE && !session.topicId.isNullOrBlank()) {
-            saveTopicSetScore(session.topicId, session.setNumber, accuracy)
+        val effectiveTargetId = session.topicId?.ifBlank { null } ?: session.chapterId?.ifBlank { null }
+        if (session.mode == AssessmentMode.PRACTICE && !effectiveTargetId.isNullOrBlank()) {
+            saveTopicSetScore(effectiveTargetId, session.setNumber, accuracy)
             // If the user achieved >= 60% on their highest set, we can check if auto-generation applies
-            val currentExtra = getExtraGeneratedSets(session.topicId)
+            val currentExtra = getExtraGeneratedSets(effectiveTargetId)
             val baseSets = 4
             if (session.setNumber >= (baseSets + currentExtra) && accuracy >= 60) {
                 // Auto generate next practice set so student always has a new challenge
-                addExtraGeneratedSet(session.topicId, 1)
+                addExtraGeneratedSet(effectiveTargetId, 1)
             }
         } else if (session.mode == AssessmentMode.MOCK_TEST) {
-            if (!session.topicId.isNullOrBlank()) {
-                saveTopicMockScore(session.topicId, accuracy)
+            if (!effectiveTargetId.isNullOrBlank()) {
+                saveTopicMockScore(effectiveTargetId, accuracy, session.setNumber)
             }
             if (!session.subjectId.isNullOrBlank()) {
                 saveSubjectTestScore(session.subjectId, accuracy)
             }
         } else if (session.mode == AssessmentMode.SPEED_BLITZ) {
-            if (!session.topicId.isNullOrBlank()) {
-                saveTopicSpeedScore(session.topicId, accuracy)
+            if (!effectiveTargetId.isNullOrBlank()) {
+                saveTopicSpeedScore(effectiveTargetId, accuracy, session.setNumber)
+            }
+        } else if (session.mode == AssessmentMode.BOSS_BATTLE) {
+            if (!effectiveTargetId.isNullOrBlank()) {
+                saveTopicBossScore(effectiveTargetId, accuracy, session.setNumber)
+            }
+        } else if (session.mode == AssessmentMode.CHAPTER_PYQ) {
+            if (!effectiveTargetId.isNullOrBlank()) {
+                saveTopicPYQScore(effectiveTargetId, accuracy, session.setNumber)
             }
         }
 
@@ -2638,7 +2724,22 @@ class DeshExamRepository(
     suspend fun syncDatabaseWithAssets(forceRefresh: Boolean = false) = withContext(Dispatchers.IO) {
         val ctx = context ?: return@withContext
         try {
+            if (forceRefresh) {
+                dao.deleteAllSubjects()
+                dao.deleteAllChapters()
+                dao.deleteAllTopics()
+                dao.deleteAllQuestions()
+            }
             com.example.data.local.DeshExamDatabase.populateDataFromAssets(ctx, dao, forceRefresh)
+            val prefs = ctx.getSharedPreferences("desh_exam_prefs", android.content.Context.MODE_PRIVATE)
+            val currentApkTime = try {
+                val apkFile = java.io.File(ctx.packageCodePath)
+                if (apkFile.exists()) apkFile.lastModified() else 0L
+            } catch (e: Exception) { 0L }
+            prefs.edit()
+                .putInt("db_seeded_version", 35)
+                .putLong("last_apk_build_timestamp", currentApkTime)
+                .apply()
         } catch (e: Exception) {
             android.util.Log.e("DeshExamRepository", "Error syncing database with assets: ${e.message}")
         }

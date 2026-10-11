@@ -81,6 +81,9 @@ interface DeshExamDao {
     @Query("SELECT * FROM questions WHERE chapterId = :chapterId")
     suspend fun getQuestionsForChapter(chapterId: String): List<QuestionEntity>
 
+    @Query("SELECT COUNT(*) FROM questions WHERE chapterId = :chapterId")
+    suspend fun getQuestionCountForChapter(chapterId: String): Int
+
     @Query("SELECT * FROM questions WHERE subjectId = :subjectId ORDER BY RANDOM() LIMIT :limit")
     suspend fun getQuestionsForSubject(subjectId: String, limit: Int): List<QuestionEntity>
 

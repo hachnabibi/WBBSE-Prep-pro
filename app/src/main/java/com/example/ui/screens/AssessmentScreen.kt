@@ -115,11 +115,49 @@ fun AssessmentScreen(
             onDismissRequest = { showExitConfirmation = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            val infiniteTransition = rememberInfiniteTransition(label = "warning_exit_animation")
+            val iconScale by infiniteTransition.animateFloat(
+                initialValue = 0.94f,
+                targetValue = 1.10f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(900, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "icon_scale"
+            )
+            val ringScale by infiniteTransition.animateFloat(
+                initialValue = 0.95f,
+                targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "ring_scale"
+            )
+            val ringAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.5f,
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "ring_alpha"
+            )
+            val iconRotation by infiniteTransition.animateFloat(
+                initialValue = -5f,
+                targetValue = 5f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(650, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "icon_rotation"
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
                 Card(
                     shape = RoundedCornerShape(24.dp),
@@ -130,36 +168,18 @@ fun AssessmentScreen(
                         1.dp,
                         if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
                     ),
-                    modifier = Modifier.fillMaxWidth(0.92f)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .padding(top = 36.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(start = 24.dp, end = 24.dp, top = 48.dp, bottom = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Warning Icon in the CENTER TOP of the card
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color(0xFF7F1D1D).copy(alpha = 0.4f) else Color(0xFFFEE2E2))
-                                .border(
-                                    2.dp,
-                                    if (isDark) Color(0xFFEF4444).copy(alpha = 0.5f) else Color(0xFFFECACA),
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.WarningAmber,
-                                contentDescription = "Warning",
-                                tint = WrongRed,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
                         Text(
                             text = if (isBengali) "টেস্ট ছেড়ে বের হতে চান?" else "Exit Test?",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -214,6 +234,55 @@ fun AssessmentScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // Animated Warning Icon Badge positioned at the top-center edge of the card
+                Box(
+                    modifier = Modifier.size(72.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Pulsing radar ripple ring
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = ringScale
+                                scaleY = ringScale
+                                alpha = ringAlpha
+                            }
+                            .clip(CircleShape)
+                            .background(WrongRed.copy(alpha = 0.35f))
+                    )
+
+                    // Core Circular Badge with border & glowing background
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(
+                                if (isDark) Color(0xFF7F1D1D).copy(alpha = 0.95f)
+                                else Color(0xFFFEE2E2)
+                            )
+                            .border(
+                                3.dp,
+                                if (isDark) Color(0xFFEF4444) else Color(0xFFFECACA),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = "Warning",
+                            tint = if (isDark) Color(0xFFFCA5A5) else WrongRed,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                    rotationZ = iconRotation
+                                }
+                        )
                     }
                 }
             }

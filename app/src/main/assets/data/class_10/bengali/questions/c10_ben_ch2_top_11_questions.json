@@ -770,4 +770,33 @@
   {
     "id": "c10_q_sindhutire_49",
     "topicId": "c10_ben_top_11",
-    "
+    "chapterId": "c10_ben_ch2",
+    "subjectId": "c10_bengali",
+    "type": "MCQ",
+    "difficulty": "EASY",
+    "question": "পদ্মা চার সখীকে নিয়ে পদ্মাবতীকে কোথায় নিয়ে এলেন?",
+    "optionsJson": "উদ্যানের মাঝে|রথে|অট্টালিকায়|নৌকায়",
+    "correctOptionIndex": 0,
+    "correctAnswerText": "উদ্যানের মাঝে",
+    "explanation": "পদ্মা তাঁর সখীদের সঙ্গে নিয়ে অচেতন পদ্মাবতীকে উদ্যানের মাঝে এক দিব্য স্থানে নিয়ে এসেছিলেন।",
+    "marks": 1,
+    "tagsJson": "পদ্মা|উদ্যান|সিন্ধুতীরে",
+    "pyqYear": "2023"
+  },
+  {
+    "id": "c10_q_sindhutire_50",
+    "topicId": "c10_ben_top_11",
+    "chapterId": "c10_ben_ch2",
+    "subjectId": "c10_bengali",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "পদ্মাবতী ও তাঁর সখীদের সুস্থ করতে কত দণ্ড সময় লেগেছিল?",
+    "optionsJson": "দুই দণ্ড|চার দণ্ড|এক দণ্ড|তিন দণ্ড",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "চার দণ্ড",
+    "explanation": "‘চারিদণ্ডে পাইল চেতন’—অর্থাৎ চার দণ্ড নিরলস সেবা ও শুশ্রূষার পর পদ্মাবতী চেতনা ফিরে পান।",
+    "marks": 1,
+    "tagsJson": "চারিদণ্ড|চেতন|সিন্ধুতীরে",
+    "pyqYear": "2020"
+  }
+]

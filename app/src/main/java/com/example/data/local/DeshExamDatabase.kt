@@ -51,16 +51,25 @@ abstract class DeshExamDatabase : RoomDatabase() {
                     .build()
                 INSTANCE = instance
                 
-                // Trigger asset sync in background with version checking
+                // Trigger asset sync in background with automated build and asset change detection
                 scope.launch(Dispatchers.IO) {
                     try {
                         val dao = instance.deshExamDao()
                         val prefs = context.applicationContext.getSharedPreferences("desh_exam_prefs", Context.MODE_PRIVATE)
                         val seededVersion = prefs.getInt("db_seeded_version", 0)
-                        val TARGET_VERSION = 19 // Incrementing this forces a full fresh seed of all asset files
+                        val TARGET_VERSION = 36 // Forces immediate re-seed after removing history topics.json
+                        val lastApkTime = prefs.getLong("last_apk_build_timestamp", 0L)
+                        val currentApkTime = try {
+                            val apkFile = java.io.File(context.applicationContext.packageCodePath)
+                            if (apkFile.exists()) apkFile.lastModified() else 0L
+                        } catch (e: Exception) {
+                            0L
+                        }
+                        val isNewBuild = currentApkTime > 0L && currentApkTime != lastApkTime
+                        val qCount = dao.getQuestionsCount()
                         
-                        if (seededVersion < TARGET_VERSION || dao.getAllSubjectsOnce().isEmpty()) {
-                            Log.d(TAG, "Forcing database seed or update (seeded: $seededVersion, target: $TARGET_VERSION)")
+                        if (seededVersion < TARGET_VERSION || isNewBuild || dao.getAllSubjectsOnce().isEmpty() || qCount < 500) {
+                            Log.d(TAG, "Forcing database seed or update (seeded: $seededVersion, target: $TARGET_VERSION, qCount: $qCount, isNewBuild: $isNewBuild)")
                             
                             // Delete only the academic content tables to preserve user profile progress (coins, streak, level)
                             dao.deleteAllSubjects()
@@ -71,8 +80,12 @@ abstract class DeshExamDatabase : RoomDatabase() {
                             // Repopulate from the fresh asset files
                             populateDataFromAssets(context.applicationContext, dao, forceRefresh = true)
                             
-                            // Save version
-                            prefs.edit().putInt("db_seeded_version", TARGET_VERSION).apply()
+                            // Save version and apk build timestamp
+                            prefs.edit()
+                                .putInt("db_seeded_version", TARGET_VERSION)
+                                .putLong("last_apk_build_timestamp", currentApkTime)
+                                .apply()
+                            Log.d(TAG, "Database seeded successfully. Total questions: ${dao.getQuestionsCount()}")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during database populate check: ${e.message}", e)
@@ -357,56 +370,66 @@ abstract class DeshExamDatabase : RoomDatabase() {
                         if (!questionsFiles.isNullOrEmpty()) {
                             for (qFile in questionsFiles) {
                                 if (qFile.endsWith(".json")) {
-                                    val questionsStream = assetManager.open("$path/questions/$qFile")
-                                    val rawQuestions: List<QuestionEntity>? = gson.fromJson(java.io.InputStreamReader(questionsStream), listType)
-                                    if (!rawQuestions.isNullOrEmpty()) {
-                                        val safeQuestions = rawQuestions.map { q ->
-                                            q.copy(
-                                                id = q.id ?: "",
-                                                topicId = q.topicId ?: "",
-                                                chapterId = q.chapterId ?: "",
-                                                subjectId = q.subjectId ?: "",
-                                                type = q.type ?: "MCQ",
-                                                difficulty = q.difficulty ?: "MEDIUM",
-                                                question = q.question ?: "",
-                                                optionsJson = q.optionsJson ?: "",
-                                                correctAnswerText = q.correctAnswerText ?: "",
-                                                explanation = q.explanation ?: "",
-                                                tagsJson = q.tagsJson ?: "",
-                                                pyqYear = q.pyqYear ?: "",
-                                                classId = q.classId ?: inferredClassId,
-                                                podcastUrl = q.podcastUrl ?: "",
-                                                podcastTitle = q.podcastTitle ?: ""
-                                            )
+                                    try {
+                                        val questionsStream = assetManager.open("$path/questions/$qFile")
+                                        val rawQuestions: List<QuestionEntity>? = gson.fromJson(java.io.InputStreamReader(questionsStream), listType)
+                                        if (!rawQuestions.isNullOrEmpty()) {
+                                            val safeQuestions = rawQuestions.map { q ->
+                                                q.copy(
+                                                    id = q.id ?: "",
+                                                    topicId = q.topicId ?: "",
+                                                    chapterId = q.chapterId ?: "",
+                                                    subjectId = q.subjectId ?: "",
+                                                    type = q.type ?: "MCQ",
+                                                    difficulty = q.difficulty ?: "MEDIUM",
+                                                    question = q.question ?: "",
+                                                    optionsJson = q.optionsJson ?: "",
+                                                    correctAnswerText = q.correctAnswerText ?: "",
+                                                    explanation = q.explanation ?: "",
+                                                    marks = if (q.marks > 0) q.marks else 1,
+                                                    tagsJson = q.tagsJson ?: "",
+                                                    pyqYear = q.pyqYear ?: "",
+                                                    classId = if (!q.classId.isNullOrBlank()) q.classId else inferredClassId,
+                                                    podcastUrl = q.podcastUrl ?: "",
+                                                    podcastTitle = q.podcastTitle ?: ""
+                                                )
+                                            }
+                                            dao.insertQuestions(safeQuestions)
                                         }
-                                        dao.insertQuestions(safeQuestions)
+                                    } catch (qErr: Exception) {
+                                        Log.e(TAG, "Error loading $path/questions/$qFile: ${qErr.message}", qErr)
                                     }
                                 }
                             }
                         } else if (files.contains("questions.json")) {
-                            val questionsStream = assetManager.open("$path/questions.json")
-                            val rawQuestions: List<QuestionEntity>? = gson.fromJson(java.io.InputStreamReader(questionsStream), listType)
-                            if (!rawQuestions.isNullOrEmpty()) {
-                                val safeQuestions = rawQuestions.map { q ->
-                                    q.copy(
-                                        id = q.id ?: "",
-                                        topicId = q.topicId ?: "",
-                                        chapterId = q.chapterId ?: "",
-                                        subjectId = q.subjectId ?: "",
-                                        type = q.type ?: "MCQ",
-                                        difficulty = q.difficulty ?: "MEDIUM",
-                                        question = q.question ?: "",
-                                        optionsJson = q.optionsJson ?: "",
-                                        correctAnswerText = q.correctAnswerText ?: "",
-                                        explanation = q.explanation ?: "",
-                                        tagsJson = q.tagsJson ?: "",
-                                        pyqYear = q.pyqYear ?: "",
-                                        classId = q.classId ?: inferredClassId,
-                                                podcastUrl = q.podcastUrl ?: "",
-                                                podcastTitle = q.podcastTitle ?: ""
-                                    )
+                            try {
+                                val questionsStream = assetManager.open("$path/questions.json")
+                                val rawQuestions: List<QuestionEntity>? = gson.fromJson(java.io.InputStreamReader(questionsStream), listType)
+                                if (!rawQuestions.isNullOrEmpty()) {
+                                    val safeQuestions = rawQuestions.map { q ->
+                                        q.copy(
+                                            id = q.id ?: "",
+                                            topicId = q.topicId ?: "",
+                                            chapterId = q.chapterId ?: "",
+                                            subjectId = q.subjectId ?: "",
+                                            type = q.type ?: "MCQ",
+                                            difficulty = q.difficulty ?: "MEDIUM",
+                                            question = q.question ?: "",
+                                            optionsJson = q.optionsJson ?: "",
+                                            correctAnswerText = q.correctAnswerText ?: "",
+                                            explanation = q.explanation ?: "",
+                                            marks = if (q.marks > 0) q.marks else 1,
+                                            tagsJson = q.tagsJson ?: "",
+                                            pyqYear = q.pyqYear ?: "",
+                                            classId = if (!q.classId.isNullOrBlank()) q.classId else inferredClassId,
+                                            podcastUrl = q.podcastUrl ?: "",
+                                            podcastTitle = q.podcastTitle ?: ""
+                                        )
+                                    }
+                                    dao.insertQuestions(safeQuestions)
                                 }
-                                dao.insertQuestions(safeQuestions)
+                            } catch (qErr: Exception) {
+                                Log.e(TAG, "Error loading $path/questions.json: ${qErr.message}", qErr)
                             }
                         }
                     } catch (e: Exception) {

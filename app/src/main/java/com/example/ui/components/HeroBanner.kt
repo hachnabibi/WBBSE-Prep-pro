@@ -56,6 +56,7 @@ fun HeroBanner(
             ) {
                 // Left side: Circular Star Icon + Title & Subtitle
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -74,7 +75,10 @@ fun HeroBanner(
                         }
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -84,10 +88,13 @@ fun HeroBanner(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.9f),
-                            maxLines = 1
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Right side circular percentage badge (Gold border, transparent background, white text)
                 Surface(
@@ -132,11 +139,13 @@ fun HeroBanner(
 fun StatMiniBadge(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color.White.copy(alpha = 0.2f),
+    contentColor: Color = Color.White
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = Color.White.copy(alpha = 0.2f),
+        color = containerColor,
         modifier = modifier
     ) {
         Row(
@@ -144,8 +153,8 @@ fun StatMiniBadge(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-            Text(text = label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
+            Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(14.dp))
+            Text(text = label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = contentColor)
         }
     }
 }
