@@ -9,6 +9,64 @@
     "keyPointsJson": "দ্বিঘাত সমীকরণের সাধারণ রূপ: ax² + bx + c = 0 (a ≠ 0)|নিরূপক (Discriminant): D = b² - 4ac|শ্রীধর আচার্যের সূত্র: x = (-b ± √(b² - 4ac)) / 2a|বাস্তব ও সমান বীজ হওয়ার শর্ত: b² - 4ac = 0",
     "isUnlocked": true,
     "masteryPercentage": 80,
-    "questionCount": 3
+    "questionCount": 5,
+    "videoUrl": "https://www.youtube.com/watch?v=R-LMIuytqmg",
+    "playlistJson": "[{\"id\":\"math_v1\",\"partNumber\":1,\"title\":\"দ্বিঘাত সমীকরণ পরিচিতি ও সমাধান\",\"duration\":\"১৫:২০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"গণিত শিক্ষক মণ্ডলী\",\"description\":\"মৌলিক ধারণা ও সমীকরণ গঠন।\"},{\"id\":\"math_v2\",\"partNumber\":2,\"title\":\"শ্রীধর আচার্যের সূত্রের প্রয়োগ\",\"duration\":\"১৮:০০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"বিশেষজ্ঞ শিক্ষক\",\"description\":\"সূত্র প্রয়োগ করে বীজ নির্ণয়।\"},{\"id\":\"math_v3\",\"partNumber\":3,\"title\":\"নিরূপক ও বীজ প্রকৃতি নির্ণয়\",\"duration\":\"১২:৫০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"সিনিয়র মেন্টর\",\"description\":\"D এর মান দিয়ে বীজ বিচার।\"}]"
+  },
+  {
+    "id": "c10_top_math_1_2",
+    "chapterId": "c10_math_ch1",
+    "subjectId": "c10_math",
+    "orderIndex": 2,
+    "title": "দ্বিঘাত সমীকরণের প্রয়োগ ও সমস্যা সমাধান",
+    "summary": "বাস্তব জীবনের বিভিন্ন গাণিতিক সমস্যাকে দ্বিঘাত সমীকরণের আকারে প্রকাশ করে সমাধান করার পদ্ধতি।",
+    "keyPointsJson": "সমস্যা থেকে সমীকরণ গঠন|চলক ধরে সমীকরণ সমাধান|উত্তর যাচাই",
+    "isUnlocked": true,
+    "masteryPercentage": 70,
+    "questionCount": 4,
+    "videoUrl": "https://www.youtube.com/watch?v=R-LMIuytqmg",
+    "playlistJson": "[{\"id\":\"math_v1_2\",\"partNumber\":1,\"title\":\"ভাষার অঙ্ক বা ইবারত অংক সমাধান\",\"duration\":\"২০:১০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"গণিত শিক্ষক\",\"description\":\"বাস্তব সমস্যা সমাধান।\"}]"
+  },
+  {
+    "id": "c10_top_math_2_1",
+    "chapterId": "c10_math_ch2",
+    "subjectId": "c10_math",
+    "orderIndex": 1,
+    "title": "সরল সুদ ও চক্রবৃদ্ধি সুদ",
+    "summary": "I = (Prt)/100 সূত্রের সাহায্যে সরল সুদ এবং চক্রবৃদ্ধি সুদের হিসাব ও পার্থক্য নির্ণয়।",
+    "keyPointsJson": "সরল সুদ: I = Prt / 100|চক্রবৃদ্ধি সুদ: A = P(1 + r/100)^n|সমহার বৃদ্ধি ও হ্রাস",
+    "isUnlocked": true,
+    "masteryPercentage": 60,
+    "questionCount": 5,
+    "videoUrl": "https://www.youtube.com/watch?v=R-LMIuytqmg",
+    "playlistJson": "[{\"id\":\"math_v2_1\",\"partNumber\":1,\"title\":\"সরল সুদ বনাম চক্রবৃদ্ধি সুদ ক্লাস\",\"duration\":\"২২:০০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"গণিত বিশেষজ্ঞ\",\"description\":\"সুদের সমস্ত সূত্র ও প্রয়োগ।\"}]"
+  },
+  {
+    "id": "c10_top_math_3_1",
+    "chapterId": "c10_math_ch3",
+    "subjectId": "c10_math",
+    "orderIndex": 1,
+    "title": "সদৃশতা ও থ্যালিসের উপপাদ্য",
+    "summary": "ত্রিভুজের সদৃশতা এবং থ্যালিসের উপপাদ্য ও তার অনুসিদ্ধান্তসমূহের প্রমাণ ও প্রয়োগ।",
+    "keyPointsJson": "সদৃশকোণী ত্রিভুজ|থ্যালিসের উপপাদ্য|অনুপাত ও সমানুপাত",
+    "isUnlocked": true,
+    "masteryPercentage": 50,
+    "questionCount": 4,
+    "videoUrl": "https://www.youtube.com/watch?v=R-LMIuytqmg",
+    "playlistJson": "[{\"id\":\"math_v3_1\",\"partNumber\":1,\"title\":\"জ্যামিতিতে সদৃশতা ও উপপাদ্য প্রমাণ\",\"duration\":\"২৫:০০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"জ্যামিত শিক্ষক\",\"description\":\"উপপাদ্যের সহজ প্রমাণ।\"}]"
+  },
+  {
+    "id": "c10_top_math_4_1",
+    "chapterId": "c10_math_ch4",
+    "subjectId": "c10_math",
+    "orderIndex": 1,
+    "title": "ত্রিকোণমিতিক অনুপাত ও ত্রিকোণমিতিক অভেদাবলি",
+    "summary": "sin, cos, tan, cosec, sec, cot এর মান এবং ত্রিকোণমিতিক অভেদাবলীর প্রমাণ ও প্রয়োগ।",
+    "keyPointsJson": "ত্রিকোণমিতিক অনুপাতসমূহ|sin²θ + cos²θ = 1|পূরক কোণের ত্রিকোণমিতিক অনুপাত",
+    "isUnlocked": true,
+    "masteryPercentage": 40,
+    "questionCount": 6,
+    "videoUrl": "https://www.youtube.com/watch?v=R-LMIuytqmg",
+    "playlistJson": "[{\"id\":\"math_v4_1\",\"partNumber\":1,\"title\":\"ত্রিকোণমিতির সূত্র ও মান নির্ণয় ক্লাস\",\"duration\":\"১৯:৩০ মিনিট\",\"youtubeVideoId\":\"R-LMIuytqmg\",\"instructorName\":\"ত্রিকোণমিতি বিশেষজ্ঞ\",\"description\":\"ত্রিকোণমিতির বেসিক থেকে অ্যাডভান্সড।\"}]"
   }
 ]

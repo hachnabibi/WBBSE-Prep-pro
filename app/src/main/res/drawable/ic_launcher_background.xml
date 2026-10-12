@@ -13,17 +13,14 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#1E1B4B" />
-                <item android:offset="0.5" android:color="#312E81" />
-                <item android:offset="1.0" android:color="#4338CA" />
+                <item android:offset="0.0" android:color="#0A2540" />
+                <item android:offset="0.5" android:color="#1E3A8A" />
+                <item android:offset="1.0" android:color="#2563EB" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Subtle circular aura -->
+    <!-- Subtle circular accent -->
     <path
         android:fillColor="#15FFFFFF"
         android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
-    <path
-        android:fillColor="#0DFFFFFF"
-        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
 </vector>

@@ -57,7 +57,7 @@ abstract class DeshExamDatabase : RoomDatabase() {
                         val dao = instance.deshExamDao()
                         val prefs = context.applicationContext.getSharedPreferences("desh_exam_prefs", Context.MODE_PRIVATE)
                         val seededVersion = prefs.getInt("db_seeded_version", 0)
-                        val TARGET_VERSION = 38 // Forces immediate re-seed with author fields in topics
+                        val TARGET_VERSION = 43 // Forces immediate re-seed with comprehensive Class 10 Math videos.json
                         val lastApkTime = prefs.getLong("last_apk_build_timestamp", 0L)
                         val currentApkTime = try {
                             val apkFile = java.io.File(context.applicationContext.packageCodePath)
@@ -284,7 +284,7 @@ abstract class DeshExamDatabase : RoomDatabase() {
                                         videoUrl = top.videoUrl,
                                         playlistJson = top.playlistJson,
                                         summative = top.summative,
-                                        author = top.author
+                                        author = top.author ?: ""
                                     )
                                 }
                                 

@@ -135,6 +135,10 @@ object VideoLessonProvider {
         }
     }
 
+    fun getLessonsForSubject(subjectId: String): List<VideoLesson> {
+        return registeredJsonLessons.values.filter { it.subjectId == subjectId }
+    }
+
     fun setCustomVideoUrl(topicId: String, urlOrId: String) {
         customTopicVideos[topicId] = urlOrId
     }

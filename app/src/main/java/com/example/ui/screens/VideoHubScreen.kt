@@ -18,6 +18,10 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,7 +72,29 @@ fun VideoHubScreen(
 ) {
     val subjects by viewModel.subjects.collectAsState()
     val selectedSubjectId by viewModel.selectedSubjectId.collectAsState()
-    val topics by viewModel.topics.collectAsState()
+    val dbTopics by viewModel.topics.collectAsState()
+    val fallbackLessons = remember(selectedSubjectId) {
+        VideoLessonProvider.getLessonsForSubject(selectedSubjectId)
+    }
+    val topics = remember(dbTopics, fallbackLessons) {
+        if (dbTopics.isNotEmpty()) dbTopics else fallbackLessons.map { lesson ->
+            com.example.data.local.TopicEntity(
+                id = lesson.safeTopicId,
+                chapterId = lesson.chapterId?.ifBlank { "${lesson.subjectId.orEmpty()}_ch1" } ?: "${lesson.subjectId.orEmpty()}_ch1",
+                subjectId = lesson.subjectId.orEmpty(),
+                orderIndex = 1,
+                title = lesson.title.orEmpty(),
+                summary = lesson.summary.orEmpty(),
+                keyPointsJson = "",
+                isUnlocked = true,
+                masteryPercentage = 0,
+                questionCount = lesson.safePlaylist.size,
+                videoUrl = lesson.getEffectiveVideoSource(),
+                playlistJson = com.google.gson.Gson().toJson(lesson.safePlaylist),
+                classId = "class_10_wbbse"
+            )
+        }
+    }
     val lazyListState = rememberLazyListState()
 
     // Select the first subject if none is currently selected
@@ -88,54 +114,75 @@ fun VideoHubScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 1. Top Header with Premium Gradient & Sidebar Hamburger Menu
+            // 1. Top Header with Light Surface, Back Arrow, Title, Search & Profile Avatar
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(PrimaryIndigo, PrimaryIndigoLight)
-                            )
-                        )
-                        .statusBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        // Left: Hamburger Menu Icon to open sidebar navigation drawer (aligned with home)
-                        IconButton(
-                            onClick = onOpenDrawer,
-                            modifier = Modifier.size(36.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Open Sidebar Navigation",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.width(6.dp))
-                        
-                        Column {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
+                            
                             Text(
                                 text = if (isBengali) "স্মার্ট ভিডিও লাইব্রেরি" else "Smart Video Library",
                                 style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 17.sp
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
                                 ),
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.height(1.dp))
-                            Text(
-                                text = if (isBengali) "আপনার সিলেবাসের সকল ভিডিও ক্লাস এক জায়গায়" else "All syllabus video classes in one place",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 10.sp
-                            )
+                            
+                            IconButton(
+                                onClick = {},
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
+                            
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Profile",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -174,7 +221,7 @@ fun VideoHubScreen(
                                                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                                             shape = RoundedCornerShape(8.dp)
                                         )
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -186,25 +233,6 @@ fun VideoHubScreen(
                                             fontSize = 11.5.sp,
                                             color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        // Ultra-sleek transparent badge with a thin border
-                                        Box(
-                                            modifier = Modifier
-                                                .background(Color.Transparent, CircleShape)
-                                                .border(
-                                                    width = 0.5.dp,
-                                                    color = if (isSelected) Color.White.copy(alpha = 0.6f) 
-                                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                                    shape = CircleShape
-                                                )
-                                                .padding(horizontal = 3.dp, vertical = 0.5.dp)
-                                        ) {
-                                            Text(
-                                                text = if (isBengali) "ভিডিও" else "Video",
-                                                fontSize = 7.5.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.primary
-                                            )
-                                        }
                                     }
                                 }
                             }
@@ -255,7 +283,7 @@ fun VideoHubScreen(
                     val titleText = if (isBengali) topic.titleBengali else topic.titleEnglish
                     val summaryText = if (isBengali) topic.summaryBengali else topic.summaryEnglish
 
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                         Card(
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -267,21 +295,17 @@ fun VideoHubScreen(
                                     viewModel.openVideoLessonForEntity(lesson, topic)
                                 }
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                // Left Side: Visual Thumbnail with Play Icon & Gradient Overlay
+                                // Thumbnail - Full width, zero margin/padding, flush against card edges
                                 val videoId = extractYoutubeVideoId(topic.videoUrl)
                                 val thumbnailUrl = videoId?.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
 
                                 Box(
                                     modifier = Modifier
-                                        .size(width = 110.dp, height = 75.dp)
-                                        .clip(RoundedCornerShape(10.dp))
+                                        .fillMaxWidth()
+                                        .height(175.dp)
                                         .background(
                                             brush = Brush.verticalGradient(
                                                 colors = listOf(
@@ -299,7 +323,6 @@ fun VideoHubScreen(
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
-                                        // Semi-transparent dark overlay to keep the play icon highly visible
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -307,68 +330,100 @@ fun VideoHubScreen(
                                         )
                                     }
 
-                                    // Decorative elements to make it look like a video container
                                     Icon(
                                         imageVector = Icons.Default.PlayCircle,
                                         contentDescription = "Play",
                                         tint = Color.White,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(52.dp)
                                     )
                                     
-                                    // YouTube-style compact duration badge
+                                    // Bottom-left Playlist Badge matching reference UI
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .padding(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "🗂️ সম্পূর্ণ প্লেলিস্ট • ${lesson.safePlaylist.size.let { if (it > 0) "$it টি ক্লাস" else "৬টি ক্লাস" }}",
+                                            color = Color.White,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+
+                                    // Bottom-right Duration Badge
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
-                                            .padding(4.dp)
+                                            .padding(8.dp)
                                             .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
-                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            .padding(horizontal = 4.dp, vertical = 0.5.dp)
                                     ) {
                                         Text(
                                             text = formatDurationText(lesson, isBengali),
                                             color = Color.White,
-                                            fontSize = 8.sp,
+                                            fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
 
-                                // Right Side: Video Info & Actions
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                // Bottom Details Row matching reference UI
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Text(
-                                        text = titleText,
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = summaryText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    // Leading icon badge matching reference UI
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Star,
+                                            imageVector = Icons.Default.MenuBook,
                                             contentDescription = null,
-                                            tint = Color(0xFFFFB300),
-                                            modifier = Modifier.size(14.dp)
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text(
+                                            text = titleText,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = if (isBengali) "ভিডিও ক্লাস • সম্পূর্ণ প্লেলিস্ট" else "Video Class • Playlist",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.SemiBold
+                                            text = if (isBengali) "বাংলা সাহিত্য • ১.২K ভিউ • ⭐ ৪.৯ • ফ্রি PDF নোটস" else "Bengali Lit • 1.2K Views • ⭐ 4.9 • Free PDF Notes",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {},
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "More",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }

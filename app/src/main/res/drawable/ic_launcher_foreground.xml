@@ -1,32 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Golden Shield Badge -->
+    <!-- Shadow / Outer Glow for D -->
+    <path
+        android:fillColor="#201D4ED8"
+        android:pathData="M26,22 L56,22 C76,22 88,34 88,54 C88,74 76,86 56,86 L26,86 Z" />
+    <!-- Bold Letter D in Vibrant Royal Blue -->
+    <path
+        android:fillColor="#1D4ED8"
+        android:pathData="M30,24 L56,24 C74,24 84,34 84,54 C84,74 74,84 56,84 L30,84 Z M42,36 L42,72 L56,72 C68,72 74,64 74,54 C74,44 68,36 56,36 Z" />
+    <!-- Inner Accent Highlight on D -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M32,26 L56,26 C72,26 82,35 82,42 C82,32 72,24 56,24 L32,24 Z" />
+    <!-- Graduation Cap (Mortarboard) on top -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M26,24 L54,12 L82,24 L54,36 Z" />
+    <!-- Cap Top Diamond -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M28,24 L54,14 L80,24 L54,34 Z" />
+    <!-- Cap Headband -->
+    <path
+        android:fillColor="#090D16"
+        android:pathData="M42,30 L42,37 C42,40 66,40 66,37 L66,30 Z" />
+    <!-- Golden Tassel -->
     <path
         android:fillColor="#F59E0B"
-        android:pathData="M54,24 L76,32 C76,50 67,67 54,76 C41,67 32,50 32,32 Z" />
-    <!-- Inner Accent Shield -->
+        android:pathData="M34,26 L30,38 L33,40 L35,38 Z" />
     <path
         android:fillColor="#FBBF24"
-        android:pathData="M54,28 L72,35 C72,50 64,64 54,72 C44,64 36,50 36,35 Z" />
-    <!-- Core Dark Shield Field -->
-    <path
-        android:fillColor="#1E1B4B"
-        android:pathData="M54,32 L68,38 C68,49 61,61 54,68 C47,61 40,49 40,38 Z" />
-    <!-- Graduation / Book Emblem in Pure White and Gold -->
-    <!-- Open Book Pages -->
+        android:pathData="M32,40 C32,42 34,44 34,44 C34,44 36,42 36,40 Z" />
+    <!-- Open Book at the bottom -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,49 C50,47 45,46 42,47 L42,60 C45,59 50,60 54,62 C58,60 63,59 66,60 L66,47 C63,46 58,47 54,49 Z" />
+        android:pathData="M34,70 C44,66 50,68 54,72 C58,68 64,66 74,70 L74,86 C64,82 58,84 54,88 C50,84 44,82 34,86 Z" />
+    <!-- Book Center Binding Spine -->
     <path
-        android:fillColor="#E0E7FF"
-        android:pathData="M54,49 L54,62"
-        android:strokeColor="#C7D2FE"
-        android:strokeWidth="0.8" />
-    <!-- Victory Star on top -->
+        android:fillColor="#E2E8F0"
+        android:pathData="M54,72 L54,88"
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="1.2" />
+    <!-- Upward Golden Arrow -->
     <path
-        android:fillColor="#FDE047"
-        android:pathData="M54,38 L55.5,42.5 L60,42.5 L56.5,45.2 L57.8,49.5 L54,46.8 L50.2,49.5 L51.5,45.2 L48,42.5 L52.5,42.5 Z" />
+        android:fillColor="#F59E0B"
+        android:pathData="M50,78 L54,68 L58,78 L56,78 L56,84 L52,84 L52,78 Z" />
 </vector>

@@ -25,7 +25,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +44,7 @@ import com.example.data.model.PlaylistItem
 import com.example.data.model.TopicItem
 import com.example.data.model.VideoLesson
 import com.example.ui.components.VideoPlayer
+import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.theme.ExamCyan
 import com.example.ui.theme.ExamGold
 import com.example.ui.viewmodel.DeshExamViewModel
@@ -246,40 +250,14 @@ fun VideoLessonScreen(
     } else {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = if (isBengali) "ভিডিও ক্লাস ও লেকচার" else "Video Lecture",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = topicTitle,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier.testTag("video_screen_back_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (isBengali) "ফিরে যান" else "Back"
-                            )
-                        }
-                    },
+                ScreenHeaderBar(
+                    title = if (isBengali) "ভিডিও ক্লাস ও লেকচার" else "Video Lecture",
+                    subtitle = topicTitle,
+                    isBengali = isBengali,
+                    showBackButton = true,
+                    onBack = onBack,
+                    containerColor = if (isDark) Color(0xFF0F172A) else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
                     actions = {
                         // Bookmark action
                         IconButton(
@@ -296,7 +274,7 @@ fun VideoLessonScreen(
                             Icon(
                                 imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                                 contentDescription = "Bookmark",
-                                tint = if (isBookmarked) ExamGold else MaterialTheme.colorScheme.onSurface
+                                tint = if (isBookmarked) ExamGold else (if (isDark) Color.White else MaterialTheme.colorScheme.onSurface)
                             )
                         }
 
@@ -319,16 +297,11 @@ fun VideoLessonScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Share,
-                                contentDescription = "Share"
+                                contentDescription = "Share",
+                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = if (isDark) Color(0xFF0F172A) else MaterialTheme.colorScheme.surface,
-                        titleContentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                    )
+                    }
                 )
             },
             containerColor = if (isDark) Color(0xFF0B1120) else Color(0xFFF8FAFC),
@@ -1024,6 +997,9 @@ private fun PlaylistItemCard(
     progressPercentage: Int,
     onClick: () -> Unit
 ) {
+    val videoId = VideoLesson.extractYoutubeId(item.getEffectiveVideoSource())
+    val thumbnailUrl = videoId.let { "https://img.youtube.com/vi/$it/hqdefault.jpg" }
+
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
@@ -1039,111 +1015,122 @@ private fun PlaylistItemCard(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Part Number Badge / Animated GraphicEq playing status
-            Surface(
-                shape = CircleShape,
-                color = if (isActive) Color(0xFF10B981) else (if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9)),
-                modifier = Modifier.size(38.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isActive) {
-                        Icon(
-                            imageVector = Icons.Default.GraphicEq,
-                            contentDescription = "এখন চলছে",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "${item.partNumber}",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-                        )
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = item.safeTitle,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                            fontSize = 13.5.sp,
-                            lineHeight = 18.sp
-                        ),
-                        color = if (isActive) {
-                            if (isDark) Color(0xFF34D399) else Color(0xFF047857)
-                        } else {
-                            if (isDark) Color.White else Color(0xFF0F172A)
-                        },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(modifier = Modifier.height(3.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "⏱ ${item.safeDuration}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                    )
-                    if (progressPercentage > 0) {
-                        Text(
-                            text = "• ${progressPercentage}% ${if (isBengali) "সম্পন্ন" else "done"}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ExamGold
+            // Left Side: YouTube Thumbnail with Play Icon & Compact Duration Badge
+            Box(
+                modifier = Modifier
+                    .size(width = 100.dp, height = 65.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                             )
                         )
-                    }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!thumbnailUrl.isBlank()) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = "Video Thumbnail",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.25f))
+                    )
+                }
+
+                Icon(
+                    imageVector = if (isActive) Icons.Default.GraphicEq else Icons.Default.PlayCircle,
+                    contentDescription = "Play",
+                    tint = if (isActive) Color(0xFF34D399) else Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 4.dp, vertical = 0.5.dp)
+                ) {
+                    Text(
+                        text = item.safeDuration,
+                        color = Color.White,
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            // Right side "Playing Now" status badge
-            if (isActive) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.2f),
-                    border = BorderStroke(0.8.dp, Color(0xFF10B981))
+            // Right Side: Title & Description
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isActive) Color(0xFF10B981) else Color(0xFF3B82F6).copy(alpha = 0.15f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = if (isDark) Color(0xFF34D399) else Color(0xFF047857),
-                            modifier = Modifier.size(13.dp)
-                        )
                         Text(
-                            text = if (isBengali) "এখন চলছে" else "Playing",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = if (isDark) Color(0xFF34D399) else Color(0xFF047857)
+                            text = if (isBengali) "পর্ব ${item.partNumber}" else "Part ${item.partNumber}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                            color = if (isActive) Color.White else Color(0xFF3B82F6),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                         )
                     }
+
+                    if (isActive) {
+                        Text(
+                            text = if (isBengali) "▶ এখন চলছে" else "▶ Playing",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+
+                Text(
+                    text = item.safeTitle,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp
+                    ),
+                    color = if (isActive) {
+                        if (isDark) Color(0xFF34D399) else Color(0xFF047857)
+                    } else {
+                        if (isDark) Color.White else Color(0xFF0F172A)
+                    },
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (item.safeDescription.isNotBlank()) {
+                    Text(
+                        text = item.safeDescription,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

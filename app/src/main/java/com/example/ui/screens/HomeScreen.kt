@@ -88,8 +88,8 @@ fun HomeScreen(
             .fillMaxSize()
             .background(screenBg)
             .testTag("home_screen_column"),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // ১. হেডার: প্রোফাইল ছবি, শুভেচ্ছা, শ্রেণি এবং ডানদিকে স্ট্রিক ও XP
         item {
@@ -797,6 +797,22 @@ private fun AutoScrollingSubjectsRow(
     }
 }
 
+private fun getSubjectGradient(subjectIdOrCode: String?, isDark: Boolean): Brush {
+    val key = (subjectIdOrCode ?: "").lowercase()
+    val colors = when {
+        key.contains("math") -> if (isDark) listOf(Color(0xFF2C223B), Color(0xFF3B2A56)) else listOf(Color(0xFFFFECD2), Color(0xFFFCB69F))
+        key.contains("phy") -> if (isDark) listOf(Color(0xFF231942), Color(0xFF3F2B96)) else listOf(Color(0xFFE0C3FC), Color(0xFF8EC5FC))
+        key.contains("life") || key.contains("bio") -> if (isDark) listOf(Color(0xFF133B31), Color(0xFF1F5E4B)) else listOf(Color(0xFF84FAB0), Color(0xFF8FD3F4))
+        key.contains("hist") -> if (isDark) listOf(Color(0xFF4A2E11), Color(0xFF6B3A2A)) else listOf(Color(0xFFFEE140), Color(0xFFFA709A))
+        key.contains("geo") -> if (isDark) listOf(Color(0xFF0F3854), Color(0xFF1A5276)) else listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
+        key.contains("ben") -> if (isDark) listOf(Color(0xFF4A1525), Color(0xFF6B2D3C)) else listOf(Color(0xFFFF9a9e), Color(0xFFfecfef))
+        key.contains("eng") -> if (isDark) listOf(Color(0xFF1A365D), Color(0xFF2B4C7E)) else listOf(Color(0xFFa1c4fd), Color(0xFFc2e9fb))
+        key.contains("env") -> if (isDark) listOf(Color(0xFF1B3B2B), Color(0xFF2D6A4F)) else listOf(Color(0xFFd4fc79), Color(0xFF96e6a1))
+        else -> if (isDark) listOf(Color(0xFF1E2538), Color(0xFF2A354D)) else listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0))
+    }
+    return Brush.linearGradient(colors)
+}
+
 @Composable
 private fun AutoScrollSubjectCard(
     subject: SubjectItem,
@@ -804,90 +820,96 @@ private fun AutoScrollSubjectCard(
     isDark: Boolean,
     onClick: () -> Unit
 ) {
-    val cardBg = if (isDark) Color(0xFF1E2538) else Color.White
+    val gradientBrush = getSubjectGradient(subject.id, isDark)
     val textColor = if (isDark) Color.White else Color(0xFF1E293B)
-    val subColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val subColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
 
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 2.dp else 1.dp),
         modifier = Modifier
-            .width(160.dp)
-            .height(95.dp)
+            .width(150.dp)
+            .height(86.dp)
+            .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .testTag("auto_scroll_subject_${subject.id}")
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .background(gradientBrush)
+                .padding(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = subject.getTitle(isBengali),
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    ),
-                    color = textColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isBengali) "অধ্যায়" else "Chapters",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = subColor
-                    )
-                    Text(
-                        text = "${subject.completedChapters.toBengali(isBengali)}/${subject.totalChapters.toBengali(isBengali)}",
-                        style = MaterialTheme.typography.bodySmall.copy(
+                        text = subject.getTitle(isBengali),
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 13.sp
                         ),
-                        color = textColor
+                        color = textColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(textColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = if (isBengali) "অধ্যায়" else "Chapters",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                            color = subColor
+                        )
+                        Text(
+                            text = "${subject.completedChapters.toBengali(isBengali)}/${subject.totalChapters.toBengali(isBengali)}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            color = textColor
+                        )
+                    }
+                    val progress = if (subject.totalChapters > 0) {
+                        (subject.completedChapters.toFloat() / subject.totalChapters).coerceIn(0f, 1f)
+                    } else 0f
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        color = if (isDark) Color(0xFF38BDF8) else Color(0xFF2563EB),
+                        trackColor = textColor.copy(alpha = 0.2f),
+                        strokeCap = StrokeCap.Round,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.5.dp)
+                            .clip(CircleShape)
                     )
                 }
-                val progress = if (subject.totalChapters > 0) {
-                    (subject.completedChapters.toFloat() / subject.totalChapters).coerceIn(0f, 1f)
-                } else 0f
-                LinearProgressIndicator(
-                    progress = { progress },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.4f),
-                    strokeCap = StrokeCap.Round,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape)
-                )
             }
         }
     }
@@ -900,61 +922,66 @@ private fun SubjectGridTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val containerColor = if (isDark) visual.bgDark else visual.bgLight
+    val gradientBrush = getSubjectGradient(visual.id, isDark)
     val titleColor = if (isDark) Color.White else visual.textColorLight
     val barColor = if (isDark) visual.barColorDark else visual.barColorLight
-    val trackColor = if (isDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.55f)
+    val trackColor = titleColor.copy(alpha = 0.2f)
 
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 2.dp else 1.dp),
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .testTag("subject_card_${visual.id}")
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .background(gradientBrush)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = visual.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.5.sp
-                    ),
-                    color = titleColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = visual.title,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 14.5.sp
+                        ),
+                        color = titleColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                Icon(
-                    imageVector = visual.icon,
-                    contentDescription = visual.title,
-                    tint = visual.iconTint,
-                    modifier = Modifier.size(26.dp)
+                    Icon(
+                        imageVector = visual.icon,
+                        contentDescription = visual.title,
+                        tint = visual.iconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                LinearProgressIndicator(
+                    progress = { visual.progress },
+                    color = barColor,
+                    trackColor = trackColor,
+                    strokeCap = StrokeCap.Round,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                        .clip(CircleShape)
                 )
             }
-
-            LinearProgressIndicator(
-                progress = { visual.progress },
-                color = barColor,
-                trackColor = trackColor,
-                strokeCap = StrokeCap.Round,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CircleShape)
-            )
         }
     }
 }

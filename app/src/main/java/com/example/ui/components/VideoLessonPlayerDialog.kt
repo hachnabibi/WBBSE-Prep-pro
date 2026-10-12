@@ -99,7 +99,7 @@ fun VideoLessonPlayerDialog(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                // 1. Top Bar with Close, Title & Actions
+                // 1. Top Bar with Back Arrow, Title, Subtitle & Bookmark/Share Actions
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -117,44 +117,27 @@ fun VideoLessonPlayerDialog(
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "বন্ধ করুন",
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "পেছনে যান",
                                 tint = Color.White
                             )
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = currentVideoTitle,
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                text = "ভিডিও ক্লাস ও লেকচার",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = if (isMp4) Color(0xFF10B981).copy(alpha = 0.25f) else Color(0xFFEF4444).copy(alpha = 0.25f),
-                                    modifier = Modifier.padding(end = 6.dp)
-                                ) {
-                                    Text(
-                                        text = if (isMp4) "🎥 MP4 ভিডিও" else "▶️ YouTube",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = if (isMp4) Color(0xFF34D399) else Color(0xFFF87171),
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                    )
-                                }
-                                Text(
-                                    text = "👨‍🏫 ${lesson.safeInstructorName}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Color(0xFF94A3B8),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            Text(
+                                text = currentVideoTitle,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = Color(0xFF94A3B8),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
 
@@ -219,81 +202,172 @@ fun VideoLessonPlayerDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 3. Quick Action Row & Instant Player Launcher
-                Row(
+                // 3. Metadata, Badges, Title & Action Buttons matching reference UI
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFF1E293B).copy(alpha = 0.95f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Badges row: HD Class, Duration, Cloud Synced
                     Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                openVideoExternally(context, currentVideoSource, isMp4, effectiveYoutubeId)
-                            },
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = CircleShape,
-                            color = if (isMp4) Color(0xFF10B981).copy(alpha = 0.2f) else Color(0xFFEF4444).copy(alpha = 0.2f),
-                            modifier = Modifier.size(32.dp)
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color(0xFF34D399).copy(alpha = 0.5f))
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
                                 Icon(
-                                    imageVector = if (isMp4) Icons.Default.FileDownloadDone else Icons.Default.PlayCircle,
+                                    imageVector = Icons.Default.PlayCircle,
                                     contentDescription = null,
-                                    tint = if (isMp4) Color(0xFF34D399) else Color(0xFFEF4444),
-                                    modifier = Modifier.size(18.dp)
+                                    tint = Color(0xFF34D399),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "এইচডি ক্লাস",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                    color = Color(0xFF34D399)
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF3B82F6).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color(0xFF60A5FA).copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFF60A5FA),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = lesson.duration?.ifBlank { "৬০ মিনিট" } ?: "৬০ মিনিট",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                    color = Color(0xFF60A5FA)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF8B5CF6).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color(0xFFA78BFA).copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudSync,
+                                    contentDescription = null,
+                                    tint = Color(0xFFA78BFA),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "ক্লাউড সিঙ্কড",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                    color = Color(0xFFA78BFA)
+                                )
+                            }
+                        }
+                    }
+
+                    // Title & Instructor
+                    Column {
+                        Text(
+                            text = currentVideoTitle,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text(
-                                text = if (isMp4) "🎥 সরাসরি ক্লাউড MP4 ভিডিও চলছে" else "▶️ YouTube প্লেয়ার (ফুলস্ক্রিন মোড)",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
-                                color = if (isMp4) Color(0xFF34D399) else ExamCyan
-                            )
-                            Text(
-                                text = if (isMp4) "হোস্টিং সার্ভার থেকে সরাসরি বাফারিংহীন স্ট্রিমিং" else "সম্পূর্ণ ফুলস্ক্রিন ও এইচডি কোয়ালিটিতে দেখতে এখানে ট্যাপ করুন",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                text = "👨‍🏫 ${lesson.safeInstructorName} • মাধ্যমিক ডিজিটাল ক্লাসরুম",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF94A3B8)
                             )
                         }
                     }
 
-                    if (onStartQuiz != null) {
+                    // Action Buttons Row: Quiz Test & Doubt Solver
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Button(
                             onClick = {
-                                onDismiss()
-                                onStartQuiz()
+                                if (onStartQuiz != null) {
+                                    onDismiss()
+                                    onStartQuiz()
+                                }
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ExamGold,
-                                contentColor = Color(0xFF78350F)
+                                containerColor = Color(0xFF0D9488),
+                                contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Quiz,
                                 contentDescription = null,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "কুইজ টেস্ট",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                text = "কুইজ টেস্ট দিন",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { /* Open Doubt Solver */ },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "ডাউট জিজ্ঞেস",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
                 }
 
-                // 4. Content Tabs: [📺 ভিডিও প্লেলিস্ট (Playlist)] & [📝 নোটস ও সারসংক্ষেপ]
+                // 4. Content Tabs: [📺 প্লেলিস্ট (1)] & [📝 টপিক নোটস] & [📋 প্র্যাকটিস কুইজ]
                 val playlist = lesson.safePlaylist
                 TabRow(
                     selectedTabIndex = selectedTab,
@@ -314,7 +388,7 @@ fun VideoLessonPlayerDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "ভিডিও প্লেলিস্ট (${playlist.size.coerceAtLeast(1)})",
+                                    text = "প্লেলিস্ট (${playlist.size.coerceAtLeast(1)})",
                                     color = if (selectedTab == 0) ExamGold else Color(0xFF94A3B8),
                                     fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                                 )
@@ -334,9 +408,29 @@ fun VideoLessonPlayerDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "নোটস ও সারাংশ",
+                                    text = "টপিক নোটস",
                                     color = if (selectedTab == 1) ExamGold else Color(0xFF94A3B8),
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Quiz,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = if (selectedTab == 2) ExamGold else Color(0xFF94A3B8)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "প্র্যাকটিস কুইজ",
+                                    color = if (selectedTab == 2) ExamGold else Color(0xFF94A3B8),
+                                    fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
                         }
