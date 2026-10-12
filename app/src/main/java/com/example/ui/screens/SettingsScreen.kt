@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.MainActivity
 import com.example.data.model.StudentProfile
+import com.example.notification.MadhyamikNotificationManager
 import com.example.ui.components.ScreenHeaderBar
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
@@ -47,6 +48,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.appSettings.collectAsState()
     val authUser by viewModel.authUserState.collectAsState()
+    val context = LocalContext.current
     val userEmail = authUser?.email?.takeIf { it.isNotBlank() } ?: "student@deshexam.com"
     val userPhone = "9876543210"
     val isAdmin = true // Temporary public access matching MainActivity.kt
@@ -187,135 +189,10 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .testTag("settings_screen_list"),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // ১. প্রিমিয়াম প্রো মেম্বারশিপ ব্যানার
-            item {
-                val isPro = profile.isPro
-                val goldGradient = Brush.horizontalGradient(
-                    colors = if (isPro) {
-                        listOf(
-                            ExamGold.copy(alpha = 0.18f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        )
-                    } else {
-                        listOf(
-                            ExamGold.copy(alpha = 0.20f),
-                            PrimaryIndigo.copy(alpha = 0.08f)
-                        )
-                    }
-                )
 
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(
-                        width = 1.2.dp,
-                        color = if (isPro) ExamGold else ExamGold.copy(alpha = 0.6f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable {
-                            if (isPro) {
-                                viewModel.setProMode(false)
-                                snackbarMessage = "Pro Mode নিষ্ক্রিয় করা হয়েছে"
-                            } else {
-                                showProDialog = true
-                            }
-                        }
-                        .testTag("pro_mode_upgrade_btn")
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(goldGradient)
-                            .padding(16.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isPro) ExamGold else ExamGold.copy(alpha = 0.25f)
-                                        )
-                                        .border(1.dp, ExamGold, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = if (isPro) Icons.Default.Verified else Icons.Default.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = if (isPro) Color.Black else ExamGold,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                Column {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = if (isPro) "WBBSE Pre Pro" else "WBBSE Pre Pro মেম্বারশিপ",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (isPro) {
-                                            Surface(
-                                                shape = RoundedCornerShape(12.dp),
-                                                color = ExamGold,
-                                                modifier = Modifier.height(18.dp)
-                                            ) {
-                                                Text(
-                                                    text = "PRO",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = Color.Black,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = if (isPro) "সকল প্রিমিয়াম অধ্যায় ও মক টেস্ট সক্রিয়" else "সম্পূর্ণ সিলেবাস ও আনলিমিটেড মক টেস্ট আনলক করুন",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = if (isPro) WrongRed.copy(alpha = 0.12f) else ExamGold,
-                                border = BorderStroke(1.dp, if (isPro) WrongRed.copy(alpha = 0.4f) else Color.Transparent)
-                            ) {
-                                Text(
-                                    text = if (isPro) "বন্ধ করুন" else "আপগ্রেড →",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isPro) WrongRed else Color.Black,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             // ২. পরীক্ষার লক্ষ্য ও দৈনিক প্রস্তুতি
             item {
@@ -703,7 +580,7 @@ fun SettingsScreen(
                 }
             }
 
-            // ৭. ফায়ারবেস ক্লাউড অ্যাডমিন ড্যাশবোর্ড (শুধুমাত্র অ্যাডমিনদের জন্য)
+            // ৭. অ্যাডমিন ড্যাশবোর্ড (শুধুমাত্র অ্যাডমিনদের জন্য)
             if (isAdmin) {
                 item {
                     Card(
@@ -740,7 +617,7 @@ fun SettingsScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = "ফায়ারবেস ক্লাউড অ্যাডমিন প্যানেল",
+                                        text = "অ্যাডমিন প্যানেল",
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -798,15 +675,15 @@ fun PremiumSettingsCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Header Row
             Row(
@@ -815,8 +692,8 @@ fun PremiumSettingsCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .background(iconTint.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -824,14 +701,14 @@ fun PremiumSettingsCard(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
+                        fontSize = 14.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -861,16 +738,16 @@ fun PremiumToggleRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(end = 12.dp)
+                .padding(end = 8.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

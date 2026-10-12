@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "WBBSE Prep"
+rootProject.name = "DeshExam"
 
 include(":app")

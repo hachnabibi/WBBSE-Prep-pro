@@ -1,6 +1,6 @@
 {
-  "name": "WBBSE Prep",
-  "description": "Gamified West Bengal Board learning platform for Class 5 to 12 (WBBSE & WBCHSE) with interactive journey maps, universal assessment engine, boss battles, AI study coach, and mock tests.",
+  "name": "DeshExam",
+  "description": "DeshExam: Ultimate gamified exam preparation and learning platform for students with real-time leaderboards, mock tests, subject battles, quizzes, and AI-powered study assistance.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

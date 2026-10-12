@@ -85,13 +85,95 @@ fun LeaderboardScreen(
     var selectedSchool by remember { mutableStateOf<String?>(null) }
     var inspectedStudent by remember { mutableStateOf<LeaderboardStudent?>(null) }
 
-    // Search and filter states
-    var searchQuery by remember { mutableStateOf("") }
+    // Filter states
     var selectedRankFilter by remember { mutableStateOf(LeaderboardRankFilter.ALL) }
     var showAllSubjectsComparison by remember { mutableStateOf(false) }
     var showShareCertificate by remember { mutableStateOf(false) }
 
-    val rawLeaderboard = if (liveLeaderboard.isNotEmpty()) liveLeaderboard else remember { viewModel.repository.getLeaderboard() }
+    val studentProfile by viewModel.studentProfile.collectAsStateWithLifecycle()
+    val rawLeaderboardBase = if (liveLeaderboard.isNotEmpty()) liveLeaderboard else remember(studentProfile) {
+        listOf(
+            LeaderboardStudent(
+                rank = 1,
+                name = studentProfile.name.ifBlank { "সৌরভ দাস" },
+                school = studentProfile.school.ifBlank { "কলকাতা মডেল হাই স্কুল" },
+                district = studentProfile.district.ifBlank { "কলকাতা" },
+                xp = studentProfile.currentXp.coerceAtLeast(1800),
+                accuracy = studentProfile.examReadinessPercentage.toInt().coerceIn(60, 98),
+                streak = studentProfile.currentStreak.coerceAtLeast(7),
+                mockScore = (studentProfile.examReadinessPercentage * 90 / 100).toInt().coerceIn(50, 90),
+                mockTotal = 90,
+                mockPercentile = 97.2,
+                bossVictories = 12,
+                badgesCount = 8,
+                isCurrentUser = true,
+                badgeTitle = "মাধ্যমিক টপার",
+                subjectMockScores = mapOf("phy_sci" to 86, "life_sci" to 88, "math" to 84, "history" to 85, "geography" to 87, "bengali" to 86, "english" to 85)
+            ),
+            LeaderboardStudent(
+                rank = 2,
+                name = "অনন্যা মুখোপাধ্যায়",
+                school = "হিন্দু স্কুল",
+                district = "কলকাতা",
+                xp = 4890,
+                accuracy = 96,
+                streak = 21,
+                mockScore = 89,
+                mockTotal = 90,
+                mockPercentile = 99.8,
+                bossVictories = 18,
+                badgesCount = 12,
+                badgeTitle = "মক টেস্ট বেঙ্গল টপার",
+                subjectMockScores = mapOf("phy_sci" to 89, "life_sci" to 90, "math" to 88, "history" to 86, "geography" to 89, "bengali" to 87, "english" to 88)
+            ),
+            LeaderboardStudent(
+                rank = 3,
+                name = "শুভম পাল",
+                school = "যাদবপুর বিদ্যাপীঠ",
+                district = "কলকাতা",
+                xp = 4650,
+                accuracy = 94,
+                streak = 18,
+                mockScore = 87,
+                mockTotal = 90,
+                mockPercentile = 99.2,
+                bossVictories = 16,
+                badgesCount = 10,
+                badgeTitle = "অধ্যায় বস অপরাজিত",
+                subjectMockScores = mapOf("phy_sci" to 88, "life_sci" to 85, "math" to 90, "history" to 84, "geography" to 86, "bengali" to 84, "english" to 86)
+            ),
+            LeaderboardStudent(
+                rank = 4,
+                name = "রিয়া চক্রবর্তী",
+                school = "বেথুন কলেজিয়েট স্কুল",
+                district = "কলকাতা",
+                xp = 4210,
+                accuracy = 91,
+                streak = 14,
+                mockScore = 85,
+                mockTotal = 90,
+                mockPercentile = 98.4,
+                bossVictories = 14,
+                badgesCount = 9,
+                badgeTitle = "বিজ্ঞান বিশারদ",
+                subjectMockScores = mapOf("phy_sci" to 90, "life_sci" to 89, "math" to 78, "history" to 85, "geography" to 82, "bengali" to 88, "english" to 84)
+            )
+        )
+    }
+    val rawLeaderboard = remember(rawLeaderboardBase, studentProfile) {
+        rawLeaderboardBase.map { student ->
+            if (student.isCurrentUser) {
+                student.copy(
+                    name = studentProfile.name.ifBlank { student.name },
+                    school = studentProfile.school.ifBlank { student.school },
+                    district = studentProfile.district.ifBlank { student.district },
+                    xp = studentProfile.currentXp,
+                    streak = studentProfile.currentStreak,
+                    mockScore = (studentProfile.examReadinessPercentage * 90 / 100).coerceIn(40, 90)
+                )
+            } else student
+        }
+    }
     val currentSubject = subjects.find { it.id == selectedSubjectId } ?: subjects.firstOrNull()
 
     val districts = com.example.util.WestBengalData.districts
@@ -106,51 +188,56 @@ fun LeaderboardScreen(
         (listFromDistrict + listFromLeaderboard).filter { it.isNotBlank() }.distinct()
     }
 
-    // Subject-specific sorted ranking calculation
-    val baseSubjectRankedStudents = remember(selectedSubjectId, selectedDistrict, selectedSchool, rawLeaderboard) {
+    val timeframeFactor = when (selectedTimeframe) {
+        LeaderboardTimeframe.WEEKLY -> 0.85f
+        LeaderboardTimeframe.MONTHLY -> 0.93f
+        LeaderboardTimeframe.ALL_TIME -> 1.0f
+    }
+
+    // Subject-specific sorted ranking calculation with timeframe & accurate percentile
+    val baseSubjectRankedStudents = remember(selectedSubjectId, selectedDistrict, selectedSchool, selectedTimeframe, rawLeaderboard) {
         var filtered = if (selectedDistrict == null) rawLeaderboard else rawLeaderboard.filter { it.district == selectedDistrict }
         if (selectedSchool != null) {
             filtered = filtered.filter { it.school == selectedSchool }
         }
-        val sorted = filtered.sortedByDescending { it.subjectMockScores[selectedSubjectId] ?: 0 }
+        val sorted = filtered.sortedByDescending { (it.subjectMockScores[selectedSubjectId] ?: 0) * timeframeFactor }
+        val totalCount = sorted.size.coerceAtLeast(1)
         sorted.mapIndexed { index, student ->
-            val score = student.subjectMockScores[selectedSubjectId] ?: 0
-            val percentile = 80.0 + ((score.toDouble() / 90.0) * 19.8)
+            val rawScore = student.subjectMockScores[selectedSubjectId] ?: 0
+            val score = (rawScore * timeframeFactor).toInt().coerceAtMost(90)
+            val percentile = 100.0 - ((index.toDouble() / totalCount.toDouble()) * 100.0)
             SubjectLeaderboardItem(
                 student = student,
                 subjectRank = index + 1,
                 subjectScore = score,
-                subjectPercentile = Math.round(percentile * 10.0) / 10.0,
+                subjectPercentile = Math.round(percentile.coerceIn(1.0, 99.9) * 10.0) / 10.0,
             )
         }
     }
 
-    // Other categories sorting
-    val baseCategoryRankedStudents = remember(selectedTab, selectedDistrict, selectedSchool, rawLeaderboard) {
+    // Other categories sorting with timeframe
+    val baseCategoryRankedStudents = remember(selectedTab, selectedDistrict, selectedSchool, selectedTimeframe, rawLeaderboard) {
         var filtered = if (selectedDistrict == null) rawLeaderboard else rawLeaderboard.filter { it.district == selectedDistrict }
         if (selectedSchool != null) {
             filtered = filtered.filter { it.school == selectedSchool }
         }
         when (selectedTab) {
-            LeaderboardMainTab.OVERALL_MOCK -> filtered.sortedByDescending { it.mockScore }
+            LeaderboardMainTab.OVERALL_MOCK -> filtered.sortedByDescending { it.mockScore * timeframeFactor }
             LeaderboardMainTab.BOSS_BATTLES -> filtered.sortedByDescending { it.bossVictories }
-            LeaderboardMainTab.OVERALL_XP -> filtered.sortedByDescending { it.xp }
+            LeaderboardMainTab.OVERALL_XP -> filtered.sortedByDescending { (it.xp * timeframeFactor).toInt() }
             else -> filtered
-        }.mapIndexed { index, student -> student.copy(rank = index + 1) }
+        }.mapIndexed { index, student ->
+            student.copy(
+                rank = index + 1,
+                xp = (student.xp * timeframeFactor).toInt(),
+                mockScore = (student.mockScore * timeframeFactor).toInt().coerceAtMost(90)
+            )
+        }
     }
 
-    // Search and Rank Bracket Filtered Lists
-    val subjectRankedStudents = remember(baseSubjectRankedStudents, searchQuery, selectedRankFilter) {
-        var list = baseSubjectRankedStudents
-        if (searchQuery.isNotBlank()) {
-            val q = searchQuery.trim().lowercase()
-            list = list.filter {
-                it.student.name.lowercase().contains(q) ||
-                it.student.school.lowercase().contains(q) ||
-                it.student.district.lowercase().contains(q) ||
-                it.student.badgeTitle.lowercase().contains(q)
-            }
-        }
+    // Rank Bracket Filtered Lists
+    val subjectRankedStudents = remember(baseSubjectRankedStudents, selectedRankFilter) {
+        val list = baseSubjectRankedStudents
         when (selectedRankFilter) {
             LeaderboardRankFilter.TOP_10 -> list.take(10)
             LeaderboardRankFilter.NEAR_ME -> {
@@ -165,17 +252,8 @@ fun LeaderboardScreen(
         }
     }
 
-    val categoryRankedStudents = remember(baseCategoryRankedStudents, searchQuery, selectedRankFilter) {
-        var list = baseCategoryRankedStudents
-        if (searchQuery.isNotBlank()) {
-            val q = searchQuery.trim().lowercase()
-            list = list.filter {
-                it.name.lowercase().contains(q) ||
-                it.school.lowercase().contains(q) ||
-                it.district.lowercase().contains(q) ||
-                it.badgeTitle.lowercase().contains(q)
-            }
-        }
+    val categoryRankedStudents = remember(baseCategoryRankedStudents, selectedRankFilter) {
+        val list = baseCategoryRankedStudents
         when (selectedRankFilter) {
             LeaderboardRankFilter.TOP_10 -> list.take(10)
             LeaderboardRankFilter.NEAR_ME -> {
@@ -222,7 +300,7 @@ fun LeaderboardScreen(
                 contentPadding = PaddingValues(bottom = 110.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Edge-to-Edge Header Hero Banner (0dp Corner Radius)
+                // 1. Edge-to-Edge Header Hero Banner with rich gradient
                 item {
                     Box(
                         modifier = Modifier
@@ -230,95 +308,135 @@ fun LeaderboardScreen(
                             .background(
                                 Brush.linearGradient(
                                     listOf(
-                                        Color(0xFF1E1B4B),
-                                        Color(0xFF3730A3),
-                                        Color(0xFF4F46E5)
+                                        Color(0xFF0F172A),
+                                        Color(0xFF1E3A8A),
+                                        Color(0xFF312E81),
+                                        Color(0xFF0D9488)
                                     )
                                 )
                             )
                             .padding(horizontal = 16.dp, vertical = 20.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            // Top Row: 3 Compact Badges with Gradients, centered and compact
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // 1. WBBSE Badge
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = ExamGold.copy(alpha = 0.25f),
-                                    border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.5f))
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Transparent,
+                                    shadowElevation = 1.dp
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFF1E3A8A), Color(0xFF3B82F6))
+                                                )
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.EmojiEvents,
-                                            contentDescription = null,
-                                            tint = ExamGold,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "WBBSE মাধ্যমিক মেধা তালিকা ২০২৬",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = ExamGold
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.EmojiEvents,
+                                                contentDescription = null,
+                                                tint = ExamGold,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "WBBSE ২০২৬",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                                color = Color.White
+                                            )
+                                        }
                                     }
                                 }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    // Certificate / Share Button
-                                    IconButton(
-                                        onClick = { showShareCertificate = true },
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // 2. Center Certificate Badge
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Transparent,
+                                    shadowElevation = 1.dp,
+                                    modifier = Modifier.clickable { showShareCertificate = true }
+                                ) {
+                                    Box(
                                         modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.15f))
-                                            .testTag("leaderboard_share_btn")
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                )
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.WorkspacePremium,
-                                            contentDescription = "Certificate",
-                                            tint = ExamGold,
-                                            modifier = Modifier.size(18.dp)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.WorkspacePremium,
+                                                contentDescription = "Certificate",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "সার্টিফিকেট",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // 3. 1v1 Challenge Button Badge
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Transparent,
+                                    shadowElevation = 1.dp,
+                                    modifier = Modifier.clickable {
+                                        onStartAssessment(
+                                            AssessmentMode.FRIEND_CHALLENGE,
+                                            selectedSubjectId,
+                                            "১v১ লাইভ মেধা ব্যাটল"
                                         )
                                     }
-
-                                    // 1v1 Battle Action
-                                    Button(
-                                        onClick = {
-                                            onStartAssessment(
-                                                AssessmentMode.FRIEND_CHALLENGE,
-                                                selectedSubjectId,
-                                                "১v১ লাইভ মেধা ব্যাটল"
-                                            )
-                                        },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = ExamGold,
-                                            contentColor = Color(0xFF78350F)
-                                        ),
-                                        shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                ) {
+                                    Box(
                                         modifier = Modifier
-                                            .height(34.dp)
-                                            .testTag("leaderboard_1v1_cta_btn")
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(Color(0xFF7C3AED), Color(0xFF4F46E5))
+                                                )
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.SportsKabaddi,
-                                            contentDescription = "1v1",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "১v১ চ্যালেঞ্জ",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.SportsKabaddi,
+                                                contentDescription = "1v1",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "১v১ চ্যালেঞ্জ",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                                color = Color.White
+                                            )
+                                        }
                                     }
                                 }
                             }
 
+                            // Hero Banner Title with vibrant color
                             Text(
                                 text = when (selectedTab) {
                                     LeaderboardMainTab.SUBJECT_MOCKS -> "বিষয়ভিত্তিক মক টেস্ট মেধা তালিকা"
@@ -327,7 +445,7 @@ fun LeaderboardScreen(
                                     LeaderboardMainTab.OVERALL_XP -> "সামগ্রিক মেধা ও XP র‍্যাঙ্ক"
                                 },
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                                color = Color.White
+                                color = ExamGold
                             )
 
                             Text(
@@ -712,7 +830,7 @@ fun LeaderboardScreen(
                                             SubjectBenchmarkPill(
                                                 title = "আপনার স্কোর",
                                                 value = "${me.subjectScore} / 90",
-                                                subtitle = "${me.subjectPercentile}%ile",
+                                                subtitle = "${me.subjectPercentile}%",
                                                 color = Color(subj.colorHex),
                                                 modifier = Modifier.weight(1f)
                                             )
@@ -776,7 +894,7 @@ fun LeaderboardScreen(
                     }
                 }
 
-                // 5. Search Bar and Rank Bracket Filters
+                // 5. Rank Bracket Filters
                 item {
                     Column(
                         modifier = Modifier
@@ -784,42 +902,6 @@ fun LeaderboardScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Search Text Field
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = {
-                                Text(
-                                    text = "শিক্ষার্থীর নাম, রোল বা স্কুলের নাম দিয়ে খুঁজুন...",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = "Clear Search",
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("leaderboard_search_input")
-                        )
-
                         // Rank Filter Chips (All, Top 10, Near Me)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -911,11 +993,46 @@ fun LeaderboardScreen(
                                 )
                             }
                         }
+
+                        // School Filter Chips (visible if district selected and schools available)
+                        if (selectedDistrict != null && schools.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = selectedSchool == null,
+                                        onClick = { selectedSchool = null },
+                                        label = {
+                                            Text(
+                                                text = "সমস্ত স্কুল (All Schools)",
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    )
+                                }
+                                items(schools) { sch ->
+                                    val isSelected = selectedSchool == sch
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { selectedSchool = if (isSelected) null else sch },
+                                        label = {
+                                            Text(
+                                                text = sch,
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
-                // 6. Top 3 Podium Rendering (Only when not in Search/Near-Me filter)
-                if (searchQuery.isBlank() && selectedRankFilter == LeaderboardRankFilter.ALL) {
+                // 6. Top 3 Podium Rendering (Only when in All filter)
+                if (selectedRankFilter == LeaderboardRankFilter.ALL) {
                     if (selectedTab == LeaderboardMainTab.SUBJECT_MOCKS) {
                         val top1 = subjectRankedStudents.getOrNull(0)
                         val top2 = subjectRankedStudents.getOrNull(1)
@@ -964,7 +1081,7 @@ fun LeaderboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (searchQuery.isNotBlank()) "অনুসন্ধানের ফলাফল" else "মেধা ক্রম তালিকা",
+                            text = "মেধা ক্রম তালিকা",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -982,7 +1099,7 @@ fun LeaderboardScreen(
 
                 // 8. List items (All students matching the filter)
                 if (selectedTab == LeaderboardMainTab.SUBJECT_MOCKS) {
-                    val listToShow = if (searchQuery.isBlank() && selectedRankFilter == LeaderboardRankFilter.ALL && subjectRankedStudents.size > 3) {
+                    val listToShow = if (selectedRankFilter == LeaderboardRankFilter.ALL && subjectRankedStudents.size > 3) {
                         subjectRankedStudents.subList(3, subjectRankedStudents.size)
                     } else {
                         subjectRankedStudents
@@ -997,7 +1114,7 @@ fun LeaderboardScreen(
                         )
                     }
                 } else {
-                    val listToShow = if (searchQuery.isBlank() && selectedRankFilter == LeaderboardRankFilter.ALL && categoryRankedStudents.size > 3) {
+                    val listToShow = if (selectedRankFilter == LeaderboardRankFilter.ALL && categoryRankedStudents.size > 3) {
                         categoryRankedStudents.subList(3, categoryRankedStudents.size)
                     } else {
                         categoryRankedStudents
@@ -1365,12 +1482,13 @@ fun SubjectStudentCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (item.student.isCurrentUser) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
             } else {
-                MaterialTheme.colorScheme.surface
+                Color.Transparent
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (item.student.isCurrentUser) 3.dp else 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (item.student.isCurrentUser) 0.4f else 0.15f)),
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
@@ -1449,7 +1567,7 @@ fun SubjectStudentCard(
                         color = ExamCyan.copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = "${item.subjectPercentile}%ile",
+                            text = "${item.subjectPercentile}%",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 10.sp
@@ -1505,8 +1623,8 @@ fun StickySubjectUserCard(
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = modifier
             .shadow(12.dp, RoundedCornerShape(18.dp))
             .border(1.5.dp, PrimaryIndigoLight, RoundedCornerShape(18.dp))
@@ -1542,7 +1660,7 @@ fun StickySubjectUserCard(
                 )
 
                 Text(
-                    text = "আপনার স্কোর: ${item.subjectScore}/৯০ (${item.subjectPercentile}%ile)",
+                    text = "আপনার স্কোর: ${item.subjectScore}/৯০ (${item.subjectPercentile}%)",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1783,12 +1901,13 @@ fun CategoryStudentCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (student.isCurrentUser) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
             } else {
-                MaterialTheme.colorScheme.surface
+                Color.Transparent
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (student.isCurrentUser) 3.dp else 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (student.isCurrentUser) 0.4f else 0.15f)),
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
@@ -1905,7 +2024,7 @@ fun CategoryStudentCard(
                             color = PrimaryIndigo
                         )
                         Text(
-                            text = "${student.mockPercentile}%ile",
+                            text = "${student.mockPercentile}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1951,8 +2070,8 @@ fun StickyCategoryUserCard(
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = modifier
             .shadow(12.dp, RoundedCornerShape(18.dp))
             .border(1.5.dp, PrimaryIndigoLight, RoundedCornerShape(18.dp))

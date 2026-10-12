@@ -50,10 +50,10 @@ import com.example.data.model.SubjectItem
 import com.example.data.model.getTitle
 import com.example.data.model.getTextbook
 import com.example.data.model.getClassLevelName
-import com.example.ui.components.AdBannerCard
 import com.example.ui.components.BossBattleCard
 import com.example.ui.components.PerformanceSummaryCard
 import com.example.ui.components.StreakTrackerCard
+import com.example.ui.components.SubjectBattleCard
 import com.example.ui.components.SubjectIconBadge
 import com.example.ui.theme.*
 import com.example.util.formatCompactNumber
@@ -187,6 +187,16 @@ fun HomeScreen(
             )
         }
 
+        // 4.5. Subject Battle Card (Ongoing challenge & quick-start button)
+        item {
+            SubjectBattleCard(
+                isBengali = isBengali,
+                onJoinBattle = {
+                    onStartAssessment(AssessmentMode.DAILY_10, null, null)
+                }
+            )
+        }
+
         // 4. Recently Viewed section (if any)
         if (recentlyViewed.isNotEmpty()) {
             item {
@@ -251,14 +261,20 @@ fun HomeScreen(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.clickable { onNavigate(AppScreen.ALL_SUBJECTS) }
                     ) {
-                        Text(
-                            text = "${subjects.size} টি বিষয়",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${subjects.size} টি বিষয় • সব দেখুন",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 
@@ -398,17 +414,6 @@ fun HomeScreen(
             )
         }
 
-        // Sponsored Educational Banner & AdMob Card
-        item {
-            AdBannerCard(isBengali = isBengali)
-        }
-
-        item {
-            com.example.ui.components.AdMobNativeCard(
-                isBengali = isBengali,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
 
         // 9. 🏆 লাইভ রাজ্য মেধা তালিকা • টপার্স স্পটলাইট
         item {

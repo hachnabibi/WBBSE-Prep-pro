@@ -19,8 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -113,15 +116,30 @@ fun TopHeaderBar(
 
                         // App Brand or Page Title + Tagline
                         Column {
+                            val annotatedTitle = if (title == null || title.equals("DeshExam", ignoreCase = true)) {
+                                buildAnnotatedString {
+                                    val deshColor = if (isDarkMode) Color(0xFF34D399) else Color(0xFF059669) // Emerald Green
+                                    val examColor = if (isDarkMode) Color(0xFF38BDF8) else Color(0xFF4338CA) // Bright Cyan / Indigo
+                                    
+                                    append("Desh")
+                                    addStyle(SpanStyle(color = deshColor, fontWeight = FontWeight.Black), 0, 4)
+                                    append("Exam")
+                                    addStyle(SpanStyle(color = examColor, fontWeight = FontWeight.Black), 4, 8)
+                                }
+                            } else {
+                                buildAnnotatedString {
+                                    append(title)
+                                    addStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Black), 0, title.length)
+                                }
+                            }
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = title ?: ("WBBSE প্রেপ"),
+                                    text = annotatedTitle,
                                     style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Black,
                                         fontSize = if (isCompact) 17.sp else 19.sp,
-                                        letterSpacing = 0.3.sp
+                                        letterSpacing = 0.5.sp
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -129,15 +147,16 @@ fun TopHeaderBar(
 
                             // Tagline under app name
                             Text(
-                                text = "স্মার্ট পরীক্ষা প্রস্তুতি",
+                                text = if (isBengali) "স্মার্ট এক্সাম প্রিপারেশন" else "Smart Exam Prep",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = if (isCompact) 9.sp else 10.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.3.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(start = if (!showBackButton) 14.dp else 0.dp)
+                                modifier = Modifier.padding(start = 0.dp)
                             )
                         }
                     }

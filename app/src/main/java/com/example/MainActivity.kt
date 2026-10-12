@@ -706,6 +706,18 @@ fun DeshExamApp(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                AppScreen.ALL_SUBJECTS -> {
+                    val subjectsList by viewModel.subjects.collectAsState()
+                    AllSubjectsScreen(
+                        subjects = subjectsList,
+                        isBengali = isBengali,
+                        onBack = { viewModel.goBack() },
+                        onOpenSubjectDetail = { sub ->
+                            viewModel.openSubjectDetail(sub)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 AppScreen.WALLET -> {
                     WalletScreen(
                         viewModel = viewModel,

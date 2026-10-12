@@ -68,7 +68,8 @@ enum class AppScreen {
     INTERNET_ARCHIVE_SEARCH,
     VIDEO_LESSON,
     MEMBERSHIP,
-    WEAKNESS_INSIGHT
+    WEAKNESS_INSIGHT,
+    ALL_SUBJECTS
 }
 
 data class AppSettings(
@@ -522,6 +523,28 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         // Load initial local database statistics for cloud backup dashboard
         loadLocalDatabaseStats()
         loadWeakTopics()
+
+        // Automatic Daily Study Revision & Challenge Notification check upon app start
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                delay(4000L) // Wait 4s after app launch
+                val settingsState = _appSettings.value
+                if (settingsState.studyReminderEnabled) {
+                    val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                    val lastNotifiedDate = prefs.getString("last_auto_notification_date", "")
+                    if (lastNotifiedDate != todayStr) {
+                        prefs.edit().putString("last_auto_notification_date", todayStr).apply()
+                        val context = getApplication<Application>()
+                        MadhyamikNotificationManager.showDailyStudyReminder(
+                            context = context,
+                            subjectName = "আজকের নির্ধারিত ডিজিটাল রিভিশন ও প্র্যাকটিস"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("DeshExamViewModel", "Auto notification check failed: ${e.message}")
+            }
+        }
 
         // Sync & update database from assets only when needed (first launch or version update) to avoid startup lag
         viewModelScope.launch(Dispatchers.IO) {
