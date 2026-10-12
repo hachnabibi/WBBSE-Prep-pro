@@ -85,7 +85,9 @@ data class TopicEntity(
     val contentData: String? = null,
     val solutionData: String? = null,
     val videoUrl: String? = null,
-    val playlistJson: String? = null
+    val playlistJson: String? = null,
+    val summative: Int = 3,
+    val author: String = ""
 ) {
     val titleBengali: String get() = com.example.data.model.ContentLocalization.getTopicTitle(id, title, true)
     val titleEnglish: String get() = com.example.data.model.ContentLocalization.getTopicTitle(id, title, false)

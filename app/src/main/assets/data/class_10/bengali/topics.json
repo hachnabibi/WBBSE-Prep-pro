@@ -5,10 +5,12 @@
     "chapterId": "c10_ben_ch1",
     "orderIndex": 1,
     "title": "জ্ঞানচক্ষু",
+    "author": "আশাপূর্ণা দেবী",
     "summary": "আশাপূর্ণা দেবী রচিত তপনের লেখক হওয়ার স্বপ্ন, সন্ধ্যাতারা পত্রিকায় গল্প প্রকাশ ও আত্মমর্যাদাবোধের গল্প।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 1
   },
   {
     "id": "c10_ben_top_2",
@@ -16,10 +18,12 @@
     "chapterId": "c10_ben_ch1",
     "orderIndex": 2,
     "title": "বহুরূপী",
+    "author": "সুবোধ ঘোষ",
     "summary": "সুবোধ ঘোষ রচিত হরিদার বিচিত্র বহুরূপী বেশ এবং বিরাগী রূপে লোভহীন সৎ শিল্পীসত্তার রূপ।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 2
   },
   {
     "id": "c10_ben_top_3",
@@ -27,10 +31,12 @@
     "chapterId": "c10_ben_ch1",
     "orderIndex": 3,
     "title": "পথের দাবী",
+    "author": "শরৎচন্দ্র চট্টোপাধ্যায়",
     "summary": "শরৎচন্দ্র চট্টোপাধ্যায় রচিত বিপ্লবী সব্যসাচী মল্লিক ও গিরিশ মহাপাত্রের অদ্ভুত ছদ্মবেশ এবং অপূর্বর দেশপ্রেম।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 2
   },
   {
     "id": "c10_ben_top_4",
@@ -38,10 +44,12 @@
     "chapterId": "c10_ben_ch1",
     "orderIndex": 4,
     "title": "অদল বদল",
+    "author": "পান্নালাল প্যাটেল",
     "summary": "পান্নালাল প্যাটেল রচিত অমৃত ও ইসাবের নিখাদ বন্ধুত্ব এবং সম্প্রীতির জামা অদল-বদলের হৃদয়স্পর্শী কাহিনী।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_5",
@@ -49,10 +57,12 @@
     "chapterId": "c10_ben_ch1",
     "orderIndex": 5,
     "title": "নদীর বিদ্রোহ",
+    "author": "মানিক বন্দ্যোপাধ্যায়",
     "summary": "মানিক বন্দ্যোপাধ্যায় রচিত স্টেশনমাস্টার নদেরচাঁদের নদীর প্রতি টান ও মানবনির্মিত ব্রিজের বিরুদ্ধে প্রকৃতির প্রতিশোধ।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_6",
@@ -60,10 +70,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 6,
     "title": "অসুখী একজন",
+    "author": "পাবলো নেরুদা",
     "summary": "পাবলো নেরুদা রচিত (অনুবাদ: নবারুণ ভট্টাচার্য) যুদ্ধবিধ্বস্ত পৃথিবীর মাঝে অপেক্ষারত নারীর অমর ভালোবাসার কবিতা।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 1
   },
   {
     "id": "c10_ben_top_7",
@@ -71,10 +83,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 7,
     "title": "আয় আরো বেঁধে বেঁধে থাকি",
+    "author": "শঙ্খ ঘোষ",
     "summary": "শঙ্খ ঘোষ রচিত বিপন্ন সময়ে সাধারণ মানুষের ঐক্যবদ্ধ হয়ে বেঁচে থাকার সংবেদনশীল বার্তা।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 1
   },
   {
     "id": "c10_ben_top_8",
@@ -82,10 +96,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 8,
     "title": "আফ্রিকা",
+    "author": "রবীন্দ্রনাথ ঠাকুর",
     "summary": "রবীন্দ্রনাথ ঠাকুর রচিত ঔপনিবেশিক সাম্রাজ্যবাদের শোষণ এবং লাঞ্ছিত আফ্রিকার প্রতি কবির শ্রদ্ধার্ঘ্য ও ক্ষমা প্রার্থনা।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_9",
@@ -93,10 +109,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 9,
     "title": "অভিষেক",
+    "author": "মাইকেল মধুসূদন দত্ত",
     "summary": "মাইকেল মধুসূদন দত্ত রচিত মেঘনাদবধ কাব্যের অংশ; বীরবাহুর মৃত্যুতে ইন্দ্রজিতের বীরবিক্রমে সেনাপতি পদে অভিষেক।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 2
   },
   {
     "id": "c10_ben_top_10",
@@ -104,10 +122,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 10,
     "title": "প্রলয়োল্লাস",
+    "author": "কাজী নজরুল ইসলাম",
     "summary": "কাজী নজরুল ইসলাম রচিত পরাধীন ভারতে জরাজীর্ণ ভেঙে নতুনের কেতন ওড়ার বিপ্লবী আগমন বার্তা।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 2
   },
   {
     "id": "c10_ben_top_11",
@@ -115,10 +135,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 11,
     "title": "সিন্ধুতীরে",
+    "author": "সৈয়দ আলাওল",
     "summary": "সৈয়দ আলাওল রচিত পদ্মাবতী কাব্যের অংশ; সমুদ্রতটে অচেতন পদ্মাবতীর রূপ ও চিকিৎসায় প্রাণ ফিরে পাওয়ার কাহিনী।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_12",
@@ -126,10 +148,12 @@
     "chapterId": "c10_ben_ch2",
     "orderIndex": 12,
     "title": "অস্ত্রের বিরুদ্ধে গান",
+    "author": "জয় গোস্বামী",
     "summary": "জয় গোস্বামী রচিত যুদ্ধের হিংস্রতার বিরুদ্ধে একমাত্র কবিতার গান ও সুরের অহিংস মানবিক বিজয়।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_13",
@@ -137,10 +161,12 @@
     "chapterId": "c10_ben_ch3",
     "orderIndex": 13,
     "title": "হারিয়ে যাওয়া কালি কলম",
+    "author": "শ্রীপান্থ (নিখিল সরকার)",
     "summary": "শ্রীপান্থ (নিখিল সরকার) রচিত দোয়াত-কলম ও কঞ্চির ঐতিহ্যের স্মৃতিচারণ এবং ফাউন্টেন পেনের চমৎকার ইতিবৃত্ত।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 1
   },
   {
     "id": "c10_ben_top_14",
@@ -148,10 +174,12 @@
     "chapterId": "c10_ben_ch3",
     "orderIndex": 14,
     "title": "বাংলা ভাষায় বিজ্ঞান",
+    "author": "রাজশেখর বসু",
     "summary": "রাজশেখর বসু রচিত মাতৃভাষায় বিজ্ঞানচর্চার সমস্যা, পারিভাষিক শব্দের ব্যবহার ও বিজ্ঞান সাহিত্যের মানোন্নয়ন।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 3
   },
   {
     "id": "c10_ben_top_15",
@@ -159,9 +187,11 @@
     "chapterId": "c10_ben_ch4",
     "orderIndex": 15,
     "title": "সিরাজদ্দৌলা",
+    "author": "শচীন্দ্রনাথ সেনগুপ্ত",
     "summary": "শচীন্দ্রনাথ সেনগুপ্ত রচিত পলাশী যুদ্ধের প্রাক্কালে সিরাজের দরবার, দেশপ্রেম এবং মীরজাফর-ঘসেটির বিশ্বাসঘাতকতার ট্র্যাজেডি।",
     "keyPointsJson": "",
     "isUnlocked": true,
-    "masteryPercentage": 50
+    "masteryPercentage": 50,
+    "summative": 2
   }
 ]

@@ -26,7 +26,7 @@ import com.example.data.repository.DeshExamRepository
         BoardEntity::class,
         AcademicClassEntity::class
     ],
-    version = 46,
+    version = 48,
     exportSchema = false
 )
 abstract class DeshExamDatabase : RoomDatabase() {
@@ -57,7 +57,7 @@ abstract class DeshExamDatabase : RoomDatabase() {
                         val dao = instance.deshExamDao()
                         val prefs = context.applicationContext.getSharedPreferences("desh_exam_prefs", Context.MODE_PRIVATE)
                         val seededVersion = prefs.getInt("db_seeded_version", 0)
-                        val TARGET_VERSION = 36 // Forces immediate re-seed after removing history topics.json
+                        val TARGET_VERSION = 38 // Forces immediate re-seed with author fields in topics
                         val lastApkTime = prefs.getLong("last_apk_build_timestamp", 0L)
                         val currentApkTime = try {
                             val apkFile = java.io.File(context.applicationContext.packageCodePath)
@@ -282,7 +282,9 @@ abstract class DeshExamDatabase : RoomDatabase() {
                                         contentData = top.contentData,
                                         solutionData = top.solutionData,
                                         videoUrl = top.videoUrl,
-                                        playlistJson = top.playlistJson
+                                        playlistJson = top.playlistJson,
+                                        summative = top.summative,
+                                        author = top.author
                                     )
                                 }
                                 

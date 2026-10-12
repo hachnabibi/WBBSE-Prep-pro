@@ -66,6 +66,7 @@ fun MockTestHubScreen(
     var expandedSubjectId by remember { mutableStateOf<String?>(null) }
     var testFilterType by remember { mutableStateOf<TestType?>(null) } // null = All, UNIT_TEST, MOCK_TEST
     var selectedSubjectCodeFilter by remember { mutableStateOf<com.example.data.model.SubjectCode?>(null) }
+    var activeTermDialog by remember { mutableStateOf<String?>(null) }
 
     val studentClassId = studentProfile.classId
     val filteredFirestoreTemplates = remember(firestoreTestTemplates, studentClassId) {
@@ -342,6 +343,146 @@ fun MockTestHubScreen(
                             tint = Color(0xFFE11D48),
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+                }
+            }
+
+            // WBBSE 3 Summative Evaluations Section (1st, 2nd, 3rd Term)
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = if (isBengali) "পশ্চিমবঙ্গ বোর্ড: ৩টি পর্যায়ক্রমিক মূল্যায়ন (Class 1-10)" else "WBBSE Board: 3 Summative Evaluations",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 1st Term
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3B82F6).copy(alpha = 0.12f)),
+                            border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeTermDialog = "term_1" }
+                                .testTag("summative_1_card")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF3B82F6).copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "১ম টার্ম",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1D4ED8),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "প্রথম পর্যায়ক্রমিক",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "এপ্রিল - মে (পূর্ণমান ১৫/২৫)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // 2nd Term
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.12f)),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeTermDialog = "term_2" }
+                                .testTag("summative_2_card")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF10B981).copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "২য় টার্ম",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF047857),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "দ্বিতীয় পর্যায়ক্রমিক",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "আগস্ট - সেপ্টেম্বর (পূর্ণমান ৪০/৫০)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // 3rd Term
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF59E0B).copy(alpha = 0.12f)),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeTermDialog = "term_3" }
+                                .testTag("summative_3_card")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "৩য় টার্ম",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFFB45309),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "তৃতীয় পর্যায়ক্রমিক",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "নভেম্বর - ডিসেম্বর (পূর্ণমান ৯০/১০০)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -819,6 +960,99 @@ fun MockTestHubScreen(
                     }
                 }
             }
+    }
+
+    if (activeTermDialog != null) {
+        val termTitle = when (activeTermDialog) {
+            "term_1" -> "প্রথম পর্যায়ক্রমিক মূল্যায়ন (1st Summative)"
+            "term_2" -> "দ্বিতীয় পর্যায়ক্রমিক মূল্যায়ন (2nd Summative)"
+            else -> "তৃতীয় পর্যায়ক্রমিক মূল্যায়ন (3rd Summative / Final)"
+        }
+        val termPeriod = when (activeTermDialog) {
+            "term_1" -> "এপ্রিল - মে (পূর্ণমান ১৫/২৫)"
+            "term_2" -> "আগস্ট - সেপ্টেম্বর (পূর্ণমান ৪০/৫০)"
+            else -> "নভেম্বর - ডিসেম্বর (পূর্ণমান ৯০/১০০ - সম্পূর্ণ সিলেবাস)"
+        }
+        val chaptersList = when (activeTermDialog) {
+            "term_1" -> listOf(
+                "📖 গল্প: জ্ঞানচক্ষু",
+                "✒️ কবিতা: অসুখী একজন, আয় আরো বেঁধে বেঁধে থাকি",
+                "📚 প্রবন্ধ: হারিয়ে যাওয়া কালি কলম",
+                "🔤 ব্যাকরণ: কারক ও অকারক সম্পর্ক",
+                "✍️ নির্মিতি: কাল্পনিক সংলাপ বা প্রতিবেদন"
+            )
+            "term_2" -> listOf(
+                "📖 গল্প: বহুরূপী, পথের দাবী",
+                "✒️ কবিতা: অভিষেক, প্রলয়োল্লাস",
+                "🎭 নাটক: সিরাজদ্দৌলা",
+                "🔤 ব্যাকরণ: সমাস",
+                "✍️ নির্মিতি: প্রতিবেদন বা কাল্পনিক সংলাপ"
+            )
+            else -> listOf(
+                "📖 গল্প: অদল বদল, নদীর বিদ্রোহ",
+                "✒️ কবিতা: অস্ত্র্বের বিরুদ্ধে গান",
+                "📚 প্রবন্ধ: বাংলা ভাষায় বিজ্ঞান",
+                "🔤 ব্যাকরণ: বাক্য, বাচ্য",
+                "✍️ নির্মিতি: প্রবন্ধ রচনা, অনুবাদ (সম্পূর্ণ সিলেবাস অন্তর্ভুক্ত)"
+            )
+        }
+
+        AlertDialog(
+            onDismissRequest = { activeTermDialog = null },
+            title = {
+                Column {
+                    Text(text = termTitle, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = termPeriod, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "বাংলা (প্রথম ভাষা) সিলেবাস ও অন্তর্ভুক্ত চ্যাপ্টারসমূহ:",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    chaptersList.forEach { chapter ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = chapter,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(10.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val termId = activeTermDialog
+                        activeTermDialog = null
+                        onStartMockTest(
+                            AssessmentMode.MOCK_TEST,
+                            termId,
+                            "$className - $termTitle"
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("এই টার্মের মক টেস্ট শুরু করুন")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { activeTermDialog = null }) {
+                    Text("বন্ধ করুন")
+                }
+            }
+        )
     }
 }
 }

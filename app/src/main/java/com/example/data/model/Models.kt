@@ -174,7 +174,8 @@ data class TopicItem(
     val contentData: String? = null,
     val solutionData: String? = null,
     val videoUrl: String? = null,
-    val playlistJson: String? = null
+    val playlistJson: String? = null,
+    val author: String = ""
 ) {
     val titleBengali: String get() = ContentLocalization.getTopicTitle(id, title, true)
     val titleEnglish: String get() = ContentLocalization.getTopicTitle(id, title, false)

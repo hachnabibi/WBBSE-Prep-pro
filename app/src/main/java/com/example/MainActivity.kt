@@ -401,6 +401,7 @@ fun DeshExamApp(
                         bookmarks = bookmarks,
                         activeStudentsCount = activeStudentsCount,
                         isBengali = isBengali,
+                        isDark = settings.isDarkMode,
                         onStartAssessment = { mode, targetId, title ->
                             viewModel.startAssessment(mode, targetId, title)
                         },

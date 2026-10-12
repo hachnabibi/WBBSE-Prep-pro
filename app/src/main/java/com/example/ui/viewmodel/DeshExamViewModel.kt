@@ -1165,7 +1165,8 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 contentData = it.contentData,
                 solutionData = it.solutionData,
                 videoUrl = it.videoUrl,
-                playlistJson = it.playlistJson
+                playlistJson = it.playlistJson,
+                author = it.author
             )
         }
         openVideoLesson(lesson, topicItem)

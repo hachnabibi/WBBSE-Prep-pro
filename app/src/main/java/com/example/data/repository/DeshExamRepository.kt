@@ -993,7 +993,8 @@ class DeshExamRepository(
                     contentData = entity.contentData,
                     solutionData = entity.solutionData,
                     videoUrl = entity.videoUrl,
-                    playlistJson = entity.playlistJson
+                    playlistJson = entity.playlistJson,
+                    author = entity.author
                 )
             }
         }.flowOn(Dispatchers.IO)
@@ -1015,7 +1016,8 @@ class DeshExamRepository(
                     contentData = entity.contentData,
                     solutionData = entity.solutionData,
                     videoUrl = entity.videoUrl,
-                    playlistJson = entity.playlistJson
+                    playlistJson = entity.playlistJson,
+                    author = entity.author
                 )
             }
         }.flowOn(Dispatchers.IO)
@@ -1443,7 +1445,8 @@ class DeshExamRepository(
                 contentData = entity.contentData,
                 solutionData = entity.solutionData,
                 videoUrl = entity.videoUrl,
-                playlistJson = entity.playlistJson
+                playlistJson = entity.playlistJson,
+                author = entity.author
             )
         }
     }

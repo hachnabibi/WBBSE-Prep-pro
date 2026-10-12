@@ -1,9 +1,9 @@
 {
-  "id": "class_9_wbbse_bengali_rapid",
+  "id": "class_9_wbbse_bengali",
   "code": "BENGALI",
-  "name": "বাংলা (সহায়ক পাঠ)",
+  "name": "বাংলা",
   "textbookName": "সাহিত্য সঞ্চয়ন",
-  "totalChapters": 1,
+  "totalChapters": 4,
   "completedChapters": 0,
   "masteryPercentage": 0,
   "colorHex": 4287323382,

@@ -27,12 +27,15 @@ object ContentLocalization {
     }
 
     fun getSubjectTitle(subjectId: String, code: SubjectCode?, fallback: String, isBengali: Boolean): String {
+        if (isBengali && fallback.isNotBlank()) {
+            return fallback
+        }
         val targetCode = code ?: run {
             val cleanId = subjectId.lowercase()
             SubjectCode.values().find { cleanId.contains(it.id) }
         }
 
-        if (targetCode != null) {
+        if (targetCode != null && fallback.isBlank()) {
             val cleanId = subjectId.lowercase()
             if (targetCode != SubjectCode.PHYSICAL_SCIENCE || cleanId.contains("phy") || cleanId.contains("science")) {
                 return if (isBengali) targetCode.subjectNameBengali else targetCode.subjectNameEnglish

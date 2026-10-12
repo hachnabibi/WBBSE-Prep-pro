@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": "c9_ben_q1",
+    "topicId": "c9_ben_top_1",
+    "chapterId": "c9_ben_ch1",
+    "subjectId": "class_9_wbbse_bengali",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "‘ছুটি’ গল্পে ফটিকের বয়স কত ছিল?",
+    "optionsJson": "[\"বারো বছর\", \"চৌদ্দ বছর\", \"ষোলো বছর\", \"দশ বছর\"]",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "চৌদ্দ বছর",
+    "explanation": "ছুটি গল্পে ফটিকের বয়স ছিল চৌদ্দ বছর।",
+    "marks": 1,
+    "tagsJson": "[\"WBBSE\", \"Class 9\", \"Bengali\"]",
+    "classId": "class_9_wbbse"
+  },
+  {
+    "id": "c9_ben_q2",
+    "topicId": "c9_ben_top_2",
+    "chapterId": "c9_ben_ch1",
+    "subjectId": "class_9_wbbse_bengali",
+    "type": "MCQ",
+    "difficulty": "MEDIUM",
+    "question": "‘ধীবর বৃত্তান্ত’ নাট্যাংশে ধীবরটি কোথা থেকে মাছ ধরেছিল?",
+    "optionsJson": "[\"শচীতীর্থ গঙ্গা থেকে\", \"শচীগর্ভ তীর্থ থেকে\", \"যমুনা থেকে\", \"পদ্মাবতী নদী থেকে\"]",
+    "correctOptionIndex": 1,
+    "correctAnswerText": "শচীগর্ভ তীর্থ থেকে",
+    "explanation": "ধীবরটি শচীগর্ভ তীর্থ থেকে রুই মাছ ধরেছিল।",
+    "marks": 1,
+    "tagsJson": "[\"WBBSE\", \"Class 9\", \"Bengali\"]",
+    "classId": "class_9_wbbse"
+  }
+]
