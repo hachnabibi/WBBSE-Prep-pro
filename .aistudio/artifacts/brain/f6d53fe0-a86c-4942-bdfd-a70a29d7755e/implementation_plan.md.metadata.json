@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to update the Single Video Class Screen UI to match the reference design with video player, channel info, action buttons, and playlist items.",
-  "updatedAt": "2026-10-12T20:20:26.700590863Z",
+  "summary": "Comprehensive home screen layout and widget plan including class/subject selectors, recent progress stats, daily streak, video classes/playlist hub, and mock tests/practice sets.",
+  "updatedAt": "2026-10-12T20:46:52.715125337Z",
   "requestFeedback": true,
   "userFacing": true
 }
