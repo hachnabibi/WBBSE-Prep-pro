@@ -192,6 +192,13 @@ fun OriginalPyqPdfDownloadScreen(
                 )
             }
 
+            // 1.5 Government Disclaimer Card (Google Play Policy Compliance)
+            item {
+                Box(modifier = Modifier.padding(horizontal = 12.dp)) {
+                    GovernmentDisclaimerCard(isBengali = isBengali)
+                }
+            }
+
             // 2. Class Selector Header & Chips
             item {
                 Column(

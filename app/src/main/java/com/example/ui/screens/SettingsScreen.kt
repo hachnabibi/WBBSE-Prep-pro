@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -192,7 +194,10 @@ fun SettingsScreen(
             contentPadding = PaddingValues(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
+            // ১. সরকারি ডিসক্লেইমার ও অফিসিয়াল তথ্যের উৎস (Google Play Policy Compliance)
+            item {
+                GovernmentDisclaimerCard(isBengali = isBengali)
+            }
 
             // ২. পরীক্ষার লক্ষ্য ও দৈনিক প্রস্তুতি
             item {
@@ -912,3 +917,150 @@ fun ProUpgradeDialog(
         containerColor = MaterialTheme.colorScheme.surface
     )
 }
+
+/**
+ * Prominent Government Disclaimer & Official Information Source Card
+ * Designed specifically for Google Play Console Misleading Claims Policy Compliance.
+ */
+@Composable
+fun GovernmentDisclaimerCard(
+    isBengali: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, WrongRed.copy(alpha = 0.45f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = modifier.fillMaxWidth().testTag("government_disclaimer_card")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(WrongRed.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = WrongRed,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = if (isBengali) "অ-সরকারি পর্ষদ ডিসক্লেইমার ও তথ্যের উৎস" else "Non-Government Disclaimer & Official Sources",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (isBengali) "গুগল প্লে পলিসি গাইডলাইন অনুযায়ী নোটিশ" else "Official Board Information & Disclaimers",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = WrongRed
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+            // Non-Official Disclaimer Text
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = if (isBengali) "১. অ-সরকারি অ্যাপের ঘোষণা (Disclaimer of Non-Official Status):" else "1. Disclaimer of Non-Official Status:",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (isBengali)
+                        "'DeshExam (WBBSE Prep)' একটি স্বাধীন বেসরকারি শিক্ষামূলক প্ল্যাটফর্ম। এটি পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ (WBBSE) বা পশ্চিমবঙ্গ সরকারের কোনো সরকারি দপ্তর বা কর্তৃপক্ষের সাথে সরাসরি যুক্ত, অনুমোদিত বা তাদের প্রতিনিধিত্বকারী নয়।"
+                    else
+                        "DeshExam (WBBSE Prep) is an independent private educational app. It is NOT an official app of any government entity and is NOT affiliated with, authorized by, or endorsed by the West Bengal Board of Secondary Education (WBBSE) or any government body.",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Official Source Links
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = if (isBengali) "২. সরকারি তথ্যের অফিসিয়াল উৎস (Source of Government Information):" else "2. Source of Government Information:",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (isBengali)
+                        "অফিসিয়াল সিলেবাস, পরীক্ষার সময়সূচি ও পর্ষদের নির্দেশিকার জন্য অফিসিয়াল ওয়েবসাইটে ভিজিট করুন:"
+                    else
+                        "For official syllabus, exam schedules, and board notifications, visit official portals:",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wbbse.wb.gov.in"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f).testTag("gov_link_wbbse_btn")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Text("wbbse.wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wb.gov.in"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f).testTag("gov_link_wbgov_btn")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Text("wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

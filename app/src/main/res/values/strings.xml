@@ -1,6 +1,6 @@
 <resources>
     <!-- App Platform & Identity -->
-    <string name="app_name" translatable="false">DeshExam</string>
+    <string name="app_name" translatable="false">WBBSE Prep</string>
     <string name="app_tagline">স্মার্ট মাধ্যমিক পরীক্ষা প্রস্তুতি ও মূল্যায়ন</string>
 
     <!-- Navigation & Bottom Bar -->

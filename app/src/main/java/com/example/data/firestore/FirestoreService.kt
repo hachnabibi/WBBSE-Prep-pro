@@ -29,10 +29,27 @@ class FirestoreService(
 ) {
     private val firestoreInstance: FirebaseFirestore? by lazy {
         firestoreOverride ?: try {
+            val isUnitTest = try {
+                Class.forName("org.robolectric.Robolectric") != null
+            } catch (_: Throwable) {
+                false
+            }
+            if (isUnitTest) {
+                Log.i(TAG, "Unit test environment (Robolectric) detected. Skipping live Firestore background initialization.")
+                return@lazy null
+            }
             val dbContext = context ?: try {
                 com.google.firebase.FirebaseApp.getInstance().applicationContext
             } catch (_: Throwable) {
                 null
+            }
+            if (dbContext != null) {
+                try {
+                    val dbDir = dbContext.getDatabasePath("firestore_init").parentFile
+                    if (dbDir != null && !dbDir.exists()) {
+                        dbDir.mkdirs()
+                    }
+                } catch (_: Throwable) {}
             }
             val db = if (dbContext != null) {
                 val dbIdRes = dbContext.resources.getIdentifier("firestore_database_id", "string", dbContext.packageName)
@@ -49,8 +66,18 @@ class FirestoreService(
                 FirebaseFirestore.getInstance()
             }
             try {
+                val isTest = try {
+                    Class.forName("org.robolectric.Robolectric") != null
+                } catch (_: Throwable) {
+                    false
+                }
+                val cacheSettings = if (isTest) {
+                    com.google.firebase.firestore.MemoryCacheSettings.newBuilder().build()
+                } else {
+                    com.google.firebase.firestore.PersistentCacheSettings.newBuilder().build()
+                }
                 val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
-                    .setLocalCacheSettings(com.google.firebase.firestore.PersistentCacheSettings.newBuilder().build())
+                    .setLocalCacheSettings(cacheSettings)
                     .build()
                 db.firestoreSettings = settings
             } catch (_: Throwable) {}

@@ -186,6 +186,11 @@ fun PyqExplorerScreen(
                     com.example.ui.components.AdMobNativeCard(isBengali = isBengali)
                 }
 
+                // Government Disclaimer Card (Google Play Policy Compliance)
+                item {
+                    GovernmentDisclaimerCard(isBengali = isBengali)
+                }
+
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(

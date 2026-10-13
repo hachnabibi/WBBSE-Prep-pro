@@ -1341,6 +1341,14 @@ fun AuthScreen(
                                     else
                                         "Course content and test series may be regularly updated in alignment with official WBBSE board notifications."
                                 )
+                                TermsSectionItem(
+                                    number = "৬",
+                                    title = if (isBengali) "অ-সরকারি ডিসক্লেইমার ও তথ্যের সরকারি উৎস" else "Government Disclaimer & Source of Information",
+                                    desc = if (isBengali)
+                                        "DeshExam (WBBSE Prep) একটি স্বাধীন বেসরকারি শিক্ষা অ্যাপ। এটি কোনো সরকারি সংস্থা বা পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদের (WBBSE) অফিসিয়াল অ্যাপ বা অনুমোদিত কোনো পর্ষদ সংস্থা নয়। অফিসিয়াল পর্ষদ তথ্যের জন্য https://wbbse.wb.gov.in এবং https://wb.gov.in ভিজিট করুন।"
+                                    else
+                                        "DeshExam (WBBSE Prep) is an independent private educational app. It does NOT represent or belong to any government entity. For official government information, visit https://wbbse.wb.gov.in and https://wb.gov.in."
+                                )
                             } else {
                                 // PRIVACY POLICY
                                 TermsSectionItem(

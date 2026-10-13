@@ -1275,20 +1275,16 @@ private fun loadYouTubeHtml(
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-                html, body { width: 100%; height: 100%; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+                html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
                 .video-wrapper {
                     position: relative;
                     width: 100%;
                     height: 100%;
                     overflow: hidden;
                 }
-                iframe {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: 125%;
-                    height: 125%;
-                    transform: translate(-50%, -50%);
+                iframe, #player {
+                    width: 100% !important;
+                    height: 100% !important;
                     border: 0;
                     outline: none;
                 }

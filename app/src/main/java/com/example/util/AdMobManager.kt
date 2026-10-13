@@ -56,6 +56,15 @@ object AdMobManager {
     private var isLoadingRewardedInterstitial = false
 
     fun initialize(context: Context) {
+        val isUnitTest = try {
+            Class.forName("org.robolectric.Robolectric") != null
+        } catch (_: Throwable) {
+            false
+        }
+        if (isUnitTest) {
+            Log.i(TAG, "Unit test environment detected (Robolectric). Skipping AdMob background initialization.")
+            return
+        }
         appContext = context.applicationContext
         if (!isInitialized) {
             try {
