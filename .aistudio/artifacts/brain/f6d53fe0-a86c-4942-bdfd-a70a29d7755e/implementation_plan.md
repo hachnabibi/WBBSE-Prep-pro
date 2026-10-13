@@ -1,29 +1,20 @@
-# Implementation Plan - Home Screen Layout & Features
+# Implementation Plan - Mock Tests & Practice Sets Home Screen Section
 
-We will design and document a comprehensive, modern Material 3 home screen layout for the DeshExam app, incorporating all selected user preferences.
+We will create a dedicated `MockTestsHomeSection` composable component and integrate it into `HomeScreen.kt`. This section will display available practice sets for each subject in a horizontal scrolling card format, complete with progress bars for completed tests and a direct "Start Quiz" button.
 
-## Core Home Screen Sections & Widgets
+## Proposed Changes
 
-1. **Top Header & Greeting Banner**
-   - App branding / user greeting, profile avatar, notification badge, and quick search.
-   - Daily study streak counter (e.g., 🔥 5 days streak) and daily motivation quote/reminder.
+### 1. New Composable: `MockTestsHomeSection` in `HomeScreen.kt`
+- Display section header ("মক টেস্ট ও প্র্যাকটিস সেট" / "Mock Tests & Practice Sets") with "সব দেখুন" (See All) action.
+- Horizontal scrolling `LazyRow` of subject mock test cards.
+- Each card will display:
+  - Subject name (e.g., Mathematics, Bengali).
+  - Total available practice sets and completed test count.
+  - Animated progress bar indicating overall mastery or completion percentage.
+  - Direct "Start Quiz" button with primary accent color and test icon.
 
-2. **Class & Subject Selector Cards**
-   - Quick switching between Class 9, Class 10, Madhyamik, and other boards/classes.
-   - Horizontal scrolling subject cards (Mathematics, Bengali, English, Physical Science, Life Science, History, Geography) with icon badges and chapter counts.
+### 2. Integration in `HomeScreen.kt`
+- Insert `MockTestsHomeSection` into the main `LazyColumn` of `HomeScreen.kt` below the subject grid or daily quiz banner.
 
-3. **Recent Exam Progress & Score Stats**
-   - Visual progress ring or summary card showing overall completion percentage, average quiz score, and recent test performance.
-   - Quick resume button for ongoing chapters or weak topic revision.
-
-4. **Video Classes & Playlist Hub**
-   - Hero video banner featuring current chapter/topic lectures (e.g., Class 10 Math Kashe Dekhi playlists).
-   - Quick access to video lesson lists, instructor details, duration badges, and bookmarking.
-
-5. **Mock Tests & Practice Sets**
-   - Featured live/practice exams and chapter-wise quiz sets with progressive unlocking.
-   - Speed test and special challenge cards for high-scoring aspirants.
-
-## User Experience & Navigation Flow
-- Smooth vertical scrolling with sticky header or collapsible sections.
-- Bottom Navigation bar for quick switching between Home, Video Hub, Practice, Bookmarks, and Profile.
+## Verification Plan
+- Compile the app using `compile_applet` to ensure there are no syntax or resolution errors.

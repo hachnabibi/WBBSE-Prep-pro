@@ -1,6 +1,6 @@
 {
-  "summary": "Comprehensive home screen layout and widget plan including class/subject selectors, recent progress stats, daily streak, video classes/playlist hub, and mock tests/practice sets.",
-  "updatedAt": "2026-10-12T20:46:52.715125337Z",
+  "summary": "Implementation plan for adding a dedicated Mock Tests and Practice Sets section on the home screen with horizontal scrolling subject cards, completion progress bars, and Start Quiz action buttons.",
+  "updatedAt": "2026-10-12T20:57:59.714720053Z",
   "requestFeedback": true,
   "userFacing": true
 }
