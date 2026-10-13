@@ -40,9 +40,9 @@ android {
     if (keystoreFile.exists()) {
       create("release") {
         storeFile = keystoreFile
-        storePassword = project.findProperty("STORE_PASSWORD")?.toString() ?: System.getenv("STORE_PASSWORD")
+        storePassword = project.findProperty("STORE_PASSWORD")?.toString() ?: System.getenv("STORE_PASSWORD") ?: "deshexam123"
         keyAlias = project.findProperty("KEY_ALIAS")?.toString() ?: System.getenv("KEY_ALIAS") ?: "upload"
-        keyPassword = project.findProperty("KEY_PASSWORD")?.toString() ?: System.getenv("KEY_PASSWORD")
+        keyPassword = project.findProperty("KEY_PASSWORD")?.toString() ?: System.getenv("KEY_PASSWORD") ?: "deshexam123"
       }
     }
   }
@@ -164,5 +164,3 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
   implementation("com.google.code.gson:gson:2.10.1")
 }
-
-

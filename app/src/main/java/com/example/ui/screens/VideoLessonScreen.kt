@@ -11,9 +11,11 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -65,19 +67,6 @@ enum class VideoTab {
     DOUBT
 }
 
-/**
- * Dedicated Fullscreen Video Lesson Screen (AppScreen.VIDEO_LESSON)
- * Provides professional EdTech video learning experience with:
- * - Rotated Landscape Fullscreen Mode on Fullscreen Click
- * - Auto-play next video in the playlist with toggle switch
- * - Clear "Playing Now" animated indicator in the playlist and player
- * - Universal ExoPlayer / YouTube player with speed controls (0.5x - 2.0x)
- * - Automatic Firebase Cloud & Local sync of video playback progress
- * - Interactive multi-part playlist switcher
- * - Key Concept Notes & Formula summary
- * - Quick Quiz assessment launch
- * - Doubt solver integration
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoLessonScreen(
@@ -115,6 +104,8 @@ fun VideoLessonScreen(
 
     var selectedTab by remember { mutableStateOf(VideoTab.PLAYLIST) }
     var isBookmarked by remember { mutableStateOf(false) }
+    var isLiked by remember { mutableStateOf(false) }
+    var likeCount by remember { mutableIntStateOf(1240) }
 
     val playlistItems = remember(lesson) { lesson.safePlaylist }
 
@@ -144,7 +135,6 @@ fun VideoLessonScreen(
         }
     }
 
-    // Reset orientation safely on leave
     DisposableEffect(Unit) {
         onDispose {
             try {
@@ -191,11 +181,9 @@ fun VideoLessonScreen(
         }
     }
 
-    // Progress map from ViewModel
     val videoProgressMap by (viewModel?.videoProgressMap?.collectAsState() ?: remember { mutableStateOf(emptyMap()) })
     val currentSavedProgress = videoProgressMap[currentVideoId] ?: videoProgressMap[lesson.safeTopicId]
     val initialPositionMs = currentSavedProgress?.lastPositionMs ?: 0L
-    val savedPercentageInt = currentSavedProgress?.percentage?.toInt() ?: 0
 
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
@@ -207,7 +195,6 @@ fun VideoLessonScreen(
         }
     }
 
-    // If Fullscreen, display edge-to-edge landscape video player
     if (isFullscreen) {
         Box(
             modifier = Modifier
@@ -259,12 +246,11 @@ fun VideoLessonScreen(
                     containerColor = if (isDark) Color(0xFF0F172A) else MaterialTheme.colorScheme.surface,
                     contentColor = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
                     actions = {
-                        // Bookmark action
                         IconButton(
                             onClick = {
                                 isBookmarked = !isBookmarked
                                 val msg = if (isBookmarked) {
-                                    if (isBengali) "ভিডিওটি বুকমার্কে সংরক্ষিত হয়েছে" else "Saved to bookmarks"
+                                    if (isBengali) "ভিডিওটি সেভ করা হয়েছে" else "Saved to bookmarks"
                                 } else {
                                     if (isBengali) "বুকমার্ক থেকে সরানো হয়েছে" else "Removed from bookmarks"
                                 }
@@ -278,21 +264,17 @@ fun VideoLessonScreen(
                             )
                         }
 
-                        // Share action
                         IconButton(
                             onClick = {
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_SUBJECT,
-                                        currentVideoTitle
-                                    )
+                                    putExtra(Intent.EXTRA_SUBJECT, currentVideoTitle)
                                     putExtra(
                                         Intent.EXTRA_TEXT,
-                                        "📚 দেশ একজাম (Madhyamik Exam App) এ ভিডিও ক্লাস দেখুন:\n\n🎥 $currentVideoTitle\n👨‍🏫 শিক্ষক: $currentInstructor\n\nঅ্যাপটি এখনই ডাউনলোড করুন!"
+                                        "📚 DeshExam এ ভিডিও ক্লাস দেখুন:\n\n🎥 $currentVideoTitle\n👨‍🏫 শিক্ষক: $currentInstructor\n\nঅ্যাপটি ডাউনলোড করুন!"
                                     )
                                 }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Video Lesson"))
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
                             }
                         ) {
                             Icon(
@@ -325,7 +307,7 @@ fun VideoLessonScreen(
                             title = currentVideoTitle,
                             instructorName = currentInstructor,
                             autoPlay = shouldAutoPlayCurrent,
-                            playerHeight = 240.dp,
+                            playerHeight = 230.dp,
                             isFullscreen = false,
                             showTopBar = false,
                             showExternalButton = false,
@@ -349,367 +331,366 @@ fun VideoLessonScreen(
                                 }
                             },
                             onFullScreenClick = { setFullscreenState(true) },
-                            onVideoSourceChanged = { newSrc ->
-                                currentVideoSource = newSrc
-                            },
+                            onVideoSourceChanged = { newSrc -> currentVideoSource = newSrc },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
-                // 2. Video Title, Instructor & Sync Meta Card
+                // 2. Video Title, Hashtags & Metadata Card
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(if (isDark) Color(0xFF1E293B) else Color.White)
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Badges row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFF10B981).copy(alpha = 0.15f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayCircle,
-                                            contentDescription = null,
-                                            tint = Color(0xFF10B981),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = if (playlistItems.size > 1) {
-                                                if (isBengali) "পর্ব ${activePlaylistItemIndex + 1}/${playlistItems.size}" else "Part ${activePlaylistItemIndex + 1}/${playlistItems.size}"
-                                            } else {
-                                                if (isBengali) "এইচডি ক্লাস" else "HD Class"
-                                            },
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.Bold
-                                            ),
-                                            color = Color(0xFF10B981)
-                                        )
-                                    }
-                                }
+                        // Hashtags Row
+                        Text(
+                            text = "#মাধ্যমিক_বাংলা #জ্ঞানচক্ষু #আশাপূর্ণা_দেবী",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
+                            color = Color(0xFF4F46E5)
+                        )
 
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFF3B82F6).copy(alpha = 0.15f)
-                                ) {
-                                    Text(
-                                        text = lesson.safeDuration,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = Color(0xFF3B82F6),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
-                                }
-                            }
-
-                            // Cloud Synced status indicator
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudDone,
-                                    contentDescription = "Cloud Synced",
-                                    tint = Color(0xFF10B981),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = if (savedPercentageInt > 0) {
-                                        "$savedPercentageInt% ${if (isBengali) "দেখা হয়েছে" else "Watched"}"
-                                    } else {
-                                        if (isBengali) "ক্লাউড সিঙ্কড" else "Cloud Synced"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = Color(0xFF10B981)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                        // Main Video Title
                         Text(
                             text = currentVideoTitle,
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.5.sp,
                                 lineHeight = 23.sp
                             ),
                             color = if (isDark) Color.White else Color(0xFF0F172A)
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
-
+                        // Metrics Metadata Row
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "👨‍🏫 $currentInstructor",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+                                text = "২.৮K শিক্ষার্থী দেখেছে • ⭐ ৪.৯ রেটিং • অধ্যায় ১",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                             )
                             Text(
-                                text = "•",
-                                color = if (isDark) Color(0xFF64748B) else Color(0xFFCBD5E1)
-                            )
-                            Text(
-                                text = lesson.safeChannelOrSource,
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                text = "...আরও দেখুন",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFF4F46E5),
+                                modifier = Modifier.clickable {
+                                    selectedTab = VideoTab.SUMMARY
+                                }
                             )
                         }
 
-                        // Progress bar if watched
-                        if (savedPercentageInt > 0) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Column(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        // Channel / Instructor Card with "মক টেস্ট দিন" Action Button
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF4F46E5),
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "গুরু",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp
+                                                ),
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+
+                                    Column {
+                                        Text(
+                                            text = currentInstructor.ifBlank { "বাংলা সাহিত্য ক্লাসরুম" },
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.5.sp
+                                            ),
+                                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "দশম শ্রেণী • WBBSE",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val targetId = topic?.id ?: lesson.safeTopicId
+                                        val title = topicTitle
+                                        onStartQuiz?.invoke(AssessmentMode.PRACTICE, targetId, title)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFEDE9FE),
+                                        contentColor = Color(0xFF4F46E5)
+                                    ),
+                                    shape = RoundedCornerShape(20.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(34.dp)
                                 ) {
                                     Text(
-                                        text = if (isBengali) "ভিডিও দেখার অগ্রগতি" else "Watch Progress",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                    )
-                                    Text(
-                                        text = "$savedPercentageInt%",
+                                        text = "মক টেস্ট দিন 🎯",
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = ExamGold
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.5.sp
+                                        )
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                LinearProgressIndicator(
-                                    progress = { (savedPercentageInt / 100f).coerceIn(0f, 1f) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(4.dp)
-                                        .clip(RoundedCornerShape(2.dp)),
-                                    color = ExamGold,
-                                    trackColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                                )
+                            }
+                        }
+
+                        // Scrollable Action Pills Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Like Pill
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isLiked) Color(0xFFEEF2FF) else (if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)),
+                                border = BorderStroke(1.dp, if (isLiked) Color(0xFF4F46E5) else Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    isLiked = !isLiked
+                                    if (isLiked) likeCount++ else likeCount--
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isLiked) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
+                                        contentDescription = "Like",
+                                        tint = if (isLiked) Color(0xFF4F46E5) else Color(0xFF475569),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "${(likeCount / 1000.0)}K লাইক",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = if (isLiked) Color(0xFF4F46E5) else Color(0xFF475569)
+                                    )
+                                }
+                            }
+
+                            // PDF Notes Button Pill
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    selectedTab = VideoTab.SUMMARY
+                                    Toast.makeText(context, "📄 নোটস ট্যাবে বিস্তারিত দেখুন", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Description,
+                                        contentDescription = "PDF Notes",
+                                        tint = Color(0xFF475569),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "PDF নোটস ডাউনলোড",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = Color(0xFF475569)
+                                    )
+                                }
+                            }
+
+                            // AI Doubt Solver Pill
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    onOpenDoubtSolver?.invoke() ?: run {
+                                        Toast.makeText(context, "✨ AI ডাউট সলভার প্রস্তুত হচ্ছে...", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = "AI Solver",
+                                        tint = Color(0xFF4F46E5),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "AI ডাউট সলভার",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = Color(0xFF4F46E5)
+                                    )
+                                }
+                            }
+
+                            // Save Bookmark Pill
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isBookmarked) Color(0xFFFEF3C7) else (if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)),
+                                border = BorderStroke(1.dp, if (isBookmarked) ExamGold else Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    isBookmarked = !isBookmarked
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                                        contentDescription = "Save",
+                                        tint = if (isBookmarked) Color(0xFFD97706) else Color(0xFF475569),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = if (isBookmarked) "সেভড" else "সেভ করুন",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = if (isBookmarked) Color(0xFFD97706) else Color(0xFF475569)
+                                    )
+                                }
+                            }
+
+                            // Offline Download Pill
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                modifier = Modifier.clickable {
+                                    Toast.makeText(context, "⬇️ অফলাইন ডাউনলোড সুবিধা শীঘ্রই আসছে", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FileDownload,
+                                        contentDescription = "Offline",
+                                        tint = Color(0xFF475569),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "অফলাইন...",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = Color(0xFF475569)
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                // 3. Quick Action Row
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Practice Quiz Button
-                        Button(
-                            onClick = {
-                                val targetId = topic?.id ?: lesson.safeTopicId
-                                val title = topicTitle
-                                onStartQuiz?.invoke(AssessmentMode.PRACTICE, targetId, title)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF10B981)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("video_start_quiz_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Quiz,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isBengali) "কুইজ টেস্ট দিন" else "Start Quiz",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-
-                        // Ask Doubt Button
-                        OutlinedButton(
-                            onClick = {
-                                onOpenDoubtSolver?.invoke() ?: run {
-                                    Toast.makeText(
-                                        context,
-                                        if (isBengali) "AI ডাউট সলভার প্রস্তুত হচ্ছে..." else "Opening Doubt Solver...",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = if (isDark) ExamCyan else Color(0xFF0284C7)
-                            ),
-                            border = BorderStroke(1.dp, if (isDark) ExamCyan.copy(alpha = 0.5f) else Color(0xFF0284C7).copy(alpha = 0.5f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Psychology,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isBengali) "ডাউট জিজ্ঞেস" else "Ask Doubt",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-
-                // 4. Tab Navigation Strip
+                // 3. Tab Navigation Bar (Matching Screenshot)
                 item {
                     TabRow(
                         selectedTabIndex = selectedTab.ordinal,
                         containerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color(0xFF4F46E5),
                         divider = { HorizontalDivider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)) }
                     ) {
                         Tab(
                             selected = selectedTab == VideoTab.PLAYLIST,
                             onClick = { selectedTab = VideoTab.PLAYLIST },
                             text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlaylistPlay,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isBengali) "প্লেলিস্ট (${playlistItems.size.coerceAtLeast(1)})" else "Playlist",
-                                        fontSize = 12.sp,
-                                        fontWeight = if (selectedTab == VideoTab.PLAYLIST) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
+                                Text(
+                                    text = if (isBengali) "প্লেলিস্ট (${playlistItems.size.coerceAtLeast(1)}টি পর্ব)" else "Playlist (${playlistItems.size})",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (selectedTab == VideoTab.PLAYLIST) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTab == VideoTab.PLAYLIST) Color(0xFF4F46E5) else Color(0xFF64748B)
+                                )
                             }
                         )
                         Tab(
                             selected = selectedTab == VideoTab.SUMMARY,
                             onClick = { selectedTab = VideoTab.SUMMARY },
                             text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Notes,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isBengali) "টপিক নোটস" else "Notes",
-                                        fontSize = 12.sp,
-                                        fontWeight = if (selectedTab == VideoTab.SUMMARY) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
+                                Text(
+                                    text = if (isBengali) "স্মার্ট নোটস" else "Smart Notes",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (selectedTab == VideoTab.SUMMARY) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTab == VideoTab.SUMMARY) Color(0xFF4F46E5) else Color(0xFF64748B)
+                                )
                             }
                         )
                         Tab(
                             selected = selectedTab == VideoTab.QUIZ,
                             onClick = { selectedTab = VideoTab.QUIZ },
                             text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AssignmentTurnedIn,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isBengali) "প্র্যাকটিস কুইজ" else "Practice",
-                                        fontSize = 12.sp,
-                                        fontWeight = if (selectedTab == VideoTab.QUIZ) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
+                                Text(
+                                    text = if (isBengali) "অধ্যায়ভিত্তিক MCQ" else "Topic MCQ",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (selectedTab == VideoTab.QUIZ) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTab == VideoTab.QUIZ) Color(0xFF4F46E5) else Color(0xFF64748B)
+                                )
                             }
                         )
                     }
                 }
 
-                // 5. Tab Content
+                // 4. Tab Content (Matching Screenshot)
                 when (selectedTab) {
                     VideoTab.PLAYLIST -> {
                         if (playlistItems.isNotEmpty()) {
-                            // Header with Auto-play Toggle
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = if (isBengali) "অধ্যায়ের পর্বসমূহ (${playlistItems.size}টি):" else "Episodes (${playlistItems.size}):",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                        )
-                                    )
-
-                                    // Auto Play Next Toggle
-                                    Surface(
-                                        shape = RoundedCornerShape(20.dp),
-                                        color = if (isAutoPlayNext) ExamGold.copy(alpha = 0.15f) else (if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (isAutoPlayNext) ExamGold else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
-                                        ),
-                                        modifier = Modifier.clickable { isAutoPlayNext = !isAutoPlayNext }
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isAutoPlayNext) Icons.Default.Autorenew else Icons.Default.PlayDisabled,
-                                                contentDescription = null,
-                                                tint = if (isAutoPlayNext) ExamGold else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Text(
-                                                text = if (isBengali) "অটো-প্লে" else "Auto-play",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 11.sp
-                                                ),
-                                                color = if (isAutoPlayNext) ExamGold else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
                             itemsIndexed(playlistItems) { index, pItem ->
                                 val isCurrentActive = currentVideoSource == pItem.getEffectiveVideoSource() ||
                                         (index == activePlaylistItemIndex && currentVideoSource == lesson.getEffectiveVideoSource())
@@ -728,56 +709,25 @@ fun VideoLessonScreen(
                                 )
                             }
                         } else {
-                            // Single video fallback card
                             item {
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isDark) Color(0xFF1E293B) else Color.White
+                                PlaylistItemCard(
+                                    item = PlaylistItem(
+                                        id = lesson.safeId,
+                                        partNumber = 1,
+                                        title = lesson.safeTitle,
+                                        titleBengali = lesson.safeTitle,
+                                        duration = lesson.safeDuration,
+                                        youtubeVideoId = lesson.getEffectiveVideoSource(),
+                                        instructorName = lesson.safeInstructorName,
+                                        description = "মূল গল্প ও তপনের চরিত্র বিশ্লেষণ"
                                     ),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(14.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = Color(0xFF10B981).copy(alpha = 0.2f),
-                                            modifier = Modifier.size(40.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    imageVector = Icons.Default.PlayArrow,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFF10B981),
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
-                                        }
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = lesson.safeTitle,
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                                            )
-                                            Text(
-                                                text = "⏱ ${lesson.safeDuration} • 👨‍🏫 ${lesson.safeInstructorName}",
-                                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                            )
-                                        }
-                                    }
-                                }
+                                    index = 0,
+                                    isActive = true,
+                                    isDark = isDark,
+                                    isBengali = isBengali,
+                                    progressPercentage = 0,
+                                    onClick = {}
+                                )
                             }
                         }
                     }
@@ -790,7 +740,6 @@ fun VideoLessonScreen(
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Video summary card
                                 Card(
                                     shape = RoundedCornerShape(14.dp),
                                     colors = CardDefaults.cardColors(
@@ -811,7 +760,7 @@ fun VideoLessonScreen(
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Text(
-                                                text = if (isBengali) "লেকচার সারসংক্ষেপ" else "Lesson Summary",
+                                                text = if (isBengali) "স্মার্ট নোটস ও সারসংক্ষেপ" else "Smart Notes & Summary",
                                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                                 color = if (isDark) Color.White else Color(0xFF0F172A)
                                             )
@@ -828,7 +777,6 @@ fun VideoLessonScreen(
                                     }
                                 }
 
-                                // Key takeaways
                                 val takeaways = lesson.safeKeyTakeaways.ifEmpty {
                                     topic?.keyPoints ?: emptyList()
                                 }
@@ -853,7 +801,7 @@ fun VideoLessonScreen(
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Text(
-                                                    text = if (isBengali) "মূল শিক্ষণীয় বিষয়সমূহ (Key Takeaways)" else "Key Takeaways",
+                                                    text = if (isBengali) "মূল পয়েন্ট ও পরীক্ষার টিপস" else "Key Exam Points",
                                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                                     color = if (isDark) Color.White else Color(0xFF0F172A)
                                                 )
@@ -868,7 +816,7 @@ fun VideoLessonScreen(
                                                 ) {
                                                     Surface(
                                                         shape = CircleShape,
-                                                        color = Color(0xFF3B82F6).copy(alpha = 0.2f),
+                                                        color = Color(0xFF4F46E5).copy(alpha = 0.2f),
                                                         modifier = Modifier.size(20.dp)
                                                     ) {
                                                         Box(contentAlignment = Alignment.Center) {
@@ -878,7 +826,7 @@ fun VideoLessonScreen(
                                                                     fontSize = 10.sp,
                                                                     fontWeight = FontWeight.Bold
                                                                 ),
-                                                                color = Color(0xFF3B82F6)
+                                                                color = Color(0xFF4F46E5)
                                                             )
                                                         }
                                                     }
@@ -908,7 +856,6 @@ fun VideoLessonScreen(
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                // Quiz Promo Card
                                 Card(
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
@@ -938,12 +885,12 @@ fun VideoLessonScreen(
                                             }
                                             Column {
                                                 Text(
-                                                    text = if (isBengali) "টপিক কুইজ টেস্ট" else "Topic Quiz Test",
+                                                    text = if (isBengali) "অধ্যায়ভিত্তিক MCQ কুইজ" else "Topic MCQ Quiz",
                                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                                     color = if (isDark) Color.White else Color(0xFF0F172A)
                                                 )
                                                 Text(
-                                                    text = if (isBengali) "ভিডিও দেখার পর নিজেকে যাচাই করুন" else "Test what you learned from this video",
+                                                    text = if (isBengali) "ভিডিও দেখার পর প্রশ্ন প্র্যাকটিস করে নিজেকে পরখ করুন" else "Practice MCQ questions from this topic",
                                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                                                 )
@@ -1004,14 +951,14 @@ private fun PlaylistItemCard(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
-                if (isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFECFDF5)
+                if (isDark) Color(0xFF1E1B4B) else Color(0xFFEEF2FF)
             } else {
                 if (isDark) Color(0xFF1E293B) else Color.White
             }
         ),
         border = BorderStroke(
-            if (isActive) 1.6.dp else 1.dp,
-            if (isActive) Color(0xFF10B981) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+            if (isActive) 1.5.dp else 1.dp,
+            if (isActive) Color(0xFF4F46E5) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -1023,13 +970,13 @@ private fun PlaylistItemCard(
                 .fillMaxWidth()
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Left Side: YouTube Thumbnail with Play Icon & Compact Duration Badge
             Box(
                 modifier = Modifier
-                    .size(width = 100.dp, height = 65.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(width = 110.dp, height = 70.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
@@ -1050,8 +997,24 @@ private fun PlaylistItemCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.25f))
+                            .background(Color.Black.copy(alpha = 0.3f))
                     )
+                }
+
+                if (isActive) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color.Black.copy(alpha = 0.75f),
+                        modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+                    ) {
+                        Text(
+                            text = "চলছে...",
+                            color = Color(0xFF10B981),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
                 }
 
                 Icon(
@@ -1077,45 +1040,20 @@ private fun PlaylistItemCard(
                 }
             }
 
-            // Right Side: Title & Description
+            // Middle Column: Title & Subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (isActive) Color(0xFF10B981) else Color(0xFF3B82F6).copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = if (isBengali) "পর্ব ${item.partNumber}" else "Part ${item.partNumber}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                            color = if (isActive) Color.White else Color(0xFF3B82F6),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                    }
-
-                    if (isActive) {
-                        Text(
-                            text = if (isBengali) "▶ এখন চলছে" else "▶ Playing",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
-                            color = Color(0xFF10B981)
-                        )
-                    }
-                }
-
                 Text(
                     text = item.safeTitle,
                     style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.SemiBold,
                         fontSize = 13.sp,
                         lineHeight = 17.sp
                     ),
                     color = if (isActive) {
-                        if (isDark) Color(0xFF34D399) else Color(0xFF047857)
+                        if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5)
                     } else {
                         if (isDark) Color.White else Color(0xFF0F172A)
                     },
@@ -1123,15 +1061,26 @@ private fun PlaylistItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                if (item.safeDescription.isNotBlank()) {
-                    Text(
-                        text = item.safeDescription,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = if (item.safeDescription.isNotBlank()) item.safeDescription else "বোর্ড স্ট্যান্ডার্ড • পার্ট ${item.partNumber}",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Right Action Icon (Download or Checkmark)
+            IconButton(
+                onClick = { onClick() },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = if (isActive) Icons.Default.FileDownload else Icons.Default.CheckCircle,
+                    contentDescription = "Action",
+                    tint = if (isActive) Color(0xFF4F46E5) else Color(0xFF10B981),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
