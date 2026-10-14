@@ -591,7 +591,7 @@ fun AppNavigationDrawerSheet(
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = if (isBengali) "প্রোফাইল" else "Profile",
+                            text = "প্রোফাইল",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.primary
@@ -623,7 +623,7 @@ fun AppNavigationDrawerSheet(
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = if (isBengali) "এডিট" else "Edit",
+                            text = "এডিট",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -655,7 +655,7 @@ fun AppNavigationDrawerSheet(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = if (isBengali) "অ্যাডমিন" else "Admin",
+                                text = "অ্যাডমিন",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 fontSize = 11.sp,
                                 color = Color(0xFF261400)

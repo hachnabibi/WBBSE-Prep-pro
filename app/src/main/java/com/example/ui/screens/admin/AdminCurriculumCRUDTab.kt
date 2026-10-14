@@ -293,7 +293,7 @@ fun AdminCurriculumCRUDTab(
                         DropdownMenu(expanded = boardExpanded, onDismissRequest = { boardExpanded = false }) {
                             boards.forEach { b ->
                                 DropdownMenuItem(
-                                    text = { Text("${b.shortName} - ${b.fullNameBengali}", fontSize = 12.0.sp) },
+                                    text = { Text(b.shortName, fontSize = 12.0.sp, fontWeight = FontWeight.Bold) },
                                     leadingIcon = { Icon(Icons.Default.AccountBalance, null, modifier = Modifier.size(15.dp), tint = PrimaryIndigo) },
                                     onClick = {
                                         boardValue = b.id
