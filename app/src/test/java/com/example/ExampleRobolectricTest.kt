@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class ExampleRobolectricTest {
 
   @Test
@@ -24,16 +24,12 @@ class ExampleRobolectricTest {
 
   @Test
   fun `launch main activity to catch startup crash`() {
-    try {
-      androidx.test.core.app.ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-        scenario.onActivity { activity ->
-          assertTrue(activity != null)
-        }
+    androidx.test.core.app.ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+      scenario.onActivity { activity ->
+        assertTrue(activity != null)
       }
-    } catch (e: Throwable) {
-      e.printStackTrace()
-      throw e
     }
+    org.robolectric.shadows.ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
   }
 
   @Test

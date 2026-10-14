@@ -1,20 +1,27 @@
-# Implementation Plan - Mock Tests & Practice Sets Home Screen Section
+# Implementation Plan - Advanced Home Screen Widgets & Features
 
-We will create a dedicated `MockTestsHomeSection` composable component and integrate it into `HomeScreen.kt`. This section will display available practice sets for each subject in a horizontal scrolling card format, complete with progress bars for completed tests and a direct "Start Quiz" button.
+We will enhance the DeshExam home screen by adding the complete set of requested advanced educational widgets and features in `HomeScreen.kt`:
 
-## Proposed Changes
+## Proposed New Home Screen Sections
 
-### 1. New Composable: `MockTestsHomeSection` in `HomeScreen.kt`
-- Display section header ("মক টেস্ট ও প্র্যাকটিস সেট" / "Mock Tests & Practice Sets") with "সব দেখুন" (See All) action.
-- Horizontal scrolling `LazyRow` of subject mock test cards.
-- Each card will display:
-  - Subject name (e.g., Mathematics, Bengali).
-  - Total available practice sets and completed test count.
-  - Animated progress bar indicating overall mastery or completion percentage.
-  - Direct "Start Quiz" button with primary accent color and test icon.
+1. **Live Classes & Upcoming Webinars (`LiveClassesHomeSection`)**
+   - Horizontal scrolling banner/card list for live interactive classes, countdown timer, and 'Join Live' button.
 
-### 2. Integration in `HomeScreen.kt`
-- Insert `MockTestsHomeSection` into the main `LazyColumn` of `HomeScreen.kt` below the subject grid or daily quiz banner.
+2. **Daily Study Tips & Exam Motivation Quote (`StudyTipCard`)**
+   - Inspiring daily quote or study tip card with a refresh/share option to keep students motivated.
+
+3. **Important Exam Notices & Routine Updates (`NoticeBoardHomeSection`)**
+   - Ticker or card showing latest board exam notices, routine announcements, and exam date reminders.
+
+4. **Bookmarks & Saved Flashcards Quick Access (`BookmarksHomeSection`)**
+   - Quick access horizontal list showing recently bookmarked notes, formulas, and flashcards.
+
+5. **Doubt Solver & AI Assistant Banner (`DoubtSolverBanner`)**
+   - Interactive prompt card enabling students to instantly ask questions or clear doubts with AI/tutor support.
+
+## Integration Plan
+- Add all 5 new components into the `LazyColumn` in `HomeScreen.kt` in a well-balanced, engaging order.
+- Implement corresponding UI Composables and data models at the bottom of `HomeScreen.kt`.
 
 ## Verification Plan
-- Compile the app using `compile_applet` to ensure there are no syntax or resolution errors.
+- Compile applet with `compile_applet` to verify clean build and zero errors.
