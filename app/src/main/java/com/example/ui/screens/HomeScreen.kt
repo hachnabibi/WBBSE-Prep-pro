@@ -226,6 +226,11 @@ fun HomeScreen(
                 onClick = { onNavigate(AppScreen.LEADERBOARD) }
             )
         }
+
+        // ১৪. অ-সরকারি পর্ষদ ডিসক্লেইমার ও তথ্যের উৎস (Google Play Policy Compliance)
+        item {
+            GovernmentDisclaimerCard(isBengali = isBengali)
+        }
     }
 
     if (showClassDialog) {
@@ -1878,7 +1883,10 @@ fun NoticeBoardHomeSection(isBengali: Boolean, isDark: Boolean, onNavigate: (App
             }
 
             Text(
-                text = if (isBengali) "• ২০২৬ সালের এসএসসি পরীক্ষার রুটিন প্রকাশিত হয়েছে!\n• নতুন মডেল টেস্ট সিলেবাস এখন মক টেস্ট সেকশনে উপলব্ধ।" else "• 2026 SSC Examination routine has been published!\n• New model test syllabus is now available in Mock Tests.",
+                text = if (isBengali)
+                    "• ২০২৬ সালের মাধ্যমিক পরীক্ষার খবরের জন্য পর্ষদের সাইট দেখুন।\n• নতুন মডেল টেস্ট সিলেবাস অ্যাপে উপলব্ধ।\n• অফিসিয়াল তথ্যের উৎস: wbbse.wb.gov.in"
+                else
+                    "• For official exam routines, visit the board portal.\n• New model syllabus available in app.\n• Official Source: wbbse.wb.gov.in",
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
             )
