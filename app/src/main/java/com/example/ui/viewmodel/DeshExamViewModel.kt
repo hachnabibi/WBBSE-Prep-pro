@@ -2447,9 +2447,14 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         podcastTitle: String = "",
         onComplete: (Boolean, String) -> Unit
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            val safeId = if (!customQuestionId.isNullOrBlank()) {
+                customQuestionId.replace("/", "_").replace(" ", "_").trim()
+            } else {
+                "${subjectId}_q_${System.currentTimeMillis()}"
+            }
             val q = FirestoreQuestion(
-                id = customQuestionId ?: "${subjectId}_q_${System.currentTimeMillis()}",
+                id = safeId,
                 topicId = topicId,
                 chapterId = chapterId,
                 subjectId = subjectId,
@@ -2466,34 +2471,101 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 podcastUrl = podcastUrl,
                 podcastTitle = podcastTitle
             )
-            val updated = _firestoreQuestions.value + q
-            _firestoreQuestions.value = updated
-            onComplete(true, "প্রশ্ন সফলভাবে যুক্ত করা হয়েছে!")
+
+            // 1. Save to Firebase Firestore
+            val cloudRes = firestoreService.saveQuestion(q)
+
+            // 2. Save to local Room Database
+            try {
+                val entity = com.example.data.local.QuestionEntity(
+                    id = q.id,
+                    topicId = q.topicId,
+                    chapterId = q.chapterId,
+                    subjectId = q.subjectId,
+                    classId = q.classId,
+                    type = q.type,
+                    difficulty = q.difficulty,
+                    question = q.question,
+                    optionsJson = org.json.JSONArray(q.options).toString(),
+                    correctOptionIndex = q.correctOptionIndex,
+                    correctAnswerText = q.correctAnswerText,
+                    explanation = q.explanation,
+                    marks = q.marks,
+                    tagsJson = org.json.JSONArray(q.tags).toString(),
+                    pyqYear = pyqYear,
+                    podcastUrl = q.podcastUrl,
+                    podcastTitle = q.podcastTitle
+                )
+                database.deshExamDao().insertQuestions(listOf(entity))
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error inserting question to local DB: ${e.message}")
+            }
+
+            withContext(Dispatchers.Main) {
+                val updated = _firestoreQuestions.value.filter { it.id != q.id } + q
+                _firestoreQuestions.value = updated
+                if (cloudRes.isSuccess) {
+                    onComplete(true, "প্রশ্নটি সফলভাবে ফায়ারবেস ক্লাউড ও লোকাল ডেটাবেজে সংরক্ষিত হয়েছে!")
+                } else {
+                    onComplete(true, "প্রশ্নটি লোকাল ডেটাবেজে সংরক্ষিত হয়েছে!")
+                }
+            }
         }
     }
 
     fun updateFirestoreQuestion(question: FirestoreQuestion, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
+            val cloudRes = firestoreService.saveQuestion(question)
             try {
-                firestoreService.saveQuestion(question)
-            } catch (_: Exception) {}
+                val entity = com.example.data.local.QuestionEntity(
+                    id = question.id,
+                    topicId = question.topicId,
+                    chapterId = question.chapterId,
+                    subjectId = question.subjectId,
+                    classId = question.classId,
+                    type = question.type,
+                    difficulty = question.difficulty,
+                    question = question.question,
+                    optionsJson = org.json.JSONArray(question.options).toString(),
+                    correctOptionIndex = question.correctOptionIndex,
+                    correctAnswerText = question.correctAnswerText,
+                    explanation = question.explanation,
+                    marks = question.marks,
+                    tagsJson = org.json.JSONArray(question.tags).toString(),
+                    pyqYear = "",
+                    podcastUrl = question.podcastUrl,
+                    podcastTitle = question.podcastTitle
+                )
+                database.deshExamDao().insertQuestions(listOf(entity))
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error updating question in local DB: ${e.message}")
+            }
+
             withContext(Dispatchers.Main) {
                 val updated = _firestoreQuestions.value.map { if (it.id == question.id) question else it }
                 _firestoreQuestions.value = updated
-                onComplete(true, "প্রশ্ন আপডেট হয়েছে")
+                if (cloudRes.isSuccess) {
+                    onComplete(true, "প্রশ্নটি সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে আপডেট করা হয়েছে!")
+                } else {
+                    onComplete(true, "প্রশ্নটি লোকাল ডেটাবেজে আপডেট করা হয়েছে!")
+                }
             }
         }
     }
 
     fun deleteFirestoreQuestion(questionId: String, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
+            val cloudRes = firestoreService.deleteQuestion(questionId)
             try {
-                firestoreService.deleteQuestion(questionId)
-            } catch (_: Exception) {}
+                database.deshExamDao().deleteQuestionById(questionId)
+            } catch (e: Exception) {
+                Log.e("DeshExamViewModel", "Error deleting question locally: ${e.message}")
+            }
+
             withContext(Dispatchers.Main) {
                 val updated = _firestoreQuestions.value.filter { it.id != questionId }
                 _firestoreQuestions.value = updated
-                onComplete(true, "প্রশ্ন মোছা হয়েছে")
+                onComplete(true, "প্রশ্নটি ফায়ারবেস ও লোকাল ডেটাবেজ থেকে মুছে ফেলা হয়েছে")
             }
         }
     }
