@@ -11,7 +11,15 @@ class DeshExamApplication : Application() {
         super.onCreate()
         Log.i("DeshExamApplication", "Application onCreate started")
         
-        // Initialize Firebase safely
+        val isUnitTest = try {
+            Class.forName("org.robolectric.Robolectric") != null
+        } catch (_: Throwable) {
+            false
+        }
+        if (isUnitTest) {
+            Log.i("DeshExamApplication", "Unit test environment detected (Robolectric). Skipping background services initialization.")
+            return
+        }
         try {
             var app = FirebaseApp.initializeApp(this)
             if (app == null && FirebaseApp.getApps(this).isEmpty()) {

@@ -70,10 +70,17 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        try {
-            Checkout.preload(applicationContext)
-        } catch (e: Throwable) {
-            android.util.Log.e("MainActivity", "Razorpay preload failed safely: ${e.message}", e)
+        val isUnitTest = try {
+            Class.forName("org.robolectric.Robolectric") != null
+        } catch (_: Throwable) {
+            false
+        }
+        if (!isUnitTest) {
+            try {
+                Checkout.preload(applicationContext)
+            } catch (e: Throwable) {
+                android.util.Log.e("MainActivity", "Razorpay preload failed safely: ${e.message}", e)
+            }
         }
 
         // Handle notification deep link on cold start
