@@ -92,11 +92,11 @@ fun OnboardingScreen(
     var selectedBoardId by rememberSaveable { mutableStateOf(initialClassObj?.board ?: "WBBSE") }
     var selectedClassId by rememberSaveable { mutableStateOf(profile.classId.ifBlank { "class_10_wbbse" }) }
     var selectedClassNumber by rememberSaveable { mutableIntStateOf(initialClassObj?.classNumber ?: 10) }
-    var classLevel by rememberSaveable { mutableStateOf(profile.classLevel.ifBlank { "দশম শ্রেণি (মাধ্যমিক) - WBBSE" }) }
+    var classLevel by rememberSaveable { mutableStateOf(profile.classLevel.ifBlank { "মাধ্যমিক - WBBSE" }) }
     var selectedStream by rememberSaveable { mutableStateOf(profile.stream.ifBlank { "all" }) }
-    var targetExam by rememberSaveable { mutableStateOf(profile.targetExam.ifBlank { "WBBSE Madhyamik 2026" }) }
+    var targetExam by rememberSaveable { mutableStateOf(profile.targetExam.ifBlank { "WBBSE Madhyamik 2027" }) }
     var district by rememberSaveable { mutableStateOf(profile.district.ifBlank { "কলকাতা" }) }
-    var block by rememberSaveable { mutableStateOf("সদর ব্লক (Sadar)") }
+    var block by rememberSaveable { mutableStateOf("সদর ব্লক") }
     var school by rememberSaveable { mutableStateOf(profile.school) }
 
     // Storing multiple goals as comma separated string for easy saveable
@@ -338,7 +338,7 @@ fun Step1Name(
                 // 1. FULL NAME
                 Column {
                     Text(
-                        text = "১. শিক্ষার্থীর পুরো নাম (Full Name)",
+                        text = "১. শিক্ষার্থীর পুরো নাম",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -367,7 +367,7 @@ fun Step1Name(
                 // 2. MOBILE NUMBER
                 Column {
                     Text(
-                        text = "২. মোবাইল নম্বর (Mobile Number)",
+                        text = "২. মোবাইল নম্বর",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -397,7 +397,7 @@ fun Step1Name(
                 // 3. GENDER SELECTION
                 Column {
                     Text(
-                        text = "৩. লিঙ্গ / জেন্ডার (Gender)",
+                        text = "৩. লিঙ্গ",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 6.dp)
@@ -450,7 +450,7 @@ fun Step1Name(
                 // 4. DATE OF BIRTH
                 Column {
                     Text(
-                        text = "৪. জন্ম তারিখ (Date of Birth)",
+                        text = "৪. জন্ম তারিখ",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -476,7 +476,7 @@ fun Step1Name(
                     OutlinedTextField(
                         value = dob,
                         onValueChange = onDobChange,
-                        placeholder = { Text("DD/MM/YYYY (যেমন 15/08/2009)", maxLines = 1) },
+                        placeholder = { Text("DD/MM/YYYY", maxLines = 1) },
                         leadingIcon = { 
                             IconButton(onClick = { openDatePicker() }) {
                                 Icon(Icons.Default.Event, contentDescription = "Pick Date", tint = AppPrimaryAccent) 
@@ -873,13 +873,13 @@ fun Step2Class(
 
                     val semesters = if (selectedClassId == "class_11_wbchse") {
                         listOf(
-                            "sem1" to Pair("সেমিস্টার ১ (Semester 1)", "প্রথম সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
-                            "sem2" to Pair("সেমিস্টার ২ (Semester 2)", "দ্বিতীয় সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                            "sem1" to Pair("সেমিস্টার ১", "প্রথম সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                            "sem2" to Pair("সেমিস্টার ২", "দ্বিতীয় সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
                         )
                     } else {
                         listOf(
-                            "sem3" to Pair("সেমিস্টার ৩ (Semester 3)", "তৃতীয় সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
-                            "sem4" to Pair("সেমিস্টার ৪ (Semester 4)", "চতুর্থ সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
+                            "sem3" to Pair("সেমিস্টার ৩", "তৃতীয় সেমিস্টার - MCQ ভিত্তিক পরীক্ষা"),
+                            "sem4" to Pair("সেমিস্টার ৪", "চতুর্থ সেমিস্টার - সংক্ষিপ্ত প্রশ্ন ভিত্তিক পরীক্ষা")
                         )
                     }
 
@@ -963,7 +963,7 @@ fun Step2Class(
             ) {
                 Column(modifier = Modifier.padding(top = 24.dp)) {
                     Text(
-                        text = if (isBengali) "আপনার পড়ার বিভাগ (Stream) নির্বাচন করুন:" else "Select your academic stream:",
+                        text = if (isBengali) "আপনার পড়ার বিভাগ নির্বাচন করুন:" else "Select your academic stream:",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = AppTextPrimary,
                         modifier = Modifier.padding(bottom = 12.dp)

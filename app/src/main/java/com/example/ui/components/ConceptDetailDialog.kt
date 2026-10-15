@@ -31,7 +31,7 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 fun ConceptDetailDialog(
     title: String,
-    subtitle: String = "অধ্যায়/টপিক কনসেপ্ট নোটস",
+    subtitle: String = "অধ্যায় কনসেপ্ট নোটস",
     conceptSummary: String,
     keyPointsList: List<String> = emptyList(),
     keyPointsRaw: String? = null,
@@ -202,7 +202,7 @@ fun ConceptDetailDialog(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = "🧠 কুইক কনসেপ্ট ম্যাপ (Key Concept Highlights)",
+                                    text = "🧠 কুইক কনসেপ্ট ম্যাপ",
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
