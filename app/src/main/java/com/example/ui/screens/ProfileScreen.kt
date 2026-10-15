@@ -220,6 +220,37 @@ fun ProfileScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = Color.White.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                            ) {
+                                Text(
+                                    text = "Level ${profile.level.coerceAtLeast(1)}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = ExamGold.copy(alpha = 0.18f),
+                                border = BorderStroke(1.dp, ExamGold.copy(alpha = 0.35f))
+                            ) {
+                                Text(
+                                    text = boardLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = ExamGold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+
                         // 1. Horizontal Row layout for Avatar (left) and Details (right)
                         Row(
                             modifier = Modifier.fillMaxWidth(),

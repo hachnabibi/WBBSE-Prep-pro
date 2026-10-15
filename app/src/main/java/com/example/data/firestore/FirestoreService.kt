@@ -53,12 +53,17 @@ class FirestoreService(
             }
             val db = if (dbContext != null) {
                 val dbIdRes = dbContext.resources.getIdentifier("firestore_database_id", "string", dbContext.packageName)
-                if (dbIdRes != 0) {
-                    val dbId = dbContext.getString(dbIdRes)
+                val dbId = if (dbIdRes != 0) {
+                    val value = dbContext.getString(dbIdRes).trim()
+                    value.ifBlank { "" }
+                } else {
+                    ""
+                }
+                if (dbId.isNotBlank()) {
                     Log.i(TAG, "Using Firestore custom database ID: $dbId")
                     FirebaseFirestore.getInstance(dbId)
                 } else {
-                    Log.w(TAG, "firestore_database_id resource not found, using default instance.")
+                    Log.w(TAG, "Firestore database id missing or blank, using default instance.")
                     FirebaseFirestore.getInstance()
                 }
             } else {
@@ -358,16 +363,47 @@ class FirestoreService(
         }
     }
 
+    suspend fun deleteSubject(subjectId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection(COLLECTION_SUBJECTS)
+                .document(subjectId)
+                .delete()
+                .await()
+            Log.d(TAG, "Deleted subject: $subjectId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting subject: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
     // =========================================================================
     // 3. CHAPTER (অধ্যায়) MANAGEMENT
     // =========================================================================
 
-    suspend fun saveChapter(chapter: FirestoreChapter): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun saveChapter(
+        chapter: FirestoreChapter,
+        preserveWeightage: Boolean = false
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            firestore.collection(COLLECTION_CHAPTERS)
-                .document(chapter.id)
-                .set(chapter, SetOptions.merge())
-                .await()
+            val chapterRef = firestore.collection(COLLECTION_CHAPTERS).document(chapter.id)
+            if (preserveWeightage) {
+                val updates = mapOf(
+                    "id" to chapter.id,
+                    "classId" to chapter.classId,
+                    "subjectId" to chapter.subjectId,
+                    "chapterNumber" to chapter.chapterNumber,
+                    "title" to chapter.title,
+                    "description" to chapter.description,
+                    "totalTopics" to chapter.totalTopics,
+                    "orderIndex" to chapter.orderIndex,
+                    "contentData" to chapter.contentData,
+                    "solutionData" to chapter.solutionData
+                )
+                chapterRef.set(updates, SetOptions.merge()).await()
+            } else {
+                chapterRef.set(chapter, SetOptions.merge()).await()
+            }
             Log.d(TAG, "Saved chapter: ${chapter.id}")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -395,12 +431,32 @@ class FirestoreService(
     // 4. TOPIC (টপিক / বিষয়বস্তু) MANAGEMENT
     // =========================================================================
 
-    suspend fun saveTopic(topic: FirestoreTopic): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun saveTopic(
+        topic: FirestoreTopic,
+        preserveQuestionCount: Boolean = false
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            firestore.collection(COLLECTION_TOPICS)
-                .document(topic.id)
-                .set(topic, SetOptions.merge())
-                .await()
+            val topicRef = firestore.collection(COLLECTION_TOPICS).document(topic.id)
+            if (preserveQuestionCount) {
+                val updates = mapOf(
+                    "id" to topic.id,
+                    "classId" to topic.classId,
+                    "subjectId" to topic.subjectId,
+                    "chapterId" to topic.chapterId,
+                    "orderIndex" to topic.orderIndex,
+                    "title" to topic.title,
+                    "summary" to topic.summary,
+                    "keyPoints" to topic.keyPoints,
+                    "formulae" to topic.formulae,
+                    "contentData" to topic.contentData,
+                    "solutionData" to topic.solutionData,
+                    "videoUrl" to topic.videoUrl,
+                    "playlistJson" to topic.playlistJson
+                )
+                topicRef.set(updates, SetOptions.merge()).await()
+            } else {
+                topicRef.set(topic, SetOptions.merge()).await()
+            }
             Log.d(TAG, "Saved topic: ${topic.id}")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -1321,6 +1377,27 @@ class FirestoreService(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting chapter $chapterId: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteTopicsForChapter(chapterId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val topics = firestore.collection(COLLECTION_TOPICS)
+                .whereEqualTo("chapterId", chapterId)
+                .get()
+                .await()
+
+            topics.documents.chunked(500).forEach { documents ->
+                val batch = firestore.batch()
+                documents.forEach { document ->
+                    batch.delete(document.reference)
+                }
+                batch.commit().await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting topics for chapter $chapterId: ${e.localizedMessage}", e)
             Result.failure(e)
         }
     }

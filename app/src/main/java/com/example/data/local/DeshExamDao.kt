@@ -30,6 +30,9 @@ interface DeshExamDao {
     @Query("DELETE FROM subjects WHERE classId = :classId")
     suspend fun deleteSubjectsForClass(classId: String)
 
+    @Query("DELETE FROM subjects WHERE id = :id")
+    suspend fun deleteSubjectById(id: String)
+
     @Query("SELECT * FROM questions WHERE classId = :classId")
     suspend fun getQuestionsForClass(classId: String): List<QuestionEntity>
 
@@ -287,6 +290,9 @@ interface DeshExamDao {
 
     @Query("DELETE FROM chapters WHERE id = :id")
     suspend fun deleteChapterById(id: String)
+
+    @Query("DELETE FROM topics WHERE chapterId = :chapterId")
+    suspend fun deleteTopicsForChapter(chapterId: String)
 
     @Query("DELETE FROM topics WHERE id = :id")
     suspend fun deleteTopicById(id: String)

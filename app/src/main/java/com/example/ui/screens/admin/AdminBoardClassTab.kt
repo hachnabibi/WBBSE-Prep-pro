@@ -710,8 +710,9 @@ fun AdminBoardClassTab(
                                 }
                             }
 
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -719,10 +720,13 @@ fun AdminBoardClassTab(
                                         text = board.shortName,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
                                     Surface(
-                                        shape = RoundedCornerShape(4.dp),
+                                        shape = RoundedCornerShape(50),
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                     ) {
@@ -731,7 +735,8 @@ fun AdminBoardClassTab(
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                         )
                                     }
                                 }

@@ -53,7 +53,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val userEmail = authUser?.email?.takeIf { it.isNotBlank() } ?: "student@deshexam.com"
     val userPhone = "9876543210"
-    val isAdmin = true // Temporary public access matching MainActivity.kt
+    val isAdmin = viewModel.isCurrentUserAdmin()
     var showResetDialog by remember { mutableStateOf(false) }
     var showProDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -194,6 +194,60 @@ fun SettingsScreen(
             contentPadding = PaddingValues(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        ExamGold.copy(alpha = 0.18f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                    )
+                                )
+                            )
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(ExamGold.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = null,
+                                tint = ExamGold,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isBengali) "স্টাডি কনফিগারেশন" else "Study Configuration",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (isBengali) "আগের তুলনায় আরও পরিষ্কার ও দ্রুত কাস্টমাইজেশন" else "Cleaner controls and faster study personalization",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             // ১. সরকারি ডিসক্লেইমার ও অফিসিয়াল তথ্যের উৎস (Google Play Policy Compliance)
             item {
                 GovernmentDisclaimerCard(isBengali = isBengali)

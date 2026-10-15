@@ -171,7 +171,7 @@ fun AdminCurriculumCRUDTab(
     }
 
     val chaptersForSubject = remember(subjectIdValue, dbChapters, refreshTrigger) {
-        dbChapters.filter { it.subjectId == subjectIdValue || it.subjectId == subjectIdValue.substringAfterLast("_", "") }
+        dbChapters.filter { it.subjectId == subjectIdValue }
     }
 
     val filteredChapters = remember(chaptersForSubject, chapterSearchQuery) {
@@ -282,6 +282,7 @@ fun AdminCurriculumCRUDTab(
                             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(56.dp)
                                 .clickable { boardExpanded = true },
                             textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
                             shape = RoundedCornerShape(10.dp),
@@ -321,6 +322,7 @@ fun AdminCurriculumCRUDTab(
                             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(56.dp)
                                 .clickable { classExpanded = true },
                             textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
                             shape = RoundedCornerShape(10.dp),
@@ -357,13 +359,14 @@ fun AdminCurriculumCRUDTab(
                             value = currentStreamLabel,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("শাখা / বিভাগ", fontSize = 11.sp) },
+                            label = { Text("শাখা", fontSize = 11.sp) },
                             leadingIcon = {
                                 Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(15.dp), tint = ExamGold)
                             },
                             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(56.dp)
                                 .clickable { streamExpanded = true },
                             textStyle = LocalTextStyle.current.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
                             shape = RoundedCornerShape(10.dp),
@@ -409,6 +412,7 @@ fun AdminCurriculumCRUDTab(
                         trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(20.dp)) },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(56.dp)
                             .clickable { subjectExpanded = true },
                         textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
                         shape = RoundedCornerShape(10.dp),
@@ -516,7 +520,7 @@ fun AdminCurriculumCRUDTab(
                             Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF1E1B2E))
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = if (isBengali) "ফায়ারবেসে ব্যাকআপ (Push)" else "Backup to Cloud (Push)",
+                                text = if (isBengali) "ফায়ারবেসে ব্যাকআপ" else "Backup to Cloud (Push)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp,
                                 maxLines = 1
@@ -530,11 +534,11 @@ fun AdminCurriculumCRUDTab(
         // ==========================================
         // 2. CHAPTERS & TOPICS DUAL MANAGEMENT PANELS
         // ==========================================
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // ------------------------------------------
             // LEFT COLUMN: CHAPTERS PANEL
@@ -545,7 +549,7 @@ fun AdminCurriculumCRUDTab(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
@@ -580,8 +584,8 @@ fun AdminCurriculumCRUDTab(
                         IconButton(
                             onClick = {
                                 editingChapter = null
-                                formChId = ""
                                 formChNum = (chaptersForSubject.size + 1).toString()
+                                formChId = "${subjectIdValue}_ch${formChNum}"
                                 formChTitle = ""
                                 formChDesc = ""
                                 formChTotalTopics = "5"
@@ -606,7 +610,8 @@ fun AdminCurriculumCRUDTab(
                     if (chaptersForSubject.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .weight(1f)
+                                .fillMaxWidth()
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -634,7 +639,9 @@ fun AdminCurriculumCRUDTab(
                         }
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             items(filteredChapters, key = { it.id }) { ch ->
@@ -784,7 +791,7 @@ fun AdminCurriculumCRUDTab(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
@@ -851,7 +858,8 @@ fun AdminCurriculumCRUDTab(
                     if (selectedChapter == null) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .weight(1f)
+                                .fillMaxWidth()
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -880,7 +888,8 @@ fun AdminCurriculumCRUDTab(
                     } else if (topicsForChapter.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .weight(1f)
+                                .fillMaxWidth()
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -908,7 +917,9 @@ fun AdminCurriculumCRUDTab(
                         }
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             items(filteredTopics, key = { it.id }) { tp ->
@@ -1064,9 +1075,7 @@ fun AdminCurriculumCRUDTab(
                         onValueChange = {
                             formChNum = it
                             if (!isEdit) {
-                                val subObj = dbSubjects.find { s -> s.id == subjectIdValue }
-                                val subCode = subObj?.code ?: "sub"
-                                formChId = "${subCode}_ch${it.trim()}"
+                                formChId = "${subjectIdValue}_ch${it.trim()}"
                             }
                         },
                         readOnly = isEdit,
@@ -1130,7 +1139,7 @@ fun AdminCurriculumCRUDTab(
                             contentData = formChContentData.trim().ifBlank { null },
                             solutionData = formChSolutionData.trim().ifBlank { null }
                         )
-                        viewModel.addFirestoreChapter(ch) { success, msg ->
+                        viewModel.addFirestoreChapter(ch, preserveWeightage = isEdit) { success, msg ->
                             onShowMessage(msg, success)
                             if (success) {
                                 showChapterDialog = false
@@ -1270,7 +1279,7 @@ fun AdminCurriculumCRUDTab(
                             videoUrl = formTpVideoUrl.trim().ifBlank { null },
                             playlistJson = formTpPlaylistJson.trim().ifBlank { null }
                         )
-                        viewModel.addFirestoreTopic(tp) { success, msg ->
+                        viewModel.addFirestoreTopic(tp, preserveQuestionCount = isEdit) { success, msg ->
                             onShowMessage(msg, success)
                             if (success) {
                                 showTopicDialog = false
@@ -1405,14 +1414,14 @@ fun AdminCurriculumCRUDTab(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("📄 নমুনা JSON", fontSize = 11.sp, maxLines = 1)
+                            Text("নমুনা JSON", fontSize = 11.sp, maxLines = 1)
                         }
                         OutlinedButton(
                             onClick = { batchImportText = sampleCurriculumCsv },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("📋 নমুনা CSV", fontSize = 11.sp, maxLines = 1)
+                            Text("নমুনা CSV", fontSize = 11.sp, maxLines = 1)
                         }
                     }
 
@@ -1438,7 +1447,7 @@ fun AdminCurriculumCRUDTab(
                                 text = if (parsedChCount > 0 || parsedTpCount > 0)
                                     "✓ শনাক্ত হয়েছে: $parsedChCount টি অধ্যায় ও $parsedTpCount টি টপিক"
                                 else
-                                    "⚠️ কোনো সঠিক অধ্যায়/টপিক পাওয়া যায়নি।",
+                                    " কোনো অধ্যায়/টপিক পাওয়া যায়নি।",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (parsedChCount > 0 || parsedTpCount > 0) CorrectGreen else WrongRed,
@@ -1474,7 +1483,7 @@ fun AdminCurriculumCRUDTab(
                         Spacer(Modifier.width(6.dp))
                         Text("আপলোড হচ্ছে...", fontSize = 12.sp)
                     } else {
-                        Text("🚀 আপলোড করুন", fontSize = 12.sp)
+                        Text("আপলোড করুন", fontSize = 12.sp)
                     }
                 }
             },

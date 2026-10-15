@@ -195,11 +195,11 @@ fun AdminBulkImportScreen(
                 val content = inputStream?.bufferedReader()?.use { it.readText() } ?: ""
                 if (content.isNotBlank()) {
                     bulkImportText = content
-                    bulkFileStatusMessage = "✓ ফাইল সফলভাবে পড়া হয়েছে! (${(content.length / 1024.0).let { "%.1f KB".format(it) }})"
+                    bulkFileStatusMessage = "ফাইল সফলভাবে পড়া হয়েছে! (${(content.length / 1024.0).let { "%.1f KB".format(it) }})"
                     bulkFileStatusSuccess = true
                 }
             } catch (e: Exception) {
-                bulkFileStatusMessage = "❌ ফাইল লোড করতে সমস্যা: ${e.message}"
+                bulkFileStatusMessage = "ফাইল লোড করতে সমস্যা: ${e.message}"
                 bulkFileStatusSuccess = false
             }
         }
@@ -213,10 +213,10 @@ fun AdminBulkImportScreen(
                 context.contentResolver.openOutputStream(uri)?.use { os ->
                     os.write(sampleJsonTemplate.toByteArray(Charsets.UTF_8))
                 }
-                bulkFileStatusMessage = "✓ নমুনা প্রশ্ন JSON সফলভাবে সংরক্ষণ করা হয়েছে!"
+                bulkFileStatusMessage = "নমুনা প্রশ্ন JSON সফলভাবে সংরক্ষণ করা হয়েছে!"
                 bulkFileStatusSuccess = true
             } catch (e: Exception) {
-                bulkFileStatusMessage = "❌ সেভ করতে ত্রুটি: ${e.message}"
+                bulkFileStatusMessage = "সেভ করতে ত্রুটি: ${e.message}"
                 bulkFileStatusSuccess = false
             }
         }
@@ -230,10 +230,10 @@ fun AdminBulkImportScreen(
                 context.contentResolver.openOutputStream(uri)?.use { os ->
                     os.write(sampleCurriculumJsonTemplate.toByteArray(Charsets.UTF_8))
                 }
-                bulkFileStatusMessage = "✓ নমুনা সিলেবাস JSON সফলভাবে সংরক্ষণ করা হয়েছে!"
+                bulkFileStatusMessage = "নমুনা সিলেবাস JSON সফলভাবে সংরক্ষণ করা হয়েছে!"
                 bulkFileStatusSuccess = true
             } catch (e: Exception) {
-                bulkFileStatusMessage = "❌ সেভ করতে ত্রুটি: ${e.message}"
+                bulkFileStatusMessage = "সেভ করতে ত্রুটি: ${e.message}"
                 bulkFileStatusSuccess = false
             }
         }
@@ -280,7 +280,7 @@ fun AdminBulkImportScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "❓ প্রশ্ন ব্যাংক",
+                                "প্রশ্ন ব্যাংক",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = if (bulkImportSubTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -310,7 +310,7 @@ fun AdminBulkImportScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "📖 সিলেবাস",
+                                "সিলেবাস",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = if (bulkImportSubTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -334,7 +334,7 @@ fun AdminBulkImportScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "📦 একসাথে একাধিক প্রশ্ন / টেস্ট আপলোড",
+                            text = "একসাথে একাধিক প্রশ্ন / টেস্ট আপলোড",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -387,7 +387,7 @@ fun AdminBulkImportScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = "📁 JSON ফাইল সরাসরি আপলোড",
+                                        text = "JSON ফাইল সরাসরি আপলোড",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -447,7 +447,7 @@ fun AdminBulkImportScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "টার্গেট পর্ষদ, শ্রেণি, বিষয়, অধ্যায় ও টপিক নির্বাচন:",
+                            text = "পর্ষদ, শ্রেণি, বিষয়, অধ্যায় ও টপিক নির্বাচন:",
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -462,7 +462,7 @@ fun AdminBulkImportScreen(
                                 value = selectedBoard.shortName,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("১. বোর্ড / পর্ষদ (Board)", fontWeight = FontWeight.SemiBold) },
+                                label = { Text("১. বোর্ড", fontWeight = FontWeight.SemiBold) },
                                 leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkBoardDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -506,7 +506,7 @@ fun AdminBulkImportScreen(
                                 value = selectedClass.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("২. শ্রেণি (Class)", fontWeight = FontWeight.SemiBold) },
+                                label = { Text("২. শ্রেণি", fontWeight = FontWeight.SemiBold) },
                                 leadingIcon = { Icon(Icons.Default.Class, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkClassDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -546,7 +546,7 @@ fun AdminBulkImportScreen(
                                 value = selectedSubject.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("৩. বিষয় (Subject)", fontWeight = FontWeight.SemiBold) },
+                                label = { Text("৩. বিষয়", fontWeight = FontWeight.SemiBold) },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkSubjectDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -584,7 +584,7 @@ fun AdminBulkImportScreen(
                                 value = selectedChapter?.title ?: "কোনো অধ্যায় নেই",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("৪. অধ্যায় (Chapter)", fontWeight = FontWeight.SemiBold) },
+                                label = { Text("৪. অধ্যায়", fontWeight = FontWeight.SemiBold) },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.LibraryBooks, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkChapterDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -620,7 +620,7 @@ fun AdminBulkImportScreen(
                                 value = selectedTopic?.title ?: "কোনো টপিক নেই",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("৫. টপিক (Topic)", fontWeight = FontWeight.SemiBold) },
+                                label = { Text("৫. টপিক", fontWeight = FontWeight.SemiBold) },
                                 leadingIcon = { Icon(Icons.Default.Topic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bulkTopicDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
@@ -663,7 +663,7 @@ fun AdminBulkImportScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(Icons.Default.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Text("নমুনা ফরম্যাট ও উদাহরণ (Template):", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                Text("নমুনা ফরম্যাট", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                             }
                             TextButton(onClick = { showJsonGuideDialog = true }) {
                                 Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -894,7 +894,7 @@ fun AdminBulkImportScreen(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("📥 সিলেবাস JSON ডাউনলোড", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("সিলেবাস JSON ডাউনলোড", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
 
                     OutlinedButton(
@@ -908,7 +908,7 @@ fun AdminBulkImportScreen(
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("📋 কপি JSON", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text("কপি JSON", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                 }
             }
@@ -957,7 +957,7 @@ fun AdminBulkImportScreen(
                     } else {
                         Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("🚀 একসাথে সব অধ্যায় ও টপিক আপলোড করুন", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                        Text("একসাথে সব অধ্যায় ও টপিক আপলোড করুন", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                     }
                 }
             }
@@ -997,7 +997,7 @@ fun AdminBulkImportScreen(
                             ) {
                                 Icon(Icons.Default.Code, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
-                            Text("📖 JSON ফাইল স্ট্রাকচার গাইড", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("JSON ফাইল স্ট্রাকচার গাইড", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                         IconButton(onClick = { showJsonGuideDialog = false }) {
                             Icon(Icons.Default.Close, contentDescription = "Close")

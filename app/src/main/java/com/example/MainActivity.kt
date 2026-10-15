@@ -133,7 +133,6 @@ fun DeshExamApp(
     val isBengali by viewModel.isBengali.collectAsStateWithLifecycle()
     val profile by viewModel.studentProfile.collectAsStateWithLifecycle()
     val authUserState by viewModel.authUserState.collectAsStateWithLifecycle()
-    val isAdmin = true // Temporary public access, user-based restrictions will be added later
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val recentlyViewed by viewModel.recentlyViewed.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
@@ -150,6 +149,7 @@ fun DeshExamApp(
     val context = LocalContext.current
 
     val toastMessage by viewModel.toastMessage.collectAsStateWithLifecycle()
+    val isAdmin = viewModel.isCurrentUserAdmin()
     LaunchedEffect(toastMessage) {
         toastMessage?.let { msg ->
             android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()

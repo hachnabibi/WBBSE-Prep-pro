@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.auth.AuthResult
 import com.example.data.auth.AuthUserState
 import com.example.data.auth.FirebaseAuthRepository
+import com.example.data.auth.isAdminUser
 import com.example.data.firestore.*
 import com.example.data.local.*
 import com.example.data.model.*
@@ -192,6 +193,10 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun clearToastMessage() {
         _toastMessage.value = null
+    }
+
+    fun isCurrentUserAdmin(): Boolean {
+        return authRepository.currentUserState.isAdminUser()
     }
 
     private val _isGuestUser = MutableStateFlow(true)
@@ -2516,7 +2521,28 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun updateFirestoreQuestion(question: FirestoreQuestion, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val cloudRes = firestoreService.saveQuestion(question)
+            if (cloudRes.isFailure) {
+                val cause = cloudRes.exceptionOrNull()
+                val detail = cause?.localizedMessage?.takeIf { it.isNotBlank() }
+                withContext(Dispatchers.Main) {
+                    onComplete(
+                        false,
+                        if (detail != null) {
+                            "Firebase-এ প্রশ্ন আপডেট হয়নি: $detail"
+                        } else {
+                            "Firebase-এ প্রশ্ন আপডেট করা যায়নি। সংযোগ ও অনুমতি পরীক্ষা করে আবার চেষ্টা করুন।"
+                        }
+                    )
+                }
+                return@launch
+            }
+
+            var localSaved = true
             try {
+                val pyqYear = question.tags.firstOrNull { it.startsWith("PYQ_", ignoreCase = true) }
+                    ?.substringAfter('_')
+                    ?: question.tags.firstOrNull { it.matches(Regex("\\d{4}")) }
+                    ?: ""
                 val entity = com.example.data.local.QuestionEntity(
                     id = question.id,
                     topicId = question.topicId,
@@ -2532,23 +2558,25 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     explanation = question.explanation,
                     marks = question.marks,
                     tagsJson = org.json.JSONArray(question.tags).toString(),
-                    pyqYear = "",
+                    pyqYear = pyqYear,
                     podcastUrl = question.podcastUrl,
                     podcastTitle = question.podcastTitle
                 )
                 database.deshExamDao().insertQuestions(listOf(entity))
             } catch (e: Exception) {
+                localSaved = false
                 Log.e("DeshExamViewModel", "Error updating question in local DB: ${e.message}")
             }
 
             withContext(Dispatchers.Main) {
                 val updated = _firestoreQuestions.value.map { if (it.id == question.id) question else it }
                 _firestoreQuestions.value = updated
-                if (cloudRes.isSuccess) {
-                    onComplete(true, "প্রশ্নটি সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে আপডেট করা হয়েছে!")
+                val message = if (localSaved) {
+                    "প্রশ্নটি সফলভাবে ফায়ারবেস ও লোকাল ডেটাবেজে আপডেট করা হয়েছে।"
                 } else {
-                    onComplete(true, "প্রশ্নটি লোকাল ডেটাবেজে আপডেট করা হয়েছে!")
+                    "প্রশ্নটি Firebase-এ আপডেট হয়েছে, কিন্তু লোকাল ডেটাবেজে সংরক্ষণ করা যায়নি।"
                 }
+                onComplete(true, message)
             }
         }
     }
@@ -3852,14 +3880,48 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addFirestoreChapter(chapter: com.example.data.firestore.FirestoreChapter, onComplete: (Boolean, String) -> Unit) {
+    fun deleteFirestoreSubject(subjectId: String, onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val cloudRes = firestoreService.deleteSubject(subjectId)
+                database.deshExamDao().deleteSubjectById(subjectId)
+                withContext(Dispatchers.Main) {
+                    if (cloudRes.isSuccess) {
+                        onComplete(true, "বিষয়টি সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে মুছে ফেলা হয়েছে!")
+                    } else {
+                        onComplete(false, "মুছে ফেলতে সমস্যা হয়েছে: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "ত্রুটি: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun addFirestoreChapter(
+        chapter: com.example.data.firestore.FirestoreChapter,
+        preserveWeightage: Boolean = false,
+        onComplete: (Boolean, String) -> Unit
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 1. Save to Firestore
-                val cloudRes = firestoreService.saveChapter(chapter)
+                val cloudRes = firestoreService.saveChapter(chapter, preserveWeightage)
                 if (cloudRes.isSuccess) {
                     // 2. Save to local Room
-                    val chapterEntity = com.example.data.local.ChapterEntity(
+                    val existing = database.deshExamDao().getChapterById(chapter.id)
+                    val chapterEntity = existing?.copy(
+                        subjectId = chapter.subjectId,
+                        chapterNumber = chapter.chapterNumber,
+                        title = chapter.title,
+                        description = chapter.description,
+                        totalTopics = chapter.totalTopics,
+                        classId = chapter.classId,
+                        contentData = chapter.contentData,
+                        solutionData = chapter.solutionData
+                    ) ?: com.example.data.local.ChapterEntity(
                         id = chapter.id,
                         subjectId = chapter.subjectId,
                         chapterNumber = chapter.chapterNumber,
@@ -3892,14 +3954,31 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addFirestoreTopic(topic: com.example.data.firestore.FirestoreTopic, onComplete: (Boolean, String) -> Unit) {
+    fun addFirestoreTopic(
+        topic: com.example.data.firestore.FirestoreTopic,
+        preserveQuestionCount: Boolean = false,
+        onComplete: (Boolean, String) -> Unit
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 1. Save to Firestore
-                val cloudRes = firestoreService.saveTopic(topic)
+                val cloudRes = firestoreService.saveTopic(topic, preserveQuestionCount)
                 if (cloudRes.isSuccess) {
                     // 2. Save to local Room
-                    val topicEntity = com.example.data.local.TopicEntity(
+                    val existing = database.deshExamDao().getTopicById(topic.id)
+                    val topicEntity = existing?.copy(
+                        chapterId = topic.chapterId,
+                        subjectId = topic.subjectId,
+                        orderIndex = topic.orderIndex,
+                        title = topic.title,
+                        summary = topic.summary,
+                        keyPointsJson = topic.keyPoints.joinToString("|"),
+                        classId = topic.classId,
+                        contentData = topic.contentData,
+                        solutionData = topic.solutionData ?: topic.formulae.joinToString("|"),
+                        videoUrl = topic.videoUrl,
+                        playlistJson = topic.playlistJson
+                    ) ?: com.example.data.local.TopicEntity(
                         id = topic.id,
                         chapterId = topic.chapterId,
                         subjectId = topic.subjectId,
@@ -3936,15 +4015,24 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
     fun deleteFirestoreChapter(chapterId: String, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val cloudRes = firestoreService.deleteChapter(chapterId)
-                if (cloudRes.isSuccess) {
+                val topicsResult = firestoreService.deleteTopicsForChapter(chapterId)
+                if (topicsResult.isFailure) {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, "অধ্যায়ের টপিক মুছে ফেলা যায়নি: ${topicsResult.exceptionOrNull()?.localizedMessage}")
+                    }
+                    return@launch
+                }
+                database.deshExamDao().deleteTopicsForChapter(chapterId)
+
+                val chapterResult = firestoreService.deleteChapter(chapterId)
+                if (chapterResult.isSuccess) {
                     database.deshExamDao().deleteChapterById(chapterId)
                     withContext(Dispatchers.Main) {
                         onComplete(true, "অধ্যায় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে ডিলিট করা হয়েছে!")
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        onComplete(false, "ফায়ারবেস থেকে ডিলিট করা যায়নি: ${cloudRes.exceptionOrNull()?.localizedMessage}")
+                        onComplete(false, "ফায়ারবেস থেকে ডিলিট করা যায়নি: ${chapterResult.exceptionOrNull()?.localizedMessage}")
                     }
                 }
             } catch (e: Exception) {

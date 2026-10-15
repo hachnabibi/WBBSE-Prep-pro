@@ -759,9 +759,14 @@ fun AuthScreen(
                                     onClick = {
                                         if (isGoogleLoading || isLoading) return@Surface
                                         isGoogleLoading = true
+                                        val webClientId = try {
+                                            context.getString(com.example.R.string.default_web_client_id)
+                                        } catch (_: Exception) {
+                                            "366497072906-jm8qgok7npfnb7egr7lrn2b02rntp36t.apps.googleusercontent.com"
+                                        }
                                         val googleIdOption = GetGoogleIdOption.Builder()
                                             .setFilterByAuthorizedAccounts(false)
-                                            .setServerClientId("461242639157-dbbqm1tkbdh82q2djn8r3se8vced5119.apps.googleusercontent.com")
+                                            .setServerClientId(webClientId)
                                             .setAutoSelectEnabled(false)
                                             .build()
 

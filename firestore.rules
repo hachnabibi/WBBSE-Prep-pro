@@ -1,0 +1,164 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.uid in [
+          "juVeT3Z6WDcKhgO4a6kaU7kkbm43",
+          "dnEKBXG6rubZAVUZ3ILWPWIJhFT2"
+        ];
+    }
+
+    function ownsUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function validUserProfile(userId) {
+      return request.resource.data.keys().hasOnly([
+          "userId",
+          "name",
+          "school",
+          "district",
+          "targetExam",
+          "classId",
+          "classLevel",
+          "stream",
+          "profileImageUri",
+          "currentXp",
+          "level",
+          "currentStreak",
+          "bestStreak",
+          "totalQuestionsAnswered",
+          "overallAccuracy",
+          "examReadinessPercentage",
+          "rankState",
+          "league",
+          "coins",
+          "aiCredits",
+          "isStreakRepaired",
+          "isPro",
+          "updatedAt"
+        ])
+        && request.resource.data.userId == userId;
+    }
+
+    function validNewUserProfile(userId) {
+      return validUserProfile(userId)
+        && request.resource.data.get("isPro", false) == false;
+    }
+
+    function validUserProfileUpdate(userId) {
+      return validUserProfile(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "name",
+          "school",
+          "district",
+          "targetExam",
+          "classId",
+          "classLevel",
+          "stream",
+          "profileImageUri",
+          "currentXp",
+          "level",
+          "currentStreak",
+          "bestStreak",
+          "totalQuestionsAnswered",
+          "overallAccuracy",
+          "examReadinessPercentage",
+          "rankState",
+          "league",
+          "coins",
+          "aiCredits",
+          "isStreakRepaired",
+          "updatedAt"
+        ]);
+    }
+
+    match /education_boards/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /classes/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /chapters/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /topics/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /questions/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /test_templates/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /chapter_assessments/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subject_mastery_quizzes/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /full_syllabus_mocks/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /districts/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /podcasts/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /leaderboard/{userId} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        || (ownsUser(userId) && request.resource.data.userId == userId);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || ownsUser(userId);
+      allow create: if isAdmin() || (ownsUser(userId) && validNewUserProfile(userId));
+      allow update: if isAdmin() || (ownsUser(userId) && validUserProfileUpdate(userId));
+      allow delete: if isAdmin();
+
+      match /{nestedDocument=**} {
+        allow read, write: if isAdmin() || ownsUser(userId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

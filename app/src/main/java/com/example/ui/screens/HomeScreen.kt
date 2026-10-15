@@ -251,98 +251,139 @@ fun StudentGreetingHeader(
     val displayName = lastNameOrUsername
     val classText = currentCls?.name ?: if (isBengali) "৮ম" else "8th"
 
-    Row(
+    val streakVal = if (profile.currentStreak > 0) profile.currentStreak else 5
+    val xpVal = if (profile.coins > 0) profile.coins else 150
+
+    Card(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+        ),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
     ) {
-        // বামপাশে গোল প্রোফাইল অ্যাভাটার
         Box(
             modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
+                .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(Color(0xFF93C5FD), Color(0xFF3B82F6))
+                        colors = listOf(
+                            Color(0xFF60A5FA),
+                            Color(0xFF3B82F6),
+                            Color(0xFF2563EB)
+                        )
                     )
                 )
-                .border(2.dp, if (isDark) Color(0xFF334155) else Color.White, CircleShape)
-                .clickable { onOpenProfile() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile",
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // মাঝখানে শুভেচ্ছা ও শ্রেণি
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = "$greeting, $displayName!",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 19.sp
-                ),
-                color = if (isDark) Color.White else Color(0xFF1E293B),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable { onOpenProfile() }
-            )
-            Text(
-                text = if (isBengali) "শ্রেণি: ${classText.replace("শ্রেণি", "").trim()}" else "Class: $classText",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.5.sp
-                ),
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                modifier = Modifier.clickable { onSwitchClassClick() }
-            )
-        }
-
-        // ডানপাশে ওপরে-নিচে স্ট্রিক এবং কয়েন/XP
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(14.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.clickable { onOpenBadges() }
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "🔥", fontSize = 15.sp)
-                val streakVal = if (profile.currentStreak > 0) profile.currentStreak else 5
-                Text(
-                    text = if (isBengali) "${streakVal.toBengali(true)} দিন" else "$streakVal Days",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    ),
-                    color = if (isDark) Color.White else Color(0xFF1E293B)
-                )
-            }
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.18f))
+                        .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                        .clickable { onOpenProfile() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.clickable { onOpenWallet() }
-            ) {
-                Text(text = "🪙", fontSize = 15.sp)
-                val xpVal = if (profile.coins > 0) profile.coins else 150
-                Text(
-                    text = "${xpVal.toBengali(isBengali)} XP",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    ),
-                    color = if (isDark) Color.White else Color(0xFF1E293B)
-                )
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = "$greeting, $displayName!",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 19.sp
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable { onOpenProfile() }
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.clickable { onSwitchClassClick() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.School,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = if (isBengali) "শ্রেণি: ${classText.replace("শ্রেণি", "").trim()}" else "Class: $classText",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.5.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.88f)
+                        )
+                    }
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = Color.White.copy(alpha = 0.16f),
+                        modifier = Modifier.clickable { onOpenBadges() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(text = "🔥", fontSize = 12.sp)
+                            Text(
+                                text = if (isBengali) "${streakVal.toBengali(true)} দিন" else "$streakVal Days",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = Color(0xFFFDE68A).copy(alpha = 0.22f),
+                        modifier = Modifier.clickable { onOpenWallet() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(text = "🪙", fontSize = 12.sp)
+                            Text(
+                                text = "${xpVal.toBengali(isBengali)} XP",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -365,13 +406,13 @@ fun DailyGoalCard(
     )
 
     val cardBg = if (isDark) Color(0xFF1E2538) else Color(0xFFDCEBFA)
-    val ringColor = if (isDark) Color(0xFF6C5CE7) else Color(0xFF5A9BD5)
-    val trackColor = if (isDark) Color(0xFF323B54) else Color.White.copy(alpha = 0.75f)
+    val ringColor = if (isDark) Color(0xFF8B5CF6) else Color(0xFF2563EB)
+    val trackColor = if (isDark) Color(0xFF323B54) else Color.White.copy(alpha = 0.85f)
     val titleColor = if (isDark) Color.White else Color(0xFF1E293B)
     val subColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
 
     Card(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 2.dp else 0.dp),
         modifier = Modifier
@@ -379,62 +420,89 @@ fun DailyGoalCard(
             .clickable { onClick() }
             .testTag("hero_exam_readiness_card")
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // বামদিকে গোল প্রোগ্রেস বার
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(74.dp)
-            ) {
-                CircularProgressIndicator(
-                    progress = { progress },
-                    strokeWidth = 7.dp,
-                    color = ringColor,
-                    trackColor = trackColor,
-                    strokeCap = StrokeCap.Round,
-                    modifier = Modifier.fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = if (isDark) {
+                            listOf(Color(0xFF312E81), Color(0xFF1E293B))
+                        } else {
+                            listOf(Color(0xFFE0F2FE), Color(0xFFD9E8FF))
+                        }
+                    )
                 )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(80.dp)
+                ) {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        strokeWidth = 7.dp,
+                        color = ringColor,
+                        trackColor = trackColor,
+                        strokeCap = StrokeCap.Round,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${completedMinutes.toBengali(isBengali)}/${targetMinutes.toBengali(isBengali)}",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 13.sp
+                            ),
+                            color = titleColor
+                        )
+                        Text(
+                            text = if (isBengali) "মিনিট" else "Min",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = subColor
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(18.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
                     Text(
-                        text = "${completedMinutes.toBengali(isBengali)}/${targetMinutes.toBengali(isBengali)}",
-                        style = MaterialTheme.typography.labelLarge.copy(
+                        text = if (isBengali) "দৈনিক লক্ষ্য" else "Daily Goal",
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 13.sp
+                            fontSize = 18.sp
                         ),
                         color = titleColor
                     )
                     Text(
-                        text = if (isBengali) "মিনিট" else "Min",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        text = if (isBengali) "${completedMinutes.toBengali(true)} মিনিট সম্পন্ন" else "$completedMinutes mins completed",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        ),
                         color = subColor
                     )
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.align(Alignment.Start)
+                    ) {
+                        Text(
+                            text = if (isBengali) "আজকের অগ্রগতি" else "Today’s progress",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (isDark) Color.White else Color(0xFF1D4ED8),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.width(20.dp))
-
-            // ডানদিকে টেক্সট
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = if (isBengali) "দৈনিক লক্ষ্য" else "Daily Goal",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 18.sp
-                    ),
-                    color = titleColor
-                )
-                Text(
-                    text = if (isBengali) "${completedMinutes.toBengali(true)} মিনিট সম্পন্ন" else "$completedMinutes mins completed",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
-                    ),
-                    color = subColor
-                )
             }
         }
     }
@@ -465,72 +533,93 @@ fun ContinueLearningSection(
         )
 
         Card(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = cardBg),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 2.dp else 3.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // বামদিক: বিষয়ের নাম ও প্লে আইকন
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        ),
-                        color = sectionTitleColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF2D364F) else Color(0xFFF1F5F9))
-                            .clickable { onStartClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play",
-                            tint = if (isDark) Color.White else Color(0xFF334155),
-                            modifier = Modifier.size(20.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = if (isDark) {
+                                listOf(Color(0xFF1F2937), Color(0xFF111827))
+                            } else {
+                                listOf(Color(0xFFF8FBFF), Color(0xFFE8F1FF))
+                            }
                         )
-                    }
-                }
-
-                // ডানদিক: জ্যামিতিক ইলাস্ট্রেশন ও "শুরু করো" বাটন
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    GeometryShapesGraphic()
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = btnBg,
-                        modifier = Modifier.clickable { onStartClick() }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = if (isBengali) "শুরু করো" else "Start",
-                            style = MaterialTheme.typography.labelMedium.copy(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 12.5.sp
+                                fontSize = 16.sp
                             ),
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)
+                            color = sectionTitleColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+
+                        Surface(
+                            shape = RoundedCornerShape(50.dp),
+                            color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                            modifier = Modifier.clickable { onStartClick() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isDark) Color.White else Color(0xFF334155),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = if (isBengali) "চালিয়ে যান" else "Resume",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = if (isDark) Color.White else Color(0xFF334155),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        GeometryShapesGraphic()
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = btnBg,
+                            modifier = Modifier.clickable { onStartClick() }
+                        ) {
+                            Text(
+                                text = if (isBengali) "শুরু করো" else "Start",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp
+                                ),
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
             }

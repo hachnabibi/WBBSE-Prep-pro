@@ -103,42 +103,58 @@ fun ProgressDashboardScreen(
             // Header Banner Card
             item {
                 Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = PrimaryIndigo),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        PrimaryIndigo,
+                                        Color(0xFF2563EB),
+                                        Color(0xFF0EA5E9)
+                                    )
+                                )
+                            )
+                            .padding(18.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White)
-                        }
-                        Column {
-                            val totalCompleted = liveSubjects.sumOf { it.completedChapters }
-                            val totalChaptersCount = liveSubjects.sumOf { it.totalChapters }
-                            val overallProgressPercent = if (totalChaptersCount > 0) (totalCompleted * 100) / totalChaptersCount else 0
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White)
+                            }
 
-                            Text(
-                                text = if (isBengali) "দারুণ অগ্রগতি! $overallProgressPercent% সিলেবাস সম্পন্ন" else "Great Progress! $overallProgressPercent% Syllabus Completed",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White
-                            )
-                            Text(
-                                text = if (isBengali) 
-                                    "আপনার মোট $totalChaptersCount টি অধ্যায়ের মধ্যে $totalCompleted টি অধ্যায় সম্পূর্ণ প্রস্তুতি হয়েছে।"
-                                else 
-                                    "Out of $totalChaptersCount chapters, you have completed $totalCompleted successfully.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                val totalCompleted = liveSubjects.sumOf { it.completedChapters }
+                                val totalChaptersCount = liveSubjects.sumOf { it.totalChapters }
+                                val overallProgressPercent = if (totalChaptersCount > 0) (totalCompleted * 100) / totalChaptersCount else 0
+
+                                Text(
+                                    text = if (isBengali) "দারুণ অগ্রগতি! $overallProgressPercent% সিলেবাস সম্পন্ন" else "Great Progress! $overallProgressPercent% Syllabus Completed",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = if (isBengali)
+                                        "আপনার মোট $totalChaptersCount টি অধ্যায়ের মধ্যে $totalCompleted টি অধ্যায় সম্পূর্ণ প্রস্তুতি হয়েছে।"
+                                    else
+                                        "Out of $totalChaptersCount chapters, you have completed $totalCompleted successfully.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
                         }
                     }
                 }

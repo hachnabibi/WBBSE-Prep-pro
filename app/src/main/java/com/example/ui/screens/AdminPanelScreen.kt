@@ -42,7 +42,7 @@ fun AdminPanelScreen(
     modifier: Modifier = Modifier
 ) {
     val currentUid = viewModel.authRepository.currentUserState?.uid
-    val isAdmin = true // Temporary public access
+    val isAdmin = viewModel.isCurrentUserAdmin()
 
     if (!isAdmin) {
         Column(
@@ -61,7 +61,7 @@ fun AdminPanelScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "অননুমোদিত প্রবেশাধিকার (Access Denied)",
+                text = "অননুমোদিত প্রবেশাধিকার",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )

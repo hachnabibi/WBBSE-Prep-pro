@@ -84,39 +84,32 @@ fun BottomNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp) // Slightly increased for better label visibility
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .height(68.dp)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEach { item ->
                     val isSelected = currentScreen == item.screen
-                    // Home tab special case: Home in Home mode, otherwise Back icon? 
-                    // No, requirements say keep bottom nav tabs synced.
-                    
-                    val labelText = item.title 
+                    val labelText = item.title
 
                     val iconTint by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                        targetValue = if (isSelected) Color(0xFF1D4ED8) else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                         label = "icon_tint"
                     )
 
                     val textColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                        targetValue = if (isSelected) Color(0xFF1D4ED8) else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                         label = "text_tint"
                     )
 
-                    Column(
+                    val pillColor = if (isSelected) Color(0xFFE0E7FF) else Color.Transparent
+
+                    Surface(
+                        color = pillColor,
+                        shape = CircleShape,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -125,26 +118,31 @@ fun BottomNavBar(
                                 indication = ripple(bounded = false, radius = 32.dp),
                                 onClick = { onNavigate(item.screen) }
                             )
-                            .testTag("nav_item_${item.screen.name.lowercase()}"),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .testTag("nav_item_${item.screen.name.lowercase()}")
                     ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = labelText,
-                            tint = iconTint,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = labelText,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                fontSize = 10.sp
-                            ),
-                            color = textColor,
-                            maxLines = 1
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = labelText,
+                                tint = iconTint,
+                                modifier = Modifier.size(23.dp)
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = labelText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                    fontSize = 9.5.sp
+                                ),
+                                color = textColor,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }

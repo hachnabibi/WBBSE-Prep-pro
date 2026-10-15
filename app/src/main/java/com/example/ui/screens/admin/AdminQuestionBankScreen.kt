@@ -1,6 +1,7 @@
 package com.example.ui.screens.admin
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -35,6 +36,9 @@ import com.example.ui.theme.WrongRed
 import com.example.ui.viewmodel.DeshExamViewModel
 import com.example.util.formatCompactNumber
 
+private fun questionFormMessage(isBengali: Boolean, bengali: String, english: String): String =
+    if (isBengali) bengali else english
+
 /**
  * ট্যাব ২: প্রশ্ন ব্যাংক ম্যানেজমেন্ট (CMS)
  */
@@ -49,9 +53,19 @@ fun AdminQuestionBankScreen(
 ) {
     val firestoreQuestionsList by viewModel.firestoreQuestions.collectAsState()
     val allClasses = remember { AcademicClassProvider.ALL_CLASSES }
+    val allBoards = remember { AcademicClassProvider.ALL_BOARDS }
+    val boardsWithClasses = remember(allBoards, allClasses) {
+        allBoards.filter { board ->
+            allClasses.any { it.board.equals(board.id, ignoreCase = true) }
+        }
+    }
 
     var selectedClass by remember {
         mutableStateOf(allClasses.firstOrNull { it.id == "class_10_wbbse" } ?: allClasses.first())
+    }
+    var selectedBoard by remember { mutableStateOf(selectedClass.board) }
+    val classesForSelectedBoard = remember(allClasses, selectedBoard) {
+        allClasses.filter { it.board.equals(selectedBoard, ignoreCase = true) }
     }
 
     var dbSubjects by remember { mutableStateOf<List<SubjectEntity>>(emptyList()) }
@@ -97,6 +111,7 @@ fun AdminQuestionBankScreen(
     }
 
     var cmsClassDropdownExpanded by remember { mutableStateOf(false) }
+    var cmsBoardDropdownExpanded by remember { mutableStateOf(false) }
     var cmsSubjectDropdownExpanded by remember { mutableStateOf(false) }
     var cmsQuestionSearchQuery by remember { mutableStateOf("") }
 
@@ -170,6 +185,41 @@ fun AdminQuestionBankScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         ExposedDropdownMenuBox(
+                            expanded = cmsBoardDropdownExpanded,
+                            onExpandedChange = { cmsBoardDropdownExpanded = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = boardsWithClasses.firstOrNull { it.id.equals(selectedBoard, ignoreCase = true) }
+                                    ?.shortName ?: selectedBoard,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(if (isBengali) "বোর্ড" else "Board") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cmsBoardDropdownExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = cmsBoardDropdownExpanded,
+                                onDismissRequest = { cmsBoardDropdownExpanded = false }
+                            ) {
+                                boardsWithClasses.forEach { board ->
+                                    DropdownMenuItem(
+                                        text = { Text(board.shortName, fontWeight = FontWeight.Bold) },
+                                        onClick = {
+                                            selectedBoard = board.id
+                                            allClasses.firstOrNull { it.board.equals(board.id, ignoreCase = true) }
+                                                ?.let { selectedClass = it }
+                                            selectedSubject = allSubjectOption
+                                            cmsBoardDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        ExposedDropdownMenuBox(
                             expanded = cmsClassDropdownExpanded,
                             onExpandedChange = { cmsClassDropdownExpanded = it },
                             modifier = Modifier.fillMaxWidth()
@@ -178,7 +228,7 @@ fun AdminQuestionBankScreen(
                                 value = selectedClass.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("শ্রেণি") },
+                                label = { Text(if (isBengali) "শ্রেণি" else "Class") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cmsClassDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
@@ -188,13 +238,18 @@ fun AdminQuestionBankScreen(
                                 expanded = cmsClassDropdownExpanded,
                                 onDismissRequest = { cmsClassDropdownExpanded = false }
                             ) {
-                                allClasses.forEach { cls ->
+                                classesForSelectedBoard.forEach { cls ->
                                     DropdownMenuItem(
-                                        text = { Text(cls.name, fontWeight = FontWeight.Bold) },
+                                        text = {
+                                            Text(
+                                                if (isBengali) cls.nameBengali.ifBlank { cls.nameEnglish }
+                                                else cls.nameEnglish.ifBlank { cls.nameBengali },
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        },
                                         onClick = {
                                             selectedClass = cls
-                                            val subs = getAdminClassSubjects(cls.id)
-                                            selectedSubject = subs.firstOrNull() ?: allSubjectOption
+                                            selectedSubject = allSubjectOption
                                             cmsClassDropdownExpanded = false
                                         }
                                     )
@@ -211,7 +266,7 @@ fun AdminQuestionBankScreen(
                                 value = selectedSubject.name,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("বিষয়") },
+                                label = { Text(if (isBengali) "বিষয়" else "Subject") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cmsSubjectDropdownExpanded) },
                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
@@ -237,7 +292,7 @@ fun AdminQuestionBankScreen(
                     OutlinedTextField(
                         value = cmsQuestionSearchQuery,
                         onValueChange = { cmsQuestionSearchQuery = it },
-                        label = { Text("🔍 প্রশ্ন অথবা আইডি দিয়ে খুঁজুন...") },
+                        label = { Text("প্রশ্ন অথবা আইডি দিয়ে খুঁজুন...") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = ExamGold) },
                         trailingIcon = {
                             if (cmsQuestionSearchQuery.isNotBlank()) {
@@ -313,7 +368,7 @@ fun AdminQuestionBankScreen(
                             Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color(0xFF1E1B2E))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "🚀 ফায়ারবেসে প্রশ্নমালা সিঙ্ক করুন",
+                                "ফায়ারবেসে প্রশ্নমালা সিঙ্ক করুন",
                                 color = Color(0xFF1E1B2E),
                                 fontWeight = FontWeight.Bold
                             )
@@ -491,47 +546,37 @@ fun AdminQuestionBankScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Button(
+                            IconButton(
                                 onClick = { editingQuestion = question },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
+                                    .size(48.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        RoundedCornerShape(12.dp)
+                                    )
                             ) {
-                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "✍️ সম্পাদনা",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = if (isBengali) "প্রশ্ন সম্পাদনা" else "Edit question",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
-                            Button(
+                            IconButton(
                                 onClick = { deletingQuestion = question },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = WrongRed,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
+                                    .size(48.dp)
+                                    .background(WrongRed.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "🗑️ মুছে ফেলুন",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = Color.White
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = if (isBengali) "প্রশ্ন মুছুন" else "Delete question",
+                                    tint = WrongRed,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -552,11 +597,13 @@ fun AdminQuestionBankScreen(
         var editCorrectIdx by remember(q) { mutableIntStateOf(q.correctOptionIndex) }
         var editDifficulty by remember(q) { mutableStateOf(if (q.difficulty.isNotBlank()) q.difficulty.uppercase() else "MEDIUM") }
 
-        val existingPyq = q.tags.firstOrNull { it.startsWith("PYQ_") }?.removePrefix("PYQ_")
+        val existingPyq = q.tags.firstOrNull { it.startsWith("PYQ_", ignoreCase = true) }?.substringAfter('_')
             ?: q.tags.firstOrNull { it.matches(Regex("\\d{4}")) } ?: ""
         var editPyqYear by remember(q) { mutableStateOf(existingPyq) }
-        var editMarks by remember(q) { mutableIntStateOf(if (q.marks > 0) q.marks else 1) }
+        var editMarksText by remember(q) { mutableStateOf((if (q.marks > 0) q.marks else 1).toString()) }
         var editExplanation by remember(q) { mutableStateOf(q.explanation) }
+        var editError by remember(q) { mutableStateOf<String?>(null) }
+        var isSavingEdit by remember(q) { mutableStateOf(false) }
 
         var editClassId by remember(q) { mutableStateOf(q.classId.ifBlank { "class_10_wbbse" }) }
         var editSubjectId by remember(q) { mutableStateOf(q.subjectId) }
@@ -577,7 +624,7 @@ fun AdminQuestionBankScreen(
         }
 
         Dialog(
-            onDismissRequest = { editingQuestion = null },
+            onDismissRequest = { if (!isSavingEdit) editingQuestion = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Card(
@@ -627,7 +674,7 @@ fun AdminQuestionBankScreen(
                                     )
                                 }
                             }
-                            IconButton(onClick = { editingQuestion = null }) {
+                            IconButton(onClick = { if (!isSavingEdit) editingQuestion = null }) {
                                 Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -686,11 +733,11 @@ fun AdminQuestionBankScreen(
                                                 text = { Text(cls.name, fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     editClassId = cls.id
-                                                    val subs = getAdminClassSubjects(cls.id)
+                                                    val subs = getAdminClassSubjectsHelper(cls.id)
                                                     editSubjectId = subs.firstOrNull()?.id ?: ""
-                                                    val chs = allChapters.filter { it.subjectId == editSubjectId }
+                                                    val chs = effectiveChapters.filter { it.subjectId == editSubjectId }
                                                     editChapterId = chs.firstOrNull()?.id ?: ""
-                                                    val tps = allTopics.filter { it.chapterId == editChapterId }
+                                                    val tps = effectiveTopics.filter { it.chapterId == editChapterId }
                                                     editTopicId = tps.firstOrNull()?.id ?: ""
                                                     editClassDropdownExpanded = false
                                                 }
@@ -730,9 +777,9 @@ fun AdminQuestionBankScreen(
                                                 text = { Text(sub.name, fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     editSubjectId = sub.id
-                                                    val chs = allChapters.filter { it.subjectId == sub.id }
+                                                    val chs = effectiveChapters.filter { it.subjectId == sub.id }
                                                     editChapterId = chs.firstOrNull()?.id ?: ""
-                                                    val tps = allTopics.filter { it.chapterId == editChapterId }
+                                                    val tps = effectiveTopics.filter { it.chapterId == editChapterId }
                                                     editTopicId = tps.firstOrNull()?.id ?: ""
                                                     editSubjectDropdownExpanded = false
                                                 }
@@ -779,7 +826,7 @@ fun AdminQuestionBankScreen(
                                                     text = { Text(ch.title) },
                                                     onClick = {
                                                         editChapterId = ch.id
-                                                        val tps = allTopics.filter { it.chapterId == ch.id }
+                                                        val tps = effectiveTopics.filter { it.chapterId == ch.id }
                                                         editTopicId = tps.firstOrNull()?.id ?: ""
                                                         editChapterDropdownExpanded = false
                                                     }
@@ -839,7 +886,10 @@ fun AdminQuestionBankScreen(
 
                         OutlinedTextField(
                             value = editQText,
-                            onValueChange = { editQText = it },
+                            onValueChange = {
+                                editQText = it
+                                editError = null
+                            },
                             label = { Text("প্রশ্নের মূল বিবরণ:") },
                             placeholder = { Text("এখানে প্রশ্নটি লিখুন...") },
                             modifier = Modifier.fillMaxWidth(),
@@ -901,7 +951,10 @@ fun AdminQuestionBankScreen(
                                             shape = RoundedCornerShape(8.dp),
                                             color = if (isCorrect) CorrectGreen else MaterialTheme.colorScheme.surfaceVariant,
                                             modifier = Modifier
-                                                .clickable { editCorrectIdx = idx }
+                                                .clickable {
+                                                    editCorrectIdx = idx
+                                                    editError = null
+                                                }
                                                 .padding(2.dp)
                                         ) {
                                             Row(
@@ -911,7 +964,10 @@ fun AdminQuestionBankScreen(
                                             ) {
                                                 RadioButton(
                                                     selected = isCorrect,
-                                                    onClick = { editCorrectIdx = idx },
+                                                    onClick = {
+                                                        editCorrectIdx = idx
+                                                        editError = null
+                                                    },
                                                     colors = RadioButtonDefaults.colors(
                                                         selectedColor = Color.White,
                                                         unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -928,7 +984,10 @@ fun AdminQuestionBankScreen(
 
                                         OutlinedTextField(
                                             value = optValues[idx],
-                                            onValueChange = setOptValues[idx],
+                                            onValueChange = {
+                                                setOptValues[idx](it)
+                                                editError = null
+                                            },
                                             placeholder = { Text("অপশন $label এর বিবরণ") },
                                             singleLine = true,
                                             modifier = Modifier.weight(1f),
@@ -950,7 +1009,10 @@ fun AdminQuestionBankScreen(
                         ) {
                             OutlinedTextField(
                                 value = editPyqYear,
-                                onValueChange = { editPyqYear = it },
+                                onValueChange = {
+                                    editPyqYear = it.filter { char -> char in '0'..'9' }.take(4)
+                                    editError = null
+                                },
                                 label = { Text("বিগত সাল / PYQ (ঐচ্ছিক)", maxLines = 1) },
                                 placeholder = { Text("2025") },
                                 leadingIcon = { Icon(Icons.Default.HistoryEdu, contentDescription = null, tint = ExamGold, modifier = Modifier.size(16.dp)) },
@@ -960,13 +1022,24 @@ fun AdminQuestionBankScreen(
                             )
 
                             OutlinedTextField(
-                                value = editMarks.toString(),
-                                onValueChange = { editMarks = it.toIntOrNull() ?: 1 },
+                                value = editMarksText,
+                                onValueChange = {
+                                    editMarksText = it.filter { char -> char in '0'..'9' }.take(3)
+                                    editError = null
+                                },
                                 label = { Text("নম্বর (Marks)", maxLines = 1) },
                                 leadingIcon = { Icon(Icons.Default.Score, contentDescription = null, tint = ExamGold, modifier = Modifier.size(16.dp)) },
                                 singleLine = true,
                                 modifier = Modifier.weight(0.8f),
                                 shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+
+                        if (editError != null) {
+                            Text(
+                                text = editError.orEmpty(),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
@@ -1024,55 +1097,85 @@ fun AdminQuestionBankScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedButton(
-                                onClick = { editingQuestion = null },
+                                onClick = { if (!isSavingEdit) editingQuestion = null },
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(46.dp)
                             ) {
-                                Text("বাতিল করুন", fontWeight = FontWeight.Bold)
+                                Text(if (isBengali) "বাতিল করুন" else "Cancel", fontWeight = FontWeight.Bold)
                             }
 
                             Button(
                                 onClick = {
-                                    val opts = listOf(editOpt0, editOpt1, editOpt2, editOpt3).filter { it.isNotBlank() }
-                                    val safeOpts = if (opts.size >= 2) opts else listOf(editOpt0, editOpt1, editOpt2, editOpt3)
-                                    val safeCorrectIdx = editCorrectIdx.coerceIn(0, (safeOpts.size - 1).coerceAtLeast(0))
+                                    val options = listOf(editOpt0, editOpt1, editOpt2, editOpt3)
+                                    val marks = editMarksText.toIntOrNull()
+                                    when {
+                                        editQText.isBlank() ->
+                                            editError = questionFormMessage(isBengali, "প্রশ্নের বিবরণ লিখুন।", "Enter the question text.")
+                                        options.any { it.isBlank() } ->
+                                            editError = questionFormMessage(isBengali, "চারটি অপশনই পূরণ করুন।", "Fill in all four options.")
+                                        editCorrectIdx !in options.indices ->
+                                            editError = questionFormMessage(isBengali, "সঠিক উত্তর নির্বাচন করুন।", "Select the correct answer.")
+                                        marks == null || marks <= 0 ->
+                                            editError = questionFormMessage(isBengali, "নম্বর ১ বা তার বেশি দিন।", "Marks must be at least 1.")
+                                        editPyqYear.isNotBlank() && !editPyqYear.matches(Regex("\\d{4}")) ->
+                                            editError = questionFormMessage(isBengali, "PYQ সাল চার সংখ্যার হতে হবে।", "Enter a four-digit PYQ year.")
+                                        isSavingEdit -> Unit
+                                        else -> {
+                                            val updatedTags = buildList {
+                                                if (editPyqYear.isNotBlank()) add("PYQ_${editPyqYear.trim()}")
+                                                addAll(
+                                                    q.tags.filterNot {
+                                                        it.startsWith("PYQ_", ignoreCase = true) ||
+                                                            it.matches(Regex("\\d{4}"))
+                                                    }
+                                                )
+                                            }.distinct()
 
-                                    val updatedTags = mutableListOf<String>()
-                                    if (editPyqYear.isNotBlank()) {
-                                        updatedTags.add("PYQ_${editPyqYear.trim()}")
-                                    }
-                                    q.tags.filterNot { it.startsWith("PYQ_") }.forEach { updatedTags.add(it) }
-
-                                    val updatedQ = q.copy(
-                                        classId = editClassId,
-                                        subjectId = editSubjectId,
-                                        chapterId = editChapterId,
-                                        topicId = editTopicId,
-                                        question = editQText,
-                                        options = safeOpts,
-                                        correctOptionIndex = safeCorrectIdx,
-                                        correctAnswerText = safeOpts.getOrNull(safeCorrectIdx) ?: "",
-                                        difficulty = editDifficulty,
-                                        marks = editMarks,
-                                        tags = updatedTags,
-                                        explanation = editExplanation
-                                    )
-                                    viewModel.updateFirestoreQuestion(updatedQ) { success, msg ->
-                                        onAction(success, msg)
-                                        editingQuestion = null
+                                            val updatedQ = q.copy(
+                                                classId = editClassId,
+                                                subjectId = editSubjectId,
+                                                chapterId = editChapterId,
+                                                topicId = editTopicId,
+                                                question = editQText.trim(),
+                                                options = options.map { it.trim() },
+                                                correctOptionIndex = editCorrectIdx,
+                                                correctAnswerText = options[editCorrectIdx].trim(),
+                                                difficulty = editDifficulty,
+                                                marks = marks,
+                                                tags = updatedTags,
+                                                explanation = editExplanation
+                                            )
+                                            isSavingEdit = true
+                                            editError = null
+                                            viewModel.updateFirestoreQuestion(updatedQ) { success, msg ->
+                                                isSavingEdit = false
+                                                onAction(success, msg)
+                                                if (success) {
+                                                    editingQuestion = null
+                                                } else {
+                                                    editError = msg
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = CorrectGreen),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(46.dp)
+                                    .height(46.dp),
+                                enabled = !isSavingEdit
                             ) {
                                 Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("💾 সংরক্ষণ করুন", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(
+                                    if (isSavingEdit) questionFormMessage(isBengali, "সংরক্ষণ হচ্ছে…", "Saving…")
+                                    else questionFormMessage(isBengali, "সংরক্ষণ করুন", "Save"),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
