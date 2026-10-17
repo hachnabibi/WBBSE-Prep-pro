@@ -211,33 +211,31 @@ fun AppNavigationDrawerSheet(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = if (isAdmin) ExamGold.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.14f),
-                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    if (isAdmin) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(50.dp),
+                                            color = ExamGold.copy(alpha = 0.22f),
+                                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                                         ) {
-                                            Icon(
-                                                imageVector = if (isAdmin) Icons.Default.AdminPanelSettings else Icons.Default.Star,
-                                                contentDescription = null,
-                                                tint = if (isAdmin) ExamGold else Color.White,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Text(
-                                                text = if (isAdmin) {
-                                                    drawerLabel(isBengali, "অ্যাডমিন এক্সেস", "Admin access")
-                                                } else {
-                                                    drawerLabel(isBengali, "স্টুডেন্ট প্রোফাইল", "Student profile")
-                                                },
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                                color = Color.White,
-                                                fontSize = 11.sp
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.AdminPanelSettings,
+                                                    contentDescription = null,
+                                                    tint = ExamGold,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Text(
+                                                    text = drawerLabel(isBengali, "অ্যাডমিন এক্সেস", "Admin access"),
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -257,31 +255,7 @@ fun AppNavigationDrawerSheet(
                             }
                         }
 
-                        // Small status chip to reinforce app identity and keep the header more premium.
-                        Surface(
-                            shape = RoundedCornerShape(50.dp),
-                            color = Color.White.copy(alpha = 0.14f),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = ExamGold,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = "Study Hub",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
+
 
                         // Badges / Action Chips (Bottom Row): Coins & XP counters side-by-side
                         Row(
