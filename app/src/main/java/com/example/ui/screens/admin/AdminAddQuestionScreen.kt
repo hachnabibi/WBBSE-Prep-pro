@@ -115,18 +115,27 @@ fun AdminAddQuestionScreen(
                 .filter { (it.classId == selectedClass.id || it.classId.isEmpty()) && (it.subjectId == selectedSubject.id || it.subjectId == selectedSubject.code) && it.chapterId.isNotBlank() }
                 .map { it.chapterId }
                 .distinct()
-            fsChIds.mapIndexed { idx, chId ->
-                ChapterEntity(
-                    id = chId,
-                    subjectId = selectedSubject.id,
-                    chapterNumber = idx + 1,
-                    title = chId.replace("_", " ").replace("-", " ").uppercase(),
-                    description = "Firestore Chapter",
-                    totalTopics = 1,
-                    completedTopics = 0,
-                    bossUnlocked = true,
-                    bossCompleted = false,
-                    masteryPercentage = 0
+            if (fsChIds.isNotEmpty()) {
+                fsChIds.mapIndexed { idx, chId ->
+                    ChapterEntity(
+                        id = chId,
+                        subjectId = selectedSubject.id,
+                        chapterNumber = idx + 1,
+                        title = chId.replace("_", " ").replace("-", " ").uppercase(),
+                        description = "Firestore Chapter",
+                        totalTopics = 1,
+                        completedTopics = 0,
+                        bossUnlocked = true,
+                        bossCompleted = false,
+                        masteryPercentage = 0
+                    )
+                }
+            } else {
+                // Intelligent fallback chapters so data is ALWAYS available for any class & subject
+                listOf(
+                    ChapterEntity("${selectedSubject.id}_ch1", selectedSubject.id, 1, "অধ্যায় ১: মৌলিক ধারণা ও পাঠ ১", "Foundational Concepts", 2, 0, true, false, 0),
+                    ChapterEntity("${selectedSubject.id}_ch2", selectedSubject.id, 2, "অধ্যায় ২: পরিচ্ছেদ ও নমুনা প্রশ্নমালা", "Core Lesson & Practice", 2, 0, true, false, 0),
+                    ChapterEntity("${selectedSubject.id}_ch3", selectedSubject.id, 3, "অধ্যায় ৩: বোর্ড স্পেশাল ও রিভিশন", "Board Special & Revision", 2, 0, true, false, 0)
                 )
             }
         }
@@ -147,17 +156,24 @@ fun AdminAddQuestionScreen(
                     .filter { it.chapterId == chId && it.topicId.isNotBlank() }
                     .map { it.topicId }
                     .distinct()
-                fsTpIds.mapIndexed { idx, tpId ->
-                    TopicEntity(
-                        id = tpId,
-                        chapterId = chId,
-                        subjectId = selectedSubject.id,
-                        orderIndex = idx + 1,
-                        title = tpId.replace("_", " ").replace("-", " ").uppercase(),
-                        summary = "Firestore Topic",
-                        keyPointsJson = "[]",
-                        isUnlocked = true,
-                        masteryPercentage = 0
+                if (fsTpIds.isNotEmpty()) {
+                    fsTpIds.mapIndexed { idx, tpId ->
+                        TopicEntity(
+                            id = tpId,
+                            chapterId = chId,
+                            subjectId = selectedSubject.id,
+                            orderIndex = idx + 1,
+                            title = tpId.replace("_", " ").replace("-", " ").uppercase(),
+                            summary = "Firestore Topic",
+                            keyPointsJson = "[]",
+                            isUnlocked = true,
+                            masteryPercentage = 0
+                        )
+                    }
+                } else {
+                    listOf(
+                        TopicEntity("${chId}_top1", chId, selectedSubject.id, 1, "টপিক ১: তত্ত্ব ও মূল আলোচনা", "Core Theory", "[]", true, 0),
+                        TopicEntity("${chId}_top2", chId, selectedSubject.id, 2, "টপিক ২: গুরুত্বপূর্ণ বহুনির্বাচনী প্রশ্নাবলি (MCQ)", "Sample MCQs", "[]", true, 0)
                     )
                 }
             }
@@ -169,6 +185,11 @@ fun AdminAddQuestionScreen(
     var selectedTopic by remember(selectedChapter, filteredTopics) {
         mutableStateOf(filteredTopics.firstOrNull())
     }
+
+    var isCustomChapter by remember { mutableStateOf(false) }
+    var customChapterInput by remember { mutableStateOf("") }
+    var isCustomTopic by remember { mutableStateOf(false) }
+    var customTopicInput by remember { mutableStateOf("") }
 
     var subjectDropdownExpanded by remember { mutableStateOf(false) }
     var chapterDropdownExpanded by remember { mutableStateOf(false) }
@@ -444,42 +465,78 @@ fun AdminAddQuestionScreen(
 
         // 5. Chapter Selector
         item {
-            ExposedDropdownMenuBox(
-                expanded = chapterDropdownExpanded,
-                onExpandedChange = { chapterDropdownExpanded = it },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = selectedChapter?.let { "অধ্যায় ${it.chapterNumber}: ${it.title}" } ?: "কোনো অধ্যায় পাওয়া যায়নি (লোকাল/ক্লাউড)",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("৫. অধ্যায় নির্বাচন করুন (Chapter)") },
-                    leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null, tint = ExamGold) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapterDropdownExpanded) },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = chapterDropdownExpanded,
-                    onDismissRequest = { chapterDropdownExpanded = false }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (filteredChapters.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("কোনো অধ্যায় পাওয়া যায়নি") },
-                            onClick = { chapterDropdownExpanded = false }
+                    Text(
+                        text = "৫. অধ্যায় নির্বাচন বা তৈরি করুন (Chapter):",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    TextButton(
+                        onClick = { isCustomChapter = !isCustomChapter },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isCustomChapter) Icons.Default.List else Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = ExamGold
                         )
-                    } else {
-                        filteredChapters.forEach { chapter ->
-                            DropdownMenuItem(
-                                text = { Text("অধ্যায় ${chapter.chapterNumber}: ${chapter.title}") },
-                                onClick = {
-                                    selectedChapter = chapter
-                                    val tps = allTopics.filter { it.chapterId == chapter.id }
-                                    selectedTopic = tps.firstOrNull()
-                                    chapterDropdownExpanded = false
-                                }
-                            )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isCustomChapter) "তালিকা থেকে বাছুন" else "নতুন লিখুন",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = ExamGold
+                        )
+                    }
+                }
+
+                if (isCustomChapter) {
+                    OutlinedTextField(
+                        value = customChapterInput,
+                        onValueChange = { customChapterInput = it },
+                        label = { Text("নতুন অধ্যায়ের নাম লিখুন") },
+                        placeholder = { Text("যেমন: আলো / রাসায়নিক বিক্রিয়া") },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = ExamGold) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                } else {
+                    ExposedDropdownMenuBox(
+                        expanded = chapterDropdownExpanded,
+                        onExpandedChange = { chapterDropdownExpanded = it },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedChapter?.let { "অধ্যায় ${it.chapterNumber}: ${it.title}" } ?: "কোনো অধ্যায় পাওয়া যায়নি",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("অধ্যায় তালিকা") },
+                            leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null, tint = ExamGold) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = chapterDropdownExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = chapterDropdownExpanded,
+                            onDismissRequest = { chapterDropdownExpanded = false }
+                        ) {
+                            filteredChapters.forEach { chapter ->
+                                DropdownMenuItem(
+                                    text = { Text("অধ্যায় ${chapter.chapterNumber}: ${chapter.title}") },
+                                    onClick = {
+                                        selectedChapter = chapter
+                                        val tps = allTopics.filter { it.chapterId == chapter.id }
+                                        selectedTopic = tps.firstOrNull() ?: filteredTopics.firstOrNull()
+                                        chapterDropdownExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -488,40 +545,76 @@ fun AdminAddQuestionScreen(
 
         // 6. Topic Selector
         item {
-            ExposedDropdownMenuBox(
-                expanded = topicDropdownExpanded,
-                onExpandedChange = { topicDropdownExpanded = it },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = selectedTopic?.title ?: "কোনো টপিক নেই",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("৬. টপিক নির্বাচন করুন (Topic)") },
-                    leadingIcon = { Icon(Icons.Default.Topic, contentDescription = null, tint = ExamGold) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = topicDropdownExpanded) },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = topicDropdownExpanded,
-                    onDismissRequest = { topicDropdownExpanded = false }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (filteredTopics.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("কোনো টপিক পাওয়া যায়নি") },
-                            onClick = { topicDropdownExpanded = false }
+                    Text(
+                        text = "৬. টপিক নির্বাচন বা তৈরি করুন (Topic):",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    TextButton(
+                        onClick = { isCustomTopic = !isCustomTopic },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isCustomTopic) Icons.Default.List else Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = ExamGold
                         )
-                    } else {
-                        filteredTopics.forEach { topic ->
-                            DropdownMenuItem(
-                                text = { Text(topic.title) },
-                                onClick = {
-                                    selectedTopic = topic
-                                    topicDropdownExpanded = false
-                                }
-                            )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isCustomTopic) "তালিকা থেকে বাছুন" else "নতুন লিখুন",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = ExamGold
+                        )
+                    }
+                }
+
+                if (isCustomTopic) {
+                    OutlinedTextField(
+                        value = customTopicInput,
+                        onValueChange = { customTopicInput = it },
+                        label = { Text("নতুন টপিকের নাম লিখুন") },
+                        placeholder = { Text("যেমন: আলোর প্রতিফলন ও প্রতিসরণ") },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = ExamGold) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                } else {
+                    ExposedDropdownMenuBox(
+                        expanded = topicDropdownExpanded,
+                        onExpandedChange = { topicDropdownExpanded = it },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedTopic?.title ?: "কোনো টপিক নেই",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("টপিক তালিকা") },
+                            leadingIcon = { Icon(Icons.Default.Topic, contentDescription = null, tint = ExamGold) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = topicDropdownExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = topicDropdownExpanded,
+                            onDismissRequest = { topicDropdownExpanded = false }
+                        ) {
+                            filteredTopics.forEach { topic ->
+                                DropdownMenuItem(
+                                    text = { Text(topic.title) },
+                                    onClick = {
+                                        selectedTopic = topic
+                                        topicDropdownExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -831,11 +924,22 @@ fun AdminAddQuestionScreen(
                 onClick = {
                     val opts = listOf(opt1, opt2, opt3, opt4).filter { it.isNotBlank() }
                     val resolvedCorrectAnswer = opts.getOrNull(selectedCorrectIndex) ?: opt1
+                    val resolvedChapterId = if (isCustomChapter && customChapterInput.isNotBlank()) {
+                        "ch_" + customChapterInput.trim().lowercase().replace(Regex("[^a-zA-Z0-9_]"), "_").trim('_').ifBlank { "custom" }
+                    } else {
+                        selectedChapter?.id ?: "${selectedSubject.id}_ch1"
+                    }
+                    val resolvedTopicId = if (isCustomTopic && customTopicInput.isNotBlank()) {
+                        "top_" + customTopicInput.trim().lowercase().replace(Regex("[^a-zA-Z0-9_]"), "_").trim('_').ifBlank { "custom" }
+                    } else {
+                        selectedTopic?.id ?: "${resolvedChapterId}_top1"
+                    }
+
                     viewModel.addQuestionToFirestore(
                         classId = selectedClass.id,
                         subjectId = selectedSubject.id,
-                        chapterId = selectedChapter?.id ?: "",
-                        topicId = selectedTopic?.id ?: "",
+                        chapterId = resolvedChapterId,
+                        topicId = resolvedTopicId,
                         questionText = questionText,
                         optionsList = opts,
                         correctIndex = selectedCorrectIndex,
@@ -859,10 +963,17 @@ fun AdminAddQuestionScreen(
                             explanationText = ""
                             podcastUrlText = ""
                             podcastTitleText = ""
+                            if (isCustomChapter) customChapterInput = ""
+                            if (isCustomTopic) customTopicInput = ""
                         }
                     }
                 },
-                enabled = !isLoading && questionText.isNotBlank() && opt1.isNotBlank() && opt2.isNotBlank() && selectedChapter != null && selectedTopic != null,
+                enabled = !isLoading &&
+                    questionText.isNotBlank() &&
+                    opt1.isNotBlank() &&
+                    opt2.isNotBlank() &&
+                    (if (isCustomChapter) customChapterInput.isNotBlank() else selectedChapter != null) &&
+                    (if (isCustomTopic) customTopicInput.isNotBlank() else selectedTopic != null),
                 colors = ButtonDefaults.buttonColors(containerColor = CorrectGreen),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
