@@ -32,7 +32,7 @@ fun WeaknessInsightScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isBengali) "এআই দুর্বলতা বিশ্লেষণ" else "AI Weakness Analysis",
+                        text = if (isBengali) "অনুশীলনের ভুল বিশ্লেষণ" else "Practice Mistake Insights",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -76,7 +76,7 @@ fun WeaknessInsightScreen(
                     )
                     Column {
                         Text(
-                            text = if (isBengali) "স্মার্ট এআই এনালাইসিস" else "Smart AI Analysis",
+                            text = if (isBengali) "অনুশীলনের ভিত্তিতে বিশ্লেষণ" else "Practice-based insights",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -130,7 +130,7 @@ fun WeaknessInsightScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "টপিক আইডি: ${topicMistake.topicId}",
+                                        text = if (isBengali) "টপিক: ${topicMistake.topicId}" else "Topic: ${topicMistake.topicId}",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -145,7 +145,7 @@ fun WeaknessInsightScreen(
                                     color = MaterialTheme.colorScheme.errorContainer
                                 ) {
                                     Text(
-                                        text = "${topicMistake.mistakeCount} ভুল",
+                                        text = if (isBengali) "${topicMistake.mistakeCount}টি ভুল" else "${topicMistake.mistakeCount} mistakes",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
