@@ -91,89 +91,8 @@ fun LeaderboardScreen(
     var showShareCertificate by remember { mutableStateOf(false) }
 
     val studentProfile by viewModel.studentProfile.collectAsStateWithLifecycle()
-    val rawLeaderboardBase = if (liveLeaderboard.isNotEmpty()) liveLeaderboard else remember(studentProfile) {
-        listOf(
-            LeaderboardStudent(
-                rank = 1,
-                name = studentProfile.name.ifBlank { "সৌরভ দাস" },
-                school = studentProfile.school.ifBlank { "কলকাতা মডেল হাই স্কুল" },
-                district = studentProfile.district.ifBlank { "কলকাতা" },
-                xp = studentProfile.currentXp.coerceAtLeast(1800),
-                accuracy = studentProfile.examReadinessPercentage.toInt().coerceIn(60, 98),
-                streak = studentProfile.currentStreak.coerceAtLeast(7),
-                mockScore = (studentProfile.examReadinessPercentage * 90 / 100).toInt().coerceIn(50, 90),
-                mockTotal = 90,
-                mockPercentile = 97.2,
-                bossVictories = 12,
-                badgesCount = 8,
-                isCurrentUser = true,
-                badgeTitle = "মাধ্যমিক টপার",
-                subjectMockScores = mapOf("phy_sci" to 86, "life_sci" to 88, "math" to 84, "history" to 85, "geography" to 87, "bengali" to 86, "english" to 85)
-            ),
-            LeaderboardStudent(
-                rank = 2,
-                name = "অনন্যা মুখোপাধ্যায়",
-                school = "হিন্দু স্কুল",
-                district = "কলকাতা",
-                xp = 4890,
-                accuracy = 96,
-                streak = 21,
-                mockScore = 89,
-                mockTotal = 90,
-                mockPercentile = 99.8,
-                bossVictories = 18,
-                badgesCount = 12,
-                badgeTitle = "মক টেস্ট বেঙ্গল টপার",
-                subjectMockScores = mapOf("phy_sci" to 89, "life_sci" to 90, "math" to 88, "history" to 86, "geography" to 89, "bengali" to 87, "english" to 88)
-            ),
-            LeaderboardStudent(
-                rank = 3,
-                name = "শুভম পাল",
-                school = "যাদবপুর বিদ্যাপীঠ",
-                district = "কলকাতা",
-                xp = 4650,
-                accuracy = 94,
-                streak = 18,
-                mockScore = 87,
-                mockTotal = 90,
-                mockPercentile = 99.2,
-                bossVictories = 16,
-                badgesCount = 10,
-                badgeTitle = "অধ্যায় বস অপরাজিত",
-                subjectMockScores = mapOf("phy_sci" to 88, "life_sci" to 85, "math" to 90, "history" to 84, "geography" to 86, "bengali" to 84, "english" to 86)
-            ),
-            LeaderboardStudent(
-                rank = 4,
-                name = "রিয়া চক্রবর্তী",
-                school = "বেথুন কলেজিয়েট স্কুল",
-                district = "কলকাতা",
-                xp = 4210,
-                accuracy = 91,
-                streak = 14,
-                mockScore = 85,
-                mockTotal = 90,
-                mockPercentile = 98.4,
-                bossVictories = 14,
-                badgesCount = 9,
-                badgeTitle = "বিজ্ঞান বিশারদ",
-                subjectMockScores = mapOf("phy_sci" to 90, "life_sci" to 89, "math" to 78, "history" to 85, "geography" to 82, "bengali" to 88, "english" to 84)
-            )
-        )
-    }
-    val rawLeaderboard = remember(rawLeaderboardBase, studentProfile) {
-        rawLeaderboardBase.map { student ->
-            if (student.isCurrentUser) {
-                student.copy(
-                    name = studentProfile.name.ifBlank { student.name },
-                    school = studentProfile.school.ifBlank { student.school },
-                    district = studentProfile.district.ifBlank { student.district },
-                    xp = studentProfile.currentXp,
-                    streak = studentProfile.currentStreak,
-                    mockScore = (studentProfile.examReadinessPercentage * 90 / 100).coerceIn(40, 90)
-                )
-            } else student
-        }
-    }
+    val rawLeaderboardBase = liveLeaderboard
+    val rawLeaderboard = remember(rawLeaderboardBase) { rawLeaderboardBase }
     val currentSubject = subjects.find { it.id == selectedSubjectId } ?: subjects.firstOrNull()
 
     val districts = com.example.util.WestBengalData.districts
@@ -685,9 +604,9 @@ fun LeaderboardScreen(
                     item {
                         currentSubject?.let { subj ->
                             currentUserSubjectItem?.let { me ->
-                                val topScore = baseSubjectRankedStudents.firstOrNull()?.subjectScore ?: 90
-                                val topperName = baseSubjectRankedStudents.firstOrNull()?.student?.name ?: "অনন্যা মুখোপাধ্যায়"
-                                val avgScore = 66
+                                val topScore = baseSubjectRankedStudents.firstOrNull()?.subjectScore ?: 0
+                                val topperName = baseSubjectRankedStudents.firstOrNull()?.student?.name ?: "—"
+                                val avgScore = baseSubjectRankedStudents.map { it.subjectScore }.average().takeIf { it.isFinite() }?.toInt() ?: 0
                                 val gapToFirst = topScore - me.subjectScore
                                 val nextRankStudent = baseSubjectRankedStudents.getOrNull(me.subjectRank - 2)
                                 val gapToNextRank = if (nextRankStudent != null) (nextRankStudent.subjectScore - me.subjectScore + 1).coerceAtLeast(1) else 0
@@ -2213,7 +2132,7 @@ fun SubjectStudentComparisonSheet(
         ) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 subjects.forEach { subj ->
-                    val opponentScore = student.subjectMockScores[subj.id] ?: 75
+                    val opponentScore = student.subjectMockScores[subj.id] ?: 0
                     val myScore = when (subj.id) {
                         "phy_sci" -> 84
                         "life_sci" -> 86
