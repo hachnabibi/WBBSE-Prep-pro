@@ -54,14 +54,8 @@ fun ProgressDashboardScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val testHistory = remember {
-        listOf(
-            TestScoreData("মক টেস্ট ১", "০১ ফেব", 65, 70, 68, 68),
-            TestScoreData("মক টেস্ট ২", "১০ ফেব", 72, 75, 78, 75),
-            TestScoreData("মক টেস্ট ৩", "২০ ফেব", 80, 82, 85, 82),
-            TestScoreData("ফাইনাল মক", "০১ মার্চ", 90, 88, 92, 90)
-        )
-    }
+    // Test history is not persisted by the current data layer; never show sample scores.
+    val testHistory = emptyList<TestScoreData>()
 
     val liveSubjects by viewModel.subjects.collectAsState()
     val liveChapters by viewModel.chapters.collectAsState()
