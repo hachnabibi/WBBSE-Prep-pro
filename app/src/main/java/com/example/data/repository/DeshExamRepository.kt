@@ -1187,8 +1187,12 @@ class DeshExamRepository(
             val realCorrectSolved = dao.getCorrectAttemptsCountOnce()
             val totalSeconds = dao.getTotalTimeSpentSecondsOnce()
             
-            val finalTotalSolved = if (realTotalSolved > 0) realTotalSolved else 380 + (currentXp / 25)
-            val finalAccuracy = if (realTotalSolved > 0) ((realCorrectSolved.toFloat() / realTotalSolved.toFloat()) * 100).toInt() else 82
+            val finalTotalSolved = realTotalSolved
+            val finalAccuracy = if (realTotalSolved > 0) {
+                ((realCorrectSolved.toFloat() / realTotalSolved.toFloat()) * 100).toInt()
+            } else {
+                0
+            }
 
             StudentProfile(
                 name = entity.studentName,
@@ -1238,8 +1242,12 @@ class DeshExamRepository(
                 totalQuestionsAnswered = finalTotalSolved,
                 overallAccuracy = finalAccuracy,
                 examReadinessPercentage = entity.examReadinessPercentage,
-                rankState = 412,
-                league = if (currentXp > 3000) "Diamond Scholar / হীরক যোদ্ধা" else "Platinum Scholar / প্লাটিনাম যোদ্ধা",
+                rankState = 0,
+                league = when {
+                    currentXp > 3000 -> "Diamond Scholar / হীরক যোদ্ধা"
+                    currentXp > 0 -> "Platinum Scholar / প্লাটিনাম যোদ্ধা"
+                    else -> "New Learner / নতুন শিক্ষার্থী"
+                },
                 subjectMockScores = subjectMockScores,
                 isPro = entity.isPro,
                 coins = entity.coins,
