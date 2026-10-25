@@ -1232,7 +1232,7 @@ fun LeaderboardPreviewCard(
                 Text(
                     text = rank?.let {
                         if (isBengali) "তোমার অবস্থান ${it.toBengali(true)}" else "Your rank: #$it"
-                    } ?: if (isBengali) "কুইজে অংশ নিয়ে নিজের অবস্থান তৈরি করো" else "Take a quiz to earn your rank",
+                    } ?: if (isBengali) "র‍্যাঙ্ক তথ্য পাওয়া গেলে এখানে দেখাবে" else "Your rank will appear here when available",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = if (rank != null) textColor else supportingColor
                 )
