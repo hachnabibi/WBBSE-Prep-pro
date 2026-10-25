@@ -1163,8 +1163,19 @@ class DeshExamRepository(
 
     val studentProfile: Flow<StudentProfile> = dao.getUserProgress().map { entity ->
         if (entity != null) {
-            val level = entity.level
-            val currentXp = entity.currentXp
+            val isLegacyDemoProfile =
+                entity.studentName == "Sourav Das" &&
+                entity.school == "Kolkata Model High School" &&
+                entity.district == "কলকাতা" &&
+                entity.currentXp == 2450 &&
+                entity.level == 6 &&
+                entity.currentStreak == 7 &&
+                entity.bestStreak == 14 &&
+                entity.examReadinessPercentage == 76 &&
+                entity.coins == 150 &&
+                entity.aiCredits == 5
+            val level = if (isLegacyDemoProfile) 1 else entity.level
+            val currentXp = if (isLegacyDemoProfile) 0 else entity.currentXp
             val xpForNext = level * 500
             val subjectMockScores = parseMockScores(entity.mockScoresJson)
             val classObj = com.example.data.model.AcademicClassProvider.ALL_CLASSES
@@ -1187,13 +1198,17 @@ class DeshExamRepository(
             val realCorrectSolved = dao.getCorrectAttemptsCountOnce()
             val totalSeconds = dao.getTotalTimeSpentSecondsOnce()
             
-            val finalTotalSolved = if (realTotalSolved > 0) realTotalSolved else 380 + (currentXp / 25)
-            val finalAccuracy = if (realTotalSolved > 0) ((realCorrectSolved.toFloat() / realTotalSolved.toFloat()) * 100).toInt() else 82
+            val finalTotalSolved = realTotalSolved
+            val finalAccuracy = if (realTotalSolved > 0) {
+                ((realCorrectSolved.toFloat() / realTotalSolved.toFloat()) * 100).toInt()
+            } else {
+                0
+            }
 
             StudentProfile(
-                name = entity.studentName,
-                school = entity.school,
-                district = entity.district,
+                name = if (isLegacyDemoProfile) "" else entity.studentName,
+                school = if (isLegacyDemoProfile) "" else entity.school,
+                district = if (isLegacyDemoProfile) "" else entity.district,
                 targetExam = entity.targetExam,
                 classId = entity.classId,
                 classLevel = classBengali,
@@ -1233,17 +1248,21 @@ class DeshExamRepository(
                 currentXp = currentXp,
                 level = level,
                 xpToNextLevel = xpForNext,
-                currentStreak = entity.currentStreak,
-                bestStreak = entity.bestStreak,
+                currentStreak = if (isLegacyDemoProfile) 0 else entity.currentStreak,
+                bestStreak = if (isLegacyDemoProfile) 0 else entity.bestStreak,
                 totalQuestionsAnswered = finalTotalSolved,
                 overallAccuracy = finalAccuracy,
-                examReadinessPercentage = entity.examReadinessPercentage,
-                rankState = 412,
-                league = if (currentXp > 3000) "Diamond Scholar / হীরক যোদ্ধা" else "Platinum Scholar / প্লাটিনাম যোদ্ধা",
+                examReadinessPercentage = if (isLegacyDemoProfile) 0 else entity.examReadinessPercentage,
+                rankState = 0,
+                league = when {
+                    currentXp > 3000 -> "Diamond Scholar / হীরক যোদ্ধা"
+                    currentXp > 0 -> "Platinum Scholar / প্লাটিনাম যোদ্ধা"
+                    else -> "New Learner / নতুন শিক্ষার্থী"
+                },
                 subjectMockScores = subjectMockScores,
                 isPro = entity.isPro,
-                coins = entity.coins,
-                aiCredits = entity.aiCredits,
+                coins = if (isLegacyDemoProfile) 0 else entity.coins,
+                aiCredits = if (isLegacyDemoProfile) 0 else entity.aiCredits,
                 isStreakRepaired = entity.isStreakRepaired,
                 unlockedNotes = notesSet,
                 unlockedPodcasts = podcastsSet,

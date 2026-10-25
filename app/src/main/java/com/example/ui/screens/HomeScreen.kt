@@ -69,6 +69,7 @@ fun HomeScreen(
     recentlyViewed: List<RecentlyViewedEntity>,
     bookmarks: List<BookmarkEntity>,
     activeStudentsCount: Int,
+    hasWeakTopics: Boolean = false,
     isBengali: Boolean,
     isDark: Boolean = isSystemInDarkTheme(),
     onStartAssessment: (AssessmentMode, String?, String?) -> Unit,
@@ -104,35 +105,98 @@ fun HomeScreen(
             )
         }
 
-        // ২. দৈনিক লক্ষ্য (Daily Goal Card)
+        // ২. পড়া চালিয়ে যাও (Continue Learning)
+        item {
+            val recentItem = recentlyViewed.firstOrNull()
+            ContinueLearningSection(
+                title = recentItem?.title ?: if (isBengali) "আজকের পড়া শুরু করুন" else "Start today's study",
+                actionLabel = when (recentItem?.type?.uppercase()) {
+                    "PYQ" -> if (isBengali) "PYQ খুলুন" else "Open PYQ"
+                    "TEXTBOOK" -> if (isBengali) "বই খুলুন" else "Open book"
+                    else -> if (isBengali) "শুরু করুন" else "Start"
+                },
+                isBengali = isBengali,
+                isDark = isDark,
+                onStartClick = {
+                    when (recentItem?.type?.uppercase()) {
+                        "PYQ" -> onNavigate(AppScreen.PYQ_EXPLORER)
+                        "TEXTBOOK" -> onNavigate(AppScreen.TEXTBOOKS)
+                        else -> onNavigate(AppScreen.JOURNEY)
+                    }
+                }
+            )
+        }
+
+        if (hasWeakTopics) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDark) Color(0xFF1E2538) else Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigate(AppScreen.WEAKNESS_INSIGHT) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = if (isBengali) "দুর্বল টপিক রিভিশন" else "Review weak topics",
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Icon(Icons.Default.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
+
+        // ৪. দৈনিক লক্ষ্য (Daily Goal Card)
         item {
             DailyGoalCard(
-                completedMinutes = 12,
-                targetMinutes = 20,
+                completedCount = dailyQuests.sumOf { quest ->
+                    quest.currentCount.coerceIn(0, quest.targetCount.coerceAtLeast(0))
+                },
+                targetCount = dailyQuests.sumOf { it.targetCount.coerceAtLeast(0) },
                 isBengali = isBengali,
                 isDark = isDark,
                 onClick = { onNavigate(AppScreen.PROGRESS_DASHBOARD) }
             )
         }
 
-        // ৩. পড়া চালিয়ে যাও (Continue Learning)
-        item {
-            val recentItem = recentlyViewed.firstOrNull()
-            ContinueLearningSection(
-                title = recentItem?.title ?: if (isBengali) "গণিত: জ্যামিতি পার্ট ২" else "Math: Geometry Part 2",
-                isBengali = isBengali,
-                isDark = isDark,
-                onStartClick = {
-                    val firstSubId = subjects.firstOrNull()?.id
-                    if (firstSubId != null) {
-                        onSelectSubject(firstSubId)
+        if (bookmarks.isNotEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDark) Color(0xFF1E2538) else Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigate(AppScreen.BOOKMARK_HUB) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Bookmark, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = if (isBengali) "সংরক্ষিত বিষয়" else "Saved items",
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text("${bookmarks.size}", fontWeight = FontWeight.Bold)
                     }
-                    onNavigate(AppScreen.JOURNEY)
                 }
-            )
+            }
         }
 
-        // ৪. বিষয়সমূহ (২x২ গ্রিড ও অটো স্ক্রোল)
+        // ৪. বিষয়সমূহ
         item {
             Subjects2x2Section(
                 subjects = subjects,
@@ -186,7 +250,8 @@ fun HomeScreen(
         // ৭. সেরাদের তালিকা (Leaderboard Card)
         item {
             LeaderboardPreviewCard(
-                rank = if (profile.rankState > 0) profile.rankState else 4,
+                rank = profile.rankState.takeIf { it > 0 },
+                activeStudentsCount = activeStudentsCount,
                 isBengali = isBengali,
                 isDark = isDark,
                 onClick = { onNavigate(AppScreen.LEADERBOARD) }
@@ -234,10 +299,9 @@ fun StudentGreetingHeader(
         else -> if (isBengali) "শুভ রাত্রি" else "Good Night"
     }
 
-    val currentCls = remember(profile.classId) {
+    val currentCls = remember(profile.classId, profile.targetExam) {
         AcademicClassProvider.ALL_CLASSES.find { it.id == profile.classId }
             ?: AcademicClassProvider.ALL_CLASSES.find { it.targetExam == profile.targetExam }
-            ?: AcademicClassProvider.ALL_CLASSES.getOrNull(5)
     }
 
     val nameTrimmed = profile.name.trim()
@@ -245,14 +309,14 @@ fun StudentGreetingHeader(
     val lastNameOrUsername = when {
         nameParts.size > 1 -> nameParts.last()
         nameTrimmed.isNotBlank() -> nameTrimmed
-        else -> if (isBengali) "অনিক" else "Anik"
+        else -> if (isBengali) "শিক্ষার্থী" else "Student"
     }
 
     val displayName = lastNameOrUsername
-    val classText = currentCls?.name ?: if (isBengali) "৮ম" else "8th"
+    val classText = currentCls?.name ?: if (isBengali) "শ্রেণি নির্বাচন করুন" else "Select class"
 
-    val streakVal = if (profile.currentStreak > 0) profile.currentStreak else 5
-    val xpVal = if (profile.coins > 0) profile.coins else 150
+    val streakVal = profile.currentStreak.coerceAtLeast(0)
+    val coinVal = profile.coins.coerceAtLeast(0)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -374,7 +438,7 @@ fun StudentGreetingHeader(
                         ) {
                             Text(text = "🪙", fontSize = 12.sp)
                             Text(
-                                text = "${xpVal.toBengali(isBengali)} XP",
+                                text = "${coinVal.toBengali(isBengali)} ${if (isBengali) "কয়েন" else "coins"}",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -394,14 +458,16 @@ fun StudentGreetingHeader(
 // ============================================================================
 @Composable
 fun DailyGoalCard(
-    completedMinutes: Int,
-    targetMinutes: Int,
+    completedCount: Int,
+    targetCount: Int,
     isBengali: Boolean,
     isDark: Boolean,
     onClick: () -> Unit
 ) {
+    if (targetCount <= 0) return
+
     val progress by animateFloatAsState(
-        targetValue = (completedMinutes.toFloat() / targetMinutes.coerceAtLeast(1)).coerceIn(0f, 1f),
+        targetValue = (completedCount.toFloat() / targetCount).coerceIn(0f, 1f),
         label = "daily_goal_progress"
     )
 
@@ -453,7 +519,7 @@ fun DailyGoalCard(
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "${completedMinutes.toBengali(isBengali)}/${targetMinutes.toBengali(isBengali)}",
+                            text = "${completedCount.toBengali(isBengali)}/${targetCount.toBengali(isBengali)}",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 13.sp
@@ -461,7 +527,7 @@ fun DailyGoalCard(
                             color = titleColor
                         )
                         Text(
-                            text = if (isBengali) "মিনিট" else "Min",
+                            text = if (isBengali) "কাজ" else "Tasks",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             color = subColor
                         )
@@ -483,7 +549,7 @@ fun DailyGoalCard(
                         color = titleColor
                     )
                     Text(
-                        text = if (isBengali) "${completedMinutes.toBengali(true)} মিনিট সম্পন্ন" else "$completedMinutes mins completed",
+                        text = if (isBengali) "${completedCount.toBengali(true)}টি কাজ সম্পন্ন" else "$completedCount tasks completed",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
@@ -514,6 +580,7 @@ fun DailyGoalCard(
 @Composable
 fun ContinueLearningSection(
     title: String,
+    actionLabel: String,
     isBengali: Boolean,
     isDark: Boolean,
     onStartClick: () -> Unit
@@ -573,30 +640,7 @@ fun ContinueLearningSection(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        Surface(
-                            shape = RoundedCornerShape(50.dp),
-                            color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            modifier = Modifier.clickable { onStartClick() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    tint = if (isDark) Color.White else Color(0xFF334155),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = if (isBengali) "চালিয়ে যান" else "Resume",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                    color = if (isDark) Color.White else Color(0xFF334155),
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
+
                     }
 
                     Column(
@@ -611,7 +655,7 @@ fun ContinueLearningSection(
                             modifier = Modifier.clickable { onStartClick() }
                         ) {
                             Text(
-                                text = if (isBengali) "শুরু করো" else "Start",
+                                text = actionLabel,
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.5.sp
@@ -687,29 +731,17 @@ fun Subjects2x2Section(
     val linkColor = if (isDark) Color(0xFF93C5FD) else Color(0xFF2563EB)
 
     // ছবির ৪টি প্রধান কার্ডের কালার থিম (গণিত, বিজ্ঞান, বাংলা, ইংরেজি)
-    val defaultTitles = if (isBengali) {
-        listOf("গণিত", "বিজ্ঞান", "বাংলা", "ইংরেজি")
-    } else {
-        listOf("Math", "Science", "Bengali", "English")
-    }
-
-    val cardsData = (0..3).map { index ->
-        val sub = subjects.getOrNull(index)
-        val progress = if (sub != null && sub.totalChapters > 0) {
-            (sub.completedChapters.toFloat() / sub.totalChapters).coerceIn(0.15f, 1f)
+    val cardsData = subjects.take(4).mapIndexed { index, sub ->
+        val progress = if (sub.totalChapters > 0) {
+            (sub.completedChapters.toFloat() / sub.totalChapters).coerceIn(0f, 1f)
         } else {
-            when (index) {
-                0 -> 0.58f
-                1 -> 0.45f
-                2 -> 0.35f
-                else -> 0.52f
-            }
+            0f
         }
 
         when (index) {
             0 -> SubjectCardVisual(
-                id = sub?.id ?: "math",
-                title = sub?.getTitle(isBengali) ?: defaultTitles[0],
+                id = sub.id,
+                title = sub.getTitle(isBengali),
                 progress = progress,
                 bgLight = Color(0xFFFAD2C8),       // হালকা পিচ/কমলা
                 bgDark = Color(0xFF2B224C),        // ডার্ক পার্পল
@@ -721,8 +753,8 @@ fun Subjects2x2Section(
                 originSubject = sub
             )
             1 -> SubjectCardVisual(
-                id = sub?.id ?: "science",
-                title = sub?.getTitle(isBengali) ?: defaultTitles[1],
+                id = sub.id,
+                title = sub.getTitle(isBengali),
                 progress = progress,
                 bgLight = Color(0xFFC7E3FA),       // হালকা আকাশী নীল
                 bgDark = Color(0xFF1E2538),        // ডার্ক স্লেট
@@ -734,8 +766,8 @@ fun Subjects2x2Section(
                 originSubject = sub
             )
             2 -> SubjectCardVisual(
-                id = sub?.id ?: "bengali",
-                title = sub?.getTitle(isBengali) ?: defaultTitles[2],
+                id = sub.id,
+                title = sub.getTitle(isBengali),
                 progress = progress,
                 bgLight = Color(0xFFFDE492),       // হালকা হলুদ
                 bgDark = Color(0xFF1E2538),        // ডার্ক স্লেট
@@ -747,8 +779,8 @@ fun Subjects2x2Section(
                 originSubject = sub
             )
             else -> SubjectCardVisual(
-                id = sub?.id ?: "english",
-                title = sub?.getTitle(isBengali) ?: defaultTitles[3],
+                id = sub.id,
+                title = sub.getTitle(isBengali),
                 progress = progress,
                 bgLight = Color(0xFF12D17E),       // উজ্জ্বল সবুজ
                 bgDark = Color(0xFF1E2538),        // ডার্ক স্লেট
@@ -804,61 +836,30 @@ fun Subjects2x2Section(
             }
         }
 
-        // প্রথম সারি (গণিত ও বিজ্ঞান)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SubjectGridTile(
-                visual = cardsData[0],
-                isDark = isDark,
-                modifier = Modifier.weight(1f),
-                onClick = { cardsData[0].originSubject?.let(onSubjectClick) }
-            )
-            SubjectGridTile(
-                visual = cardsData[1],
-                isDark = isDark,
-                modifier = Modifier.weight(1f),
-                onClick = { cardsData[1].originSubject?.let(onSubjectClick) }
-            )
-        }
-
-        // দ্বিতীয় সারি (বাংলা ও ইংরেজি)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SubjectGridTile(
-                visual = cardsData[2],
-                isDark = isDark,
-                modifier = Modifier.weight(1f),
-                onClick = { cardsData[2].originSubject?.let(onSubjectClick) }
-            )
-            SubjectGridTile(
-                visual = cardsData[3],
-                isDark = isDark,
-                modifier = Modifier.weight(1f),
-                onClick = { cardsData[3].originSubject?.let(onSubjectClick) }
-            )
-        }
-
-        // Auto-scrolling horizontal row showing all subjects
-        if (subjects.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(2.dp))
+        if (cardsData.isEmpty()) {
             Text(
-                text = if (isBengali) "সকল বিষয় তালিকা (অটো স্ক্রোল)" else "All Subjects (Auto Scroll)",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                ),
+                text = if (isBengali) "বিষয় লোড হচ্ছে…" else "Subjects are loading…",
                 color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
             )
-            AutoScrollingSubjectsRow(
-                subjects = subjects,
-                isBengali = isBengali,
-                isDark = isDark,
-                onSubjectClick = onSubjectClick
-            )
+        } else {
+            cardsData.chunked(2).forEach { rowCards ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowCards.forEach { visual ->
+                        SubjectGridTile(
+                            visual = visual,
+                            isDark = isDark,
+                            modifier = Modifier.weight(1f),
+                            onClick = { visual.originSubject?.let(onSubjectClick) }
+                        )
+                    }
+                    if (rowCards.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }
@@ -1187,87 +1188,68 @@ fun DailyQuizBanner(
 // ============================================================================
 @Composable
 fun LeaderboardPreviewCard(
-    rank: Int,
+    rank: Int?,
+    activeStudentsCount: Int,
     isBengali: Boolean,
     isDark: Boolean,
     onClick: () -> Unit
 ) {
     val cardBg = if (isDark) Color(0xFF1E2538) else Color.White
     val textColor = if (isDark) Color.White else Color(0xFF1E293B)
+    val supportingColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
 
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 2.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
             .testTag("home_leaderboard_spotlight_banner")
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = if (isBengali) "সেরাদের তালিকা" else "Leaderboard",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp
-                ),
-                color = textColor
+            Icon(
+                imageVector = Icons.Default.EmojiEvents,
+                contentDescription = null,
+                tint = Color(0xFFF59E0B),
+                modifier = Modifier.size(32.dp)
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // বামপাশে ৩ জন টপারের অ্যাভাটার ও ব্যাজ
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TopperAvatarBadge(
-                        avatarSize = 36.dp,
-                        bgColor = Color(0xFFCBD5E1),
-                        badgeColor = Color(0xFF3B82F6)
-                    )
-                    TopperAvatarBadge(
-                        avatarSize = 44.dp,
-                        bgColor = Color(0xFFFDE68A),
-                        badgeColor = Color(0xFFF59E0B)
-                    )
-                    TopperAvatarBadge(
-                        avatarSize = 36.dp,
-                        bgColor = Color(0xFFFECDD3),
-                        badgeColor = Color(0xFFD97706)
-                    )
-                }
-
-                // ডানপাশে "তুমি ৪র্থ অবস্থানে ↗"
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val rankStr = rank.toBengali(isBengali)
+                Text(
+                    text = if (isBengali) "সেরাদের তালিকা" else "Leaderboard",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = textColor
+                )
+                Text(
+                    text = rank?.let {
+                        if (isBengali) "তোমার অবস্থান ${it.toBengali(true)}" else "Your rank: #$it"
+                    } ?: if (isBengali) "র‍্যাঙ্ক তথ্য পাওয়া গেলে এখানে দেখাবে" else "Your rank will appear here when available",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (rank != null) textColor else supportingColor
+                )
+                if (activeStudentsCount > 0) {
                     Text(
-                        text = if (isBengali) "তুমি ${rankStr}র্থ অবস্থানে" else "You are #$rankStr",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 14.5.sp
-                        ),
-                        color = textColor
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = null,
-                        tint = Color(0xFF10B981),
-                        modifier = Modifier.size(18.dp)
+                        text = if (isBengali) "${activeStudentsCount.toBengali(true)} জন শিক্ষার্থী" else "$activeStudentsCount students",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = supportingColor
                     )
                 }
             }
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = if (isBengali) "লিডারবোর্ড খুলুন" else "Open leaderboard",
+                tint = supportingColor,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
