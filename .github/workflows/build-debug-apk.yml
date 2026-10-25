@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/home-screen-cleanup
+      - main
   workflow_dispatch:
 
 permissions:
