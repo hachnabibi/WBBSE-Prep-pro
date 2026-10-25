@@ -125,6 +125,105 @@ class FirestoreService(
         private const val COLLECTION_LEADERBOARD = "leaderboard"
         private const val COLLECTION_DISTRICTS = "districts"
         private const val COLLECTION_PODCASTS = "podcasts"
+        private const val COLLECTION_CONTENT_REPORTS = "content_reports"
+        private const val COLLECTION_ADMIN_ACTIVITY = "admin_activity"
+    }
+
+    suspend fun submitContentReport(report: ContentReport): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val safeReport = report.copy(
+                id = report.id.ifBlank { java.util.UUID.randomUUID().toString() },
+                questionText = report.questionText.take(1000),
+                reason = report.reason.take(80),
+                details = report.details.take(1000),
+                status = "open"
+            )
+            firestore.collection(COLLECTION_CONTENT_REPORTS)
+                .document(safeReport.id)
+                .set(safeReport)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error submitting content report: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getContentReports(limit: Int = 100): Result<List<ContentReport>> = withContext(Dispatchers.IO) {
+        try {
+            val snapshot = firestore.collection(COLLECTION_CONTENT_REPORTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(limit.coerceIn(1, 200).toLong())
+                .get()
+                .await()
+            Result.success(snapshot.documents.mapNotNull { document ->
+                document.toObject(ContentReport::class.java)?.copy(id = document.id)
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading content reports: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateContentReport(
+        reportId: String,
+        status: String,
+        reviewerUid: String,
+        adminNote: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            require(status in setOf("open", "in_review", "resolved", "dismissed")) {
+                "Unsupported report status"
+            }
+            firestore.collection(COLLECTION_CONTENT_REPORTS)
+                .document(reportId)
+                .update(
+                    mapOf(
+                        "status" to status,
+                        "reviewedAt" to System.currentTimeMillis(),
+                        "reviewedBy" to reviewerUid,
+                        "adminNote" to adminNote.take(1000)
+                    )
+                )
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating content report: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun recordAdminActivity(event: AdminActivityEvent): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val safeEvent = event.copy(
+                id = event.id.ifBlank { java.util.UUID.randomUUID().toString() },
+                summary = event.summary.take(500)
+            )
+            firestore.collection(COLLECTION_ADMIN_ACTIVITY)
+                .document(safeEvent.id)
+                .set(safeEvent)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error recording admin activity: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAdminActivity(limit: Int = 100): Result<List<AdminActivityEvent>> = withContext(Dispatchers.IO) {
+        try {
+            val snapshot = firestore.collection(COLLECTION_ADMIN_ACTIVITY)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(limit.coerceIn(1, 200).toLong())
+                .get()
+                .await()
+            Result.success(snapshot.documents.mapNotNull { document ->
+                document.toObject(AdminActivityEvent::class.java)?.copy(id = document.id)
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading admin activity: ${e.localizedMessage}", e)
+            Result.failure(e)
+        }
     }
 
     suspend fun saveDistrictSchools(district: String, schools: List<String>): Result<Unit> = withContext(Dispatchers.IO) {

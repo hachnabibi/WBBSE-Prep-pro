@@ -41,6 +41,7 @@ import com.example.data.model.EducationBoard
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.DeshExamViewModel
 import com.example.util.formatCompactNumber
+import kotlinx.coroutines.CancellationException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,14 +59,30 @@ fun AdminCurriculumCRUDTab(
     var dbTopics by remember { mutableStateOf<List<TopicEntity>>(emptyList()) }
 
     var refreshTrigger by remember { mutableIntStateOf(0) }
+    var isLoadingData by remember { mutableStateOf(true) }
+    var dataLoadError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(refreshTrigger) {
+        isLoadingData = true
+        dataLoadError = null
         try {
-            dbSubjects = viewModel.repository.dao.getAllSubjectsOnce()
-            dbChapters = viewModel.repository.dao.getAllChaptersOnce()
-            dbTopics = viewModel.repository.dao.getAllTopicsOnce()
+            val subjects = viewModel.repository.dao.getAllSubjectsOnce()
+            val chapters = viewModel.repository.dao.getAllChaptersOnce()
+            val topics = viewModel.repository.dao.getAllTopicsOnce()
+            dbSubjects = subjects
+            dbChapters = chapters
+            dbTopics = topics
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            android.util.Log.e("AdminCurriculumCRUDTab", "Error loading DB entities: ${e.message}", e)
+            android.util.Log.e("AdminCurriculumCRUDTab", "Error loading curriculum entities", e)
+            dataLoadError = if (isBengali) {
+                "কারিকুলাম ডেটা লোড করা যায়নি। আবার চেষ্টা করুন।"
+            } else {
+                "Couldn't load curriculum data. Please try again."
+            }
+        } finally {
+            isLoadingData = false
         }
     }
 
@@ -95,6 +112,10 @@ fun AdminCurriculumCRUDTab(
     var deletingTopic by remember { mutableStateOf<TopicEntity?>(null) }
     var showBatchUploadDialog by remember { mutableStateOf(false) }
     var batchImportText by remember { mutableStateOf("") }
+    var isSavingChapter by remember { mutableStateOf(false) }
+    var isSavingTopic by remember { mutableStateOf(false) }
+    var isDeletingChapter by remember { mutableStateOf(false) }
+    var isDeletingTopic by remember { mutableStateOf(false) }
 
     val sampleCurriculumJson = """[
   {
@@ -199,6 +220,7 @@ fun AdminCurriculumCRUDTab(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -206,15 +228,15 @@ fun AdminCurriculumCRUDTab(
         // 1. PREMIUM FILTER & CONTROL CARD
         // ==========================================
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Header with Badge
                 Row(
@@ -242,7 +264,7 @@ fun AdminCurriculumCRUDTab(
                         }
                         Text(
                             text = if (isBengali) "সিলেবাস ফিল্টার ও কন্ট্রোল" else "Syllabus Filter & Controls",
-                            fontSize = 14.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -264,13 +286,13 @@ fun AdminCurriculumCRUDTab(
                     }
                 }
 
-                // Dropdowns Grid (Board, Class, Subject)
-                Row(
+                // Keep selector fields full-width so labels and selected values remain readable.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Board Selector
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = boardValue,
                             onValueChange = {},
@@ -308,7 +330,7 @@ fun AdminCurriculumCRUDTab(
                     }
 
                     // Class Selector
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         val currentClassObj = classes.find { it.id == classIdValue }
                         val classLabel = currentClassObj?.name ?: classIdValue
                         OutlinedTextField(
@@ -346,7 +368,7 @@ fun AdminCurriculumCRUDTab(
                     }
 
                     // Sub-class / Stream Selector
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         val streamsList = listOf(
                             "all" to "সকল বিভাগ",
                             "science" to "বিজ্ঞান শাখা",
@@ -531,29 +553,81 @@ fun AdminCurriculumCRUDTab(
             }
         }
 
+        AnimatedVisibility(visible = isLoadingData || dataLoadError != null) {
+            val error = dataLoadError
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (error != null) {
+                    WrongRed.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (error != null) WrongRed.copy(alpha = 0.3f)
+                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (isLoadingData) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = WrongRed,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = error ?: if (isBengali) "কারিকুলাম ডেটা লোড হচ্ছে..." else "Loading curriculum data...",
+                        color = if (error != null) WrongRed else MaterialTheme.colorScheme.onSurface,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (error != null) {
+                        TextButton(
+                            onClick = { refreshTrigger++ },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(if (isBengali) "আবার চেষ্টা" else "Retry")
+                        }
+                    }
+                }
+            }
+        }
+
         // ==========================================
-        // 2. CHAPTERS & TOPICS DUAL MANAGEMENT PANELS
+        // 2. CHAPTERS & TOPICS MANAGEMENT CARDS
         // ==========================================
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // ------------------------------------------
-            // LEFT COLUMN: CHAPTERS PANEL
+            // CHAPTERS CARD
             // ------------------------------------------
             Card(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -610,8 +684,8 @@ fun AdminCurriculumCRUDTab(
                     if (chaptersForSubject.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
                                 .fillMaxWidth()
+                                .heightIn(min = 112.dp)
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -640,7 +714,7 @@ fun AdminCurriculumCRUDTab(
                     } else {
                         LazyColumn(
                             modifier = Modifier
-                                .weight(1f)
+                                .heightIn(max = 340.dp)
                                 .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -783,19 +857,18 @@ fun AdminCurriculumCRUDTab(
             }
 
             // ------------------------------------------
-            // RIGHT COLUMN: TOPICS PANEL
+            // TOPICS CARD
             // ------------------------------------------
             Card(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -858,8 +931,8 @@ fun AdminCurriculumCRUDTab(
                     if (selectedChapter == null) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
                                 .fillMaxWidth()
+                                .heightIn(min = 112.dp)
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -888,8 +961,8 @@ fun AdminCurriculumCRUDTab(
                     } else if (topicsForChapter.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .weight(1f)
                                 .fillMaxWidth()
+                                .heightIn(min = 112.dp)
                                 .background(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                                     RoundedCornerShape(10.dp)
@@ -918,7 +991,7 @@ fun AdminCurriculumCRUDTab(
                     } else {
                         LazyColumn(
                             modifier = Modifier
-                                .weight(1f)
+                                .heightIn(max = 340.dp)
                                 .fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -1037,7 +1110,7 @@ fun AdminCurriculumCRUDTab(
     if (showChapterDialog) {
         val isEdit = editingChapter != null
         AlertDialog(
-            onDismissRequest = { showChapterDialog = false },
+            onDismissRequest = { if (!isSavingChapter) showChapterDialog = false },
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1125,6 +1198,8 @@ fun AdminCurriculumCRUDTab(
             confirmButton = {
                 Button(
                     onClick = {
+                        if (isSavingChapter) return@Button
+                        isSavingChapter = true
                         val num = formChNum.trim().toIntOrNull() ?: 1
                         val ch = com.example.data.firestore.FirestoreChapter(
                             id = formChId.trim(),
@@ -1140,6 +1215,7 @@ fun AdminCurriculumCRUDTab(
                             solutionData = formChSolutionData.trim().ifBlank { null }
                         )
                         viewModel.addFirestoreChapter(ch, preserveWeightage = isEdit) { success, msg ->
+                            isSavingChapter = false
                             onShowMessage(msg, success)
                             if (success) {
                                 showChapterDialog = false
@@ -1147,15 +1223,26 @@ fun AdminCurriculumCRUDTab(
                             }
                         }
                     },
-                    enabled = formChId.isNotBlank() && formChTitle.isNotBlank(),
+                    enabled = !isSavingChapter && formChId.isNotBlank() && formChTitle.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(if (isEdit) "আপডেট করুন" else "তৈরি করুন")
+                    if (isSavingChapter) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isSavingChapter) "সংরক্ষণ হচ্ছে..." else if (isEdit) "আপডেট করুন" else "তৈরি করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showChapterDialog = false }) { Text("বাতিল") }
+                TextButton(
+                    onClick = { showChapterDialog = false },
+                    enabled = !isSavingChapter
+                ) { Text("বাতিল") }
             }
         )
     }
@@ -1164,7 +1251,7 @@ fun AdminCurriculumCRUDTab(
     if (showTopicDialog) {
         val isEdit = editingTopic != null
         AlertDialog(
-            onDismissRequest = { showTopicDialog = false },
+            onDismissRequest = { if (!isSavingTopic) showTopicDialog = false },
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1260,6 +1347,8 @@ fun AdminCurriculumCRUDTab(
             confirmButton = {
                 Button(
                     onClick = {
+                        if (isSavingTopic) return@Button
+                        isSavingTopic = true
                         val ord = formTpOrder.trim().toIntOrNull() ?: 1
                         val kps = formTpKeyPoints.split("|").map { it.trim() }.filter { it.isNotEmpty() }
                         val fms = formTpFormulae.split("|").map { it.trim() }.filter { it.isNotEmpty() }
@@ -1280,6 +1369,7 @@ fun AdminCurriculumCRUDTab(
                             playlistJson = formTpPlaylistJson.trim().ifBlank { null }
                         )
                         viewModel.addFirestoreTopic(tp, preserveQuestionCount = isEdit) { success, msg ->
+                            isSavingTopic = false
                             onShowMessage(msg, success)
                             if (success) {
                                 showTopicDialog = false
@@ -1287,15 +1377,26 @@ fun AdminCurriculumCRUDTab(
                             }
                         }
                     },
-                    enabled = formTpId.isNotBlank() && formTpTitle.isNotBlank(),
+                    enabled = !isSavingTopic && formTpId.isNotBlank() && formTpTitle.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(containerColor = SecondaryEmerald),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(if (isEdit) "আপডেট করুন" else "তৈরি করুন")
+                    if (isSavingTopic) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isSavingTopic) "সংরক্ষণ হচ্ছে..." else if (isEdit) "আপডেট করুন" else "তৈরি করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTopicDialog = false }) { Text("বাতিল") }
+                TextButton(
+                    onClick = { showTopicDialog = false },
+                    enabled = !isSavingTopic
+                ) { Text("বাতিল") }
             }
         )
     }
@@ -1303,27 +1404,44 @@ fun AdminCurriculumCRUDTab(
     // 3. DELETE CHAPTER CONFIRMATION
     if (deletingChapter != null) {
         AlertDialog(
-            onDismissRequest = { deletingChapter = null },
+            onDismissRequest = { if (!isDeletingChapter) deletingChapter = null },
             icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = WrongRed) },
             title = { Text("অধ্যায় ডিলিট করুন?", fontWeight = FontWeight.Bold) },
             text = { Text("আপনি কি নিশ্চিতভাবে '${deletingChapter!!.title}' অধ্যায়টি ডিলিট করতে চান?") },
             confirmButton = {
                 Button(
                     onClick = {
+                        if (isDeletingChapter) return@Button
+                        isDeletingChapter = true
                         viewModel.deleteFirestoreChapter(deletingChapter!!.id) { success, msg ->
+                            isDeletingChapter = false
                             onShowMessage(msg, success)
-                            deletingChapter = null
-                            refreshTrigger++
+                            if (success) {
+                                deletingChapter = null
+                                refreshTrigger++
+                            }
                         }
                     },
+                    enabled = !isDeletingChapter,
                     colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("ডিলিট করুন")
+                    if (isDeletingChapter) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onError,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isDeletingChapter) "ডিলিট হচ্ছে..." else "ডিলিট করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deletingChapter = null }) { Text("বাতিল") }
+                TextButton(
+                    onClick = { deletingChapter = null },
+                    enabled = !isDeletingChapter
+                ) { Text("বাতিল") }
             }
         )
     }
@@ -1331,27 +1449,44 @@ fun AdminCurriculumCRUDTab(
     // 4. DELETE TOPIC CONFIRMATION
     if (deletingTopic != null) {
         AlertDialog(
-            onDismissRequest = { deletingTopic = null },
+            onDismissRequest = { if (!isDeletingTopic) deletingTopic = null },
             icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = WrongRed) },
             title = { Text("টপিক ডিলিট করুন?", fontWeight = FontWeight.Bold) },
             text = { Text("আপনি কি নিশ্চিতভাবে '${deletingTopic!!.title}' টপিকটি ডিলিট করতে চান?") },
             confirmButton = {
                 Button(
                     onClick = {
+                        if (isDeletingTopic) return@Button
+                        isDeletingTopic = true
                         viewModel.deleteFirestoreTopic(deletingTopic!!.id) { success, msg ->
+                            isDeletingTopic = false
                             onShowMessage(msg, success)
-                            deletingTopic = null
-                            refreshTrigger++
+                            if (success) {
+                                deletingTopic = null
+                                refreshTrigger++
+                            }
                         }
                     },
+                    enabled = !isDeletingTopic,
                     colors = ButtonDefaults.buttonColors(containerColor = WrongRed),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("ডিলিট করুন")
+                    if (isDeletingTopic) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onError,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (isDeletingTopic) "ডিলিট হচ্ছে..." else "ডিলিট করুন")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deletingTopic = null }) { Text("বাতিল") }
+                TextButton(
+                    onClick = { deletingTopic = null },
+                    enabled = !isDeletingTopic
+                ) { Text("বাতিল") }
             }
         )
     }

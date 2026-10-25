@@ -139,6 +139,79 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /content_reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          "id",
+          "reporterUid",
+          "reporterName",
+          "questionId",
+          "questionText",
+          "classId",
+          "subjectId",
+          "reason",
+          "details",
+          "status",
+          "createdAt",
+          "reviewedAt",
+          "reviewedBy",
+          "adminNote"
+        ])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.id == reportId
+        && request.resource.data.status == "open"
+        && request.resource.data.questionId is string
+        && request.resource.data.questionId.size() <= 200
+        && request.resource.data.questionText is string
+        && request.resource.data.questionText.size() <= 1000
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 80
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 1000
+        && request.resource.data.createdAt is int
+        && request.resource.data.reviewedAt == 0
+        && request.resource.data.reviewedBy == ""
+        && request.resource.data.adminNote == "";
+      allow read: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status",
+          "reviewedAt",
+          "reviewedBy",
+          "adminNote"
+        ])
+        && request.resource.data.status in ["open", "in_review", "resolved", "dismissed"]
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.adminNote is string
+        && request.resource.data.adminNote.size() <= 1000;
+      allow delete: if isAdmin();
+    }
+
+    match /admin_activity/{eventId} {
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          "id",
+          "actorUid",
+          "actorName",
+          "action",
+          "entityType",
+          "entityId",
+          "summary",
+          "createdAt"
+        ])
+        && request.resource.data.id == eventId
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.action is string
+        && request.resource.data.entityType is string
+        && request.resource.data.entityId is string
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() <= 500
+        && request.resource.data.createdAt is int;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
     match /leaderboard/{userId} {
       allow read: if true;
       allow create, update: if isAdmin()

@@ -124,7 +124,10 @@ data class CloudBackupState(
     val error: String? = null,
     val lastBackupTimestamp: Long = 0L,
     val summary: String? = null,
-    val stats: LocalDatabaseStats? = null
+    val stats: LocalDatabaseStats? = null,
+    val isLoadingStats: Boolean = false,
+    val statsError: String? = null,
+    val statsLastUpdatedTimestamp: Long = 0L
 )
 
 data class LocalDatabaseStats(
@@ -172,6 +175,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     private val _cloudStats = MutableStateFlow(CloudDatabaseStats())
     val cloudStats: StateFlow<CloudDatabaseStats> = _cloudStats.asStateFlow()
+
+    private val _adminGovernanceState = MutableStateFlow(AdminGovernanceState())
+    val adminGovernanceState: StateFlow<AdminGovernanceState> = _adminGovernanceState.asStateFlow()
 
     private val _isPullingFromCloud = MutableStateFlow(false)
     val isPullingFromCloud: StateFlow<Boolean> = _isPullingFromCloud.asStateFlow()
@@ -1915,6 +1921,9 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
     fun loadLocalDatabaseStats() {
         viewModelScope.launch(Dispatchers.IO) {
+            _cloudBackupState.update {
+                it.copy(isLoadingStats = true, statsError = null)
+            }
             try {
                 val dao = database.deshExamDao()
                 val boards = dao.getAllBoardsOnce()
@@ -1934,13 +1943,279 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     questionCount = questions.size,
                     videoProgressCount = videos.size
                 )
-                _cloudBackupState.update { it.copy(stats = stats) }
+                _cloudBackupState.update {
+                    it.copy(
+                        stats = stats,
+                        isLoadingStats = false,
+                        statsError = null,
+                        statsLastUpdatedTimestamp = System.currentTimeMillis()
+                    )
+                }
                 checkCloudDatabaseIntegrity()
             } catch (e: Exception) {
                 Log.e("DeshExamViewModel", "Error loading stats: ${e.message}", e)
+                _cloudBackupState.update {
+                    it.copy(
+                        isLoadingStats = false,
+                        statsError = e.localizedMessage ?: e.message ?: "Unknown error"
+                    )
+                }
             }
         }
     }
+
+    fun submitQuestionContentReport(
+                questionId: String,
+                questionText: String,
+                classId: String,
+                subjectId: String,
+                reason: String,
+                details: String,
+                onComplete: (Boolean, String) -> Unit
+            ) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val user = authRepository.currentUserState
+                    if (user == null) {
+                        withContext(Dispatchers.Main) {
+                            onComplete(false, "রিপোর্ট পাঠাতে লগইন করুন।")
+                        }
+                        return@launch
+                    }
+                    val result = firestoreService.submitContentReport(
+                        ContentReport(
+                            id = java.util.UUID.randomUUID().toString(),
+                            reporterUid = user.uid,
+                            reporterName = user.displayName.orEmpty().take(100),
+                            questionId = questionId.take(200),
+                            questionText = questionText.take(1000),
+                            classId = classId.take(120),
+                            subjectId = subjectId.take(120),
+                            reason = reason.take(80),
+                            details = details.take(1000)
+                        )
+                    )
+                    withContext(Dispatchers.Main) {
+                        onComplete(
+                            result.isSuccess,
+                            if (result.isSuccess) "আপনার রিপোর্টটি অ্যাডমিনের কাছে পাঠানো হয়েছে।"
+                            else "রিপোর্ট পাঠানো যায়নি: ${result.exceptionOrNull()?.localizedMessage ?: "সংযোগ পরীক্ষা করে আবার চেষ্টা করুন"}"
+                        )
+                    }
+                }
+            }
+
+            fun refreshAdminContentReports() {
+                if (!isCurrentUserAdmin()) return
+                viewModelScope.launch(Dispatchers.IO) {
+                    _adminGovernanceState.update { it.copy(isLoadingReports = true, reportsError = null) }
+                    val result = firestoreService.getContentReports()
+                    _adminGovernanceState.update {
+                        if (result.isSuccess) {
+                            it.copy(
+                                reports = result.getOrDefault(emptyList()),
+                                isLoadingReports = false,
+                                reportsError = null
+                            )
+                        } else {
+                            it.copy(
+                                isLoadingReports = false,
+                                reportsError = result.exceptionOrNull()?.localizedMessage
+                                    ?: "রিপোর্ট লোড করা যায়নি। আবার চেষ্টা করুন।"
+                            )
+                        }
+                    }
+                }
+            }
+
+            fun updateAdminContentReport(
+                reportId: String,
+                status: String,
+                adminNote: String,
+                onComplete: (Boolean, String) -> Unit
+            ) {
+                if (!isCurrentUserAdmin()) {
+                    onComplete(false, "এই কাজের অনুমতি নেই।")
+                    return
+                }
+                viewModelScope.launch(Dispatchers.IO) {
+                    val user = authRepository.currentUserState
+                    val result = if (user != null) {
+                        firestoreService.updateContentReport(reportId, status, user.uid, adminNote)
+                    } else {
+                        Result.failure(IllegalStateException("Admin session expired"))
+                    }
+                    if (result.isSuccess) {
+                        _adminGovernanceState.update { state ->
+                            state.copy(
+                                reports = state.reports.map { report ->
+                                    if (report.id == reportId) {
+                                        report.copy(
+                                            status = status,
+                                            reviewedAt = System.currentTimeMillis(),
+                                            reviewedBy = user?.uid.orEmpty(),
+                                            adminNote = adminNote.take(1000)
+                                        )
+                                    } else report
+                                }
+                            )
+                        }
+                        recordAdminAction(
+                            action = "report_$status",
+                            entityType = "content_report",
+                            entityId = reportId,
+                            summary = "Updated content report status to $status"
+                        )
+                    }
+                    withContext(Dispatchers.Main) {
+                        onComplete(
+                            result.isSuccess,
+                            if (result.isSuccess) "রিপোর্টের অবস্থা আপডেট হয়েছে।"
+                            else "রিপোর্ট আপডেট করা যায়নি: ${result.exceptionOrNull()?.localizedMessage ?: "আবার চেষ্টা করুন"}"
+                        )
+                    }
+                }
+            }
+
+            fun refreshAdminActivityLog() {
+                if (!isCurrentUserAdmin()) return
+                viewModelScope.launch(Dispatchers.IO) {
+                    _adminGovernanceState.update { it.copy(isLoadingActivities = true, activitiesError = null) }
+                    val result = firestoreService.getAdminActivity()
+                    _adminGovernanceState.update {
+                        if (result.isSuccess) {
+                            it.copy(
+                                activities = result.getOrDefault(emptyList()),
+                                isLoadingActivities = false,
+                                activitiesError = null
+                            )
+                        } else {
+                            it.copy(
+                                isLoadingActivities = false,
+                                activitiesError = result.exceptionOrNull()?.localizedMessage
+                                    ?: "অ্যাক্টিভিটি লগ লোড করা যায়নি। আবার চেষ্টা করুন।"
+                            )
+                        }
+                    }
+                }
+            }
+
+            fun scanLocalContentQuality() {
+                if (!isCurrentUserAdmin()) return
+                viewModelScope.launch(Dispatchers.IO) {
+                    _adminGovernanceState.update { it.copy(isScanningQuality = true, qualityError = null) }
+                    try {
+                        val dao = database.deshExamDao()
+                        val subjects = dao.getAllSubjectsOnce()
+                        val chapters = dao.getAllChaptersOnce()
+                        val topics = dao.getAllTopicsOnce()
+                        val questions = dao.getAllQuestions()
+                        val chapterIds = chapters.mapTo(mutableSetOf()) { it.id }
+                        val subjectIds = subjects.mapTo(mutableSetOf()) { it.id }
+                        val topicIds = topics.mapTo(mutableSetOf()) { it.id }
+                        val issues = buildList {
+                            subjects.filter { it.name.isBlank() }.forEach {
+                                add(ContentQualityIssue("high", "Missing titles", "subject", it.id, "Subject name is blank"))
+                            }
+                            chapters.filter { it.title.isBlank() }.forEach {
+                                add(ContentQualityIssue("high", "Missing titles", "chapter", it.id, "Chapter title is blank"))
+                            }
+                            chapters.filter { chapter -> topics.none { it.chapterId == chapter.id } }.forEach {
+                                add(ContentQualityIssue("medium", "Empty chapters", "chapter", it.id, "Chapter has no topics"))
+                            }
+                            topics.filter { it.title.isBlank() }.forEach {
+                                add(ContentQualityIssue("high", "Missing titles", "topic", it.id, "Topic title is blank"))
+                            }
+                            topics.filter { it.chapterId !in chapterIds || it.subjectId !in subjectIds }.forEach {
+                                add(ContentQualityIssue("high", "Broken curriculum links", "topic", it.id, "Topic references a missing chapter or subject"))
+                            }
+                            topics.filter { it.contentData.isNullOrBlank() && it.summary.isBlank() }.forEach {
+                                add(ContentQualityIssue("low", "Thin topic content", "topic", it.id, "Topic has no notes or summary"))
+                            }
+                            questions.filter { it.question.isBlank() }.forEach {
+                                add(ContentQualityIssue("high", "Invalid questions", "question", it.id, "Question text is blank"))
+                            }
+                            questions.filter { question ->
+                                val optionCount = parseQualityOptions(question.optionsJson).size
+                                optionCount < 2 || question.correctOptionIndex !in 0 until optionCount
+                            }.forEach {
+                                add(ContentQualityIssue("high", "Invalid answers", "question", it.id, "Question options or correct-answer index are invalid"))
+                            }
+                            questions.filter { it.explanation.isBlank() }.forEach {
+                                add(ContentQualityIssue("low", "Missing explanations", "question", it.id, "Question has no explanation"))
+                            }
+                            questions.filter { it.topicId.isNotBlank() && it.topicId !in topicIds }.forEach {
+                                add(ContentQualityIssue("medium", "Broken question links", "question", it.id, "Question references a missing topic"))
+                            }
+                            questions.groupBy { it.question.trim().lowercase(java.util.Locale.ROOT) }
+                                .filterKeys { it.isNotBlank() }
+                                .filterValues { it.size > 1 }
+                                .values
+                                .flatten()
+                                .distinctBy { it.id }
+                                .forEach {
+                                    add(ContentQualityIssue("medium", "Possible duplicate questions", "question", it.id, "Question text appears more than once"))
+                                }
+                        }.take(500)
+                        _adminGovernanceState.update {
+                            it.copy(qualityIssues = issues, isScanningQuality = false, qualityError = null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DeshExamViewModel", "Content quality scan failed", e)
+                        _adminGovernanceState.update {
+                            it.copy(
+                                isScanningQuality = false,
+                                qualityError = e.localizedMessage ?: "Content scan failed"
+                            )
+                        }
+                    }
+                }
+            }
+
+            fun recordAdminAction(
+                action: String,
+                entityType: String,
+                entityId: String,
+                summary: String
+            ) {
+                if (!isCurrentUserAdmin()) return
+                viewModelScope.launch(Dispatchers.IO) {
+                    val user = authRepository.currentUserState ?: return@launch
+                    val result = firestoreService.recordAdminActivity(
+                        AdminActivityEvent(
+                            id = java.util.UUID.randomUUID().toString(),
+                            actorUid = user.uid,
+                            actorName = user.displayName.orEmpty().take(100),
+                            action = action.take(80),
+                            entityType = entityType.take(80),
+                            entityId = entityId.take(200),
+                            summary = summary
+                        )
+                    )
+                    if (result.isFailure) {
+                        Log.e(
+                            "DeshExamViewModel",
+                            "Failed to record admin action '$action'",
+                            result.exceptionOrNull()
+                        )
+                    }
+                }
+            }
+
+            private fun parseQualityOptions(optionsJson: String): List<String> {
+                if (optionsJson.isBlank()) return emptyList()
+                return if (optionsJson.trimStart().startsWith("[")) {
+                    try {
+                        val array = org.json.JSONArray(optionsJson)
+                        List(array.length()) { index -> array.optString(index).trim() }
+                            .filter { it.isNotBlank() }
+                    } catch (e: Exception) {
+                        Log.w("DeshExamViewModel", "Unable to parse options during quality scan", e)
+                        emptyList()
+                    }
+                } else {
+                    optionsJson.split("|").map { it.trim() }.filter { it.isNotBlank() }
+                }
+            }
 
     fun checkCloudDatabaseIntegrity() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -2310,6 +2585,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 }
                 loadLocalDatabaseStats()
                 checkCloudDatabaseIntegrity()
+                recordAdminAction(
+                    action = "full_backup",
+                    entityType = "database",
+                    entityId = "all",
+                    summary = "Completed full local database backup"
+                )
 
                 withContext(Dispatchers.Main) {
                     onProgress("সম্পন্ন", 1.0f)
@@ -2424,6 +2705,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
 
                 checkCloudDatabaseIntegrity()
                 withContext(Dispatchers.Main) {
+                    recordAdminAction(
+                        action = "questions_sync",
+                        entityType = "question_bank",
+                        entityId = "all",
+                        summary = "Synced $qSavedCount questions to Firebase"
+                    )
                     onComplete(true, "✅ সফলভাবে $qSavedCount টি প্রশ্ন ও PYQ ফায়ারবেস ক্লাউডে সিঙ্ক করা হয়েছে!")
                 }
             } catch (e: Exception) {
@@ -2506,6 +2793,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 Log.e("DeshExamViewModel", "Error inserting question to local DB: ${e.message}")
             }
 
+            recordAdminAction(
+                action = "question_create",
+                entityType = "question",
+                entityId = q.id,
+                summary = "Created question ${q.id}"
+            )
             withContext(Dispatchers.Main) {
                 val updated = _firestoreQuestions.value.filter { it.id != q.id } + q
                 _firestoreQuestions.value = updated
@@ -2568,6 +2861,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 Log.e("DeshExamViewModel", "Error updating question in local DB: ${e.message}")
             }
 
+            recordAdminAction(
+                action = "question_update",
+                entityType = "question",
+                entityId = question.id,
+                summary = "Updated question ${question.id}"
+            )
             withContext(Dispatchers.Main) {
                 val updated = _firestoreQuestions.value.map { if (it.id == question.id) question else it }
                 _firestoreQuestions.value = updated
@@ -2594,6 +2893,14 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 val updated = _firestoreQuestions.value.filter { it.id != questionId }
                 _firestoreQuestions.value = updated
                 onComplete(true, "প্রশ্নটি ফায়ারবেস ও লোকাল ডেটাবেজ থেকে মুছে ফেলা হয়েছে")
+            }
+            if (cloudRes.isSuccess) {
+                recordAdminAction(
+                    action = "question_delete",
+                    entityType = "question",
+                    entityId = questionId,
+                    summary = "Deleted question $questionId"
+                )
             }
         }
     }
@@ -3253,6 +3560,13 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     } catch (_: Exception) {}
                 }
 
+                recordAdminAction(
+                    action = "question_bulk_import",
+                    entityType = "question_bank",
+                    entityId = "$classId:$subjectId",
+                    summary = "Imported ${newQuestions.size} questions (cloud: $cloudSuccessCount/${newQuestions.size})"
+                )
+
                 withContext(Dispatchers.Main) {
                     onComplete(
                         true,
@@ -3550,6 +3864,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
                 
+                recordAdminAction(
+                    action = "curriculum_bulk_import",
+                    entityType = "subject",
+                    entityId = subjectId,
+                    summary = "Imported $chaptersImported chapters and $topicsImported topics"
+                )
                 withContext(Dispatchers.Main) {
                     onComplete(true, "কারিকুলাম ব্যাচ ইম্পোর্ট সফল হয়েছে! মোট $chaptersImported টি অধ্যায় এবং $topicsImported টি টপিক যুক্ত হয়েছে।", chaptersImported, topicsImported)
                 }
@@ -3787,6 +4107,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     
                     // 3. Update static provider list
                     com.example.data.model.AcademicClassProvider.addBoard(localBoard)
+                    recordAdminAction(
+                        action = "board_save",
+                        entityType = "education_board",
+                        entityId = board.id,
+                        summary = "Saved education board ${board.id}"
+                    )
                     
                     withContext(Dispatchers.Main) {
                         onComplete(true, "বোর্ড সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
@@ -3826,6 +4152,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                     
                     // 3. Update static provider list
                     com.example.data.model.AcademicClassProvider.addClass(localClass)
+                    recordAdminAction(
+                        action = "class_save",
+                        entityType = "academic_class",
+                        entityId = classItem.id,
+                        summary = "Saved academic class ${classItem.id}"
+                    )
                     
                     withContext(Dispatchers.Main) {
                         onComplete(true, "ক্লাস সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
@@ -3863,6 +4195,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         stream = subject.stream
                     )
                     database.deshExamDao().insertSubjects(listOf(subjectEntity))
+                    recordAdminAction(
+                        action = "subject_save",
+                        entityType = "subject",
+                        entityId = subject.id,
+                        summary = "Saved subject ${subject.id}"
+                    )
                     
                     withContext(Dispatchers.Main) {
                         onComplete(true, "বিষয় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
@@ -3885,6 +4223,14 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
             try {
                 val cloudRes = firestoreService.deleteSubject(subjectId)
                 database.deshExamDao().deleteSubjectById(subjectId)
+                if (cloudRes.isSuccess) {
+                    recordAdminAction(
+                        action = "subject_delete",
+                        entityType = "subject",
+                        entityId = subjectId,
+                        summary = "Deleted subject $subjectId"
+                    )
+                }
                 withContext(Dispatchers.Main) {
                     if (cloudRes.isSuccess) {
                         onComplete(true, "বিষয়টি সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে মুছে ফেলা হয়েছে!")
@@ -3937,6 +4283,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         solutionData = chapter.solutionData
                     )
                     database.deshExamDao().insertChapters(listOf(chapterEntity))
+                    recordAdminAction(
+                        action = "chapter_save",
+                        entityType = "chapter",
+                        entityId = chapter.id,
+                        summary = "Saved chapter ${chapter.id}"
+                    )
                     
                     withContext(Dispatchers.Main) {
                         onComplete(true, "অধ্যায় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
@@ -3995,6 +4347,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                         playlistJson = topic.playlistJson
                     )
                     database.deshExamDao().insertTopics(listOf(topicEntity))
+                    recordAdminAction(
+                        action = "topic_save",
+                        entityType = "topic",
+                        entityId = topic.id,
+                        summary = "Saved topic ${topic.id}"
+                    )
                     
                     withContext(Dispatchers.Main) {
                         onComplete(true, "টপিক সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজে যুক্ত করা হয়েছে!")
@@ -4027,6 +4385,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 val chapterResult = firestoreService.deleteChapter(chapterId)
                 if (chapterResult.isSuccess) {
                     database.deshExamDao().deleteChapterById(chapterId)
+                    recordAdminAction(
+                        action = "chapter_delete",
+                        entityType = "chapter",
+                        entityId = chapterId,
+                        summary = "Deleted chapter $chapterId"
+                    )
                     withContext(Dispatchers.Main) {
                         onComplete(true, "অধ্যায় সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে ডিলিট করা হয়েছে!")
                     }
@@ -4049,6 +4413,12 @@ class DeshExamViewModel(application: Application) : AndroidViewModel(application
                 val cloudRes = firestoreService.deleteTopic(topicId)
                 if (cloudRes.isSuccess) {
                     database.deshExamDao().deleteTopicById(topicId)
+                    recordAdminAction(
+                        action = "topic_delete",
+                        entityType = "topic",
+                        entityId = topicId,
+                        summary = "Deleted topic $topicId"
+                    )
                     withContext(Dispatchers.Main) {
                         onComplete(true, "টপিক সফলভাবে ফায়ারবেস ও লোকাল ডাটাবেজ থেকে ডিলিট করা হয়েছে!")
                     }

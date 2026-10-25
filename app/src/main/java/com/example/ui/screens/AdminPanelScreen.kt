@@ -113,7 +113,8 @@ fun AdminPanelScreen(
             Pair("📦 বাল্ক ইমপোর্ট (প্রশ্ন ও সিলেবাস)", Icons.Default.FileUpload),
             Pair("🏫 কারিকুলাম ম্যানেজার", Icons.Default.AddBusiness),
             Pair("⚡ ফায়ারস্টোর ইনডেক্স ম্যানেজার", Icons.Default.FlashOn),
-            Pair("🎙️ অডিও পডকাস্ট ম্যানেজমেন্ট", Icons.Default.Audiotrack)
+            Pair("🎙️ অডিও পডকাস্ট ম্যানেজমেন্ট", Icons.Default.Audiotrack),
+            Pair("🛡️ রিপোর্ট ও কনটেন্ট অডিট", Icons.Default.FactCheck)
         )
     }
 
@@ -315,6 +316,7 @@ fun AdminPanelScreen(
                     7 -> "কারিকুলাম ম্যানেজার" to "🛠️ অ্যাডমিন কন্ট্রোল প্যানেল"
                     8 -> "ফায়ারস্টোর ইনডেক্স ম্যানেজার" to "🛠️ অ্যাডমিন কন্ট্রোল প্যানেল"
                     9 -> "🎙️ পডকাস্ট ব্যবস্থাপনা" to "অডিও লেকচার ও রিভিশন হাব"
+                    10 -> "রিপোর্ট ও কনটেন্ট অডিট" to "রিপোর্ট, গুণমান ও অ্যাডমিন কার্যকলাপ"
                     else -> "🛠️ অ্যাডমিন কন্ট্রোল প্যানেল" to "ম্যানেজমেন্ট মডিউল"
                 }
 
@@ -461,6 +463,7 @@ fun AdminPanelScreen(
                             actionSuccess = success
                             actionMessage = msg
                         },
+                        onNavigate = { destination -> selectedTab = destination },
                         modifier = Modifier.weight(1f)
                     )
                     1 -> AdminAddQuestionScreen(
@@ -537,6 +540,15 @@ fun AdminPanelScreen(
                         modifier = Modifier.weight(1f)
                     )
                     9 -> AdminPodcastScreen(
+                        viewModel = viewModel,
+                        isBengali = isBengali,
+                        onAction = { success, msg ->
+                            actionSuccess = success
+                            actionMessage = msg
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    10 -> AdminGovernanceScreen(
                         viewModel = viewModel,
                         isBengali = isBengali,
                         onAction = { success, msg ->

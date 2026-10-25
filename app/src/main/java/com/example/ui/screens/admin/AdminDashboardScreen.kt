@@ -16,6 +16,7 @@ fun AdminDashboardScreen(
     isLoading: Boolean,
     isBengali: Boolean = true,
     onAction: (Boolean, String) -> Unit,
+    onNavigate: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AdminDashboardHomeTab(
@@ -23,6 +24,8 @@ fun AdminDashboardScreen(
         backupState = backupState,
         isLoading = isLoading,
         isBengali = isBengali,
-        onAction = onAction
+        onAction = onAction,
+        onNavigate = onNavigate,
+        modifier = modifier
     )
 }

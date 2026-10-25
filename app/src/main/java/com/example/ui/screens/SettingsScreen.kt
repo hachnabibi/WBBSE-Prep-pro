@@ -1043,9 +1043,9 @@ fun GovernmentDisclaimerCard(
                 )
                 Text(
                     text = if (isBengali)
-                        "'DeshExam (WBBSE Prep)' একটি স্বাধীন বেসরকারি শিক্ষামূলক প্ল্যাটফর্ম। এটি পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ (WBBSE) বা পশ্চিমবঙ্গ সরকারের কোনো সরকারি দপ্তর বা কর্তৃপক্ষের সাথে সরাসরি যুক্ত, অনুমোদিত বা তাদের প্রতিনিধিত্বকারী নয়।"
+                        "'DeshExam (WBBSE Prep)' একটি স্বাধীন বেসরকারি শিক্ষামূলক প্ল্যাটফর্ম। এটি পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ (WBBSE), পশ্চিমবঙ্গ উচ্চমাধ্যমিক শিক্ষা সংসদ (WBCHSE), পশ্চিমবঙ্গ প্রাথমিক শিক্ষা পর্ষদ (WBBPE) বা সরকারের কোনো দপ্তরের সাথে সরাসরি যুক্ত, অনুমোদিত বা তাদের প্রতিনিধিত্বকারী নয়।"
                     else
-                        "DeshExam (WBBSE Prep) is an independent private educational app. It is NOT an official app of any government entity and is NOT affiliated with, authorized by, or endorsed by the West Bengal Board of Secondary Education (WBBSE) or any government body.",
+                        "DeshExam (WBBSE Prep) is an independent private educational app. It is NOT an official app of any government entity and is NOT affiliated with, authorized by, or endorsed by WBBSE, WBCHSE, WBBPE or any government body.",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1067,6 +1067,7 @@ fun GovernmentDisclaimerCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                // Row 1: WBBSE & WBCHSE
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1087,7 +1088,55 @@ fun GovernmentDisclaimerCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Text("wbbse.wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            Text("wbbse.wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wbchse.wb.gov.in"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f).testTag("gov_link_wbchse_btn")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Text("wbchse.wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
+                        }
+                    }
+                }
+
+                // Row 2: WBBPE & WB GOVT
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wbbpe.wb.gov.in"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f).testTag("gov_link_wbbpe_btn")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Text("wbbpe.wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
                             Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
                         }
                     }
@@ -1108,7 +1157,7 @@ fun GovernmentDisclaimerCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Text("wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            Text("wb.gov.in", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
                             Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
                         }
                     }

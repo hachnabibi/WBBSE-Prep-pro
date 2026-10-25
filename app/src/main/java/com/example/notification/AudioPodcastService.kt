@@ -17,6 +17,8 @@ import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat.MediaStyle
+import com.example.R
 import com.example.MainActivity
 import com.example.ui.screens.AudioPodcast
 import com.example.util.AudioPodcastManager
@@ -650,7 +652,7 @@ class AudioPodcastService : Service(),
         val playPauseTitle = if (isPlaying) "বিরতি" else "চালান"
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.presence_video_online)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(podcast.title)
             .setContentText("${podcast.subject} • ${podcast.narrator}")
             .setSubText(podcast.className)
@@ -660,6 +662,10 @@ class AudioPodcastService : Service(),
             .setContentIntent(contentPendingIntent)
             .addAction(playPauseIcon, playPauseTitle, playPausePendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "বন্ধ করুন", stopPendingIntent)
+            .setStyle(
+                MediaStyle()
+                    .setShowActionsInCompactView(0, 1)
+            )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -998,6 +999,12 @@ fun LiveQuizScreen(
     // 1 MINUTE (60 SECONDS) PER QUESTION as requested!
     var questionTimer by remember { mutableIntStateOf(60) }
     var hasRewardedBonus by remember { mutableStateOf(false) }
+    var showQuestionReportDialog by rememberSaveable { mutableStateOf(false) }
+    var reportReason by rememberSaveable { mutableStateOf("wrong_answer") }
+    var reportDetails by rememberSaveable { mutableStateOf("") }
+    var isSubmittingReport by remember { mutableStateOf(false) }
+    var reportSent by remember { mutableStateOf(false) }
+    var reportError by remember { mutableStateOf<String?>(null) }
 
     // Pulsating animation for the top LIVE red dot
     val infiniteTransition = rememberInfiniteTransition(label = "live_pulse")
@@ -2122,6 +2129,29 @@ fun LiveQuizScreen(
                                     ),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            reportReason = "wrong_answer"
+                                            reportDetails = ""
+                                            reportError = null
+                                            reportSent = false
+                                            showQuestionReportDialog = true
+                                        },
+                                        enabled = viewModel != null
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Flag,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(if (isBengali) "প্রশ্নটি রিপোর্ট করুন" else "Report question")
+                                    }
+                                }
                             }
                         }
 
@@ -2193,6 +2223,7 @@ fun LiveQuizScreen(
                                                 } else {
                                                     gameState = "RESULT"
                                                 }
+
                                             }
                                         }
                                 ) {
@@ -2557,6 +2588,119 @@ fun LiveQuizScreen(
                 }
             }
         }
+    }
+
+    if (showQuestionReportDialog) {
+        val reasons = listOf(
+            "wrong_answer" to if (isBengali) "উত্তর ভুল" else "Incorrect answer",
+            "unclear_question" to if (isBengali) "প্রশ্ন অস্পষ্ট" else "Unclear question",
+            "typo" to if (isBengali) "বানান বা টাইপের ভুল" else "Typo or formatting issue",
+            "other" to if (isBengali) "অন্যান্য" else "Other"
+        )
+        AlertDialog(
+            onDismissRequest = { if (!isSubmittingReport) showQuestionReportDialog = false },
+            icon = { Icon(Icons.Default.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    if (reportSent) {
+                        if (isBengali) "রিপোর্ট পাঠানো হয়েছে" else "Report submitted"
+                    } else {
+                        if (isBengali) "প্রশ্ন রিপোর্ট করুন" else "Report this question"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                if (reportSent) {
+                    Text(if (isBengali) "ধন্যবাদ। আমাদের অ্যাডমিন টিম রিপোর্টটি পর্যালোচনা করবে।" else "Thank you. Our admin team will review this report.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (isBengali) "সমস্যার ধরন বেছে নিন" else "Choose a reason",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        reasons.forEach { (id, label) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !isSubmittingReport) { reportReason = id },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = reportReason == id,
+                                    onClick = { reportReason = id },
+                                    enabled = !isSubmittingReport
+                                )
+                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        OutlinedTextField(
+                            value = reportDetails,
+                            onValueChange = { if (it.length <= 1000) reportDetails = it },
+                            label = { Text(if (isBengali) "বিস্তারিত (ঐচ্ছিক)" else "Details (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            enabled = !isSubmittingReport
+                        )
+                        reportError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (reportSent) {
+                    TextButton(onClick = { showQuestionReportDialog = false }) {
+                        Text(if (isBengali) "ঠিক আছে" else "Done")
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            val activeQuestion = activeQuestions.getOrNull(currentQuestionIndex) ?: return@Button
+                            isSubmittingReport = true
+                            reportError = null
+                            viewModel?.submitQuestionContentReport(
+                                questionId = activeQuestion.id,
+                                questionText = if (isBengali) activeQuestion.questionBengali else activeQuestion.questionEnglish,
+                                classId = dbQuestions.firstOrNull { it.id == activeQuestion.id }?.classId.orEmpty(),
+                                subjectId = dbQuestions.firstOrNull { it.id == activeQuestion.id }?.subjectId
+                                    ?: selectedArena?.id.orEmpty(),
+                                reason = reasons.firstOrNull { it.first == reportReason }?.second.orEmpty(),
+                                details = reportDetails
+                            ) { success, message ->
+                                isSubmittingReport = false
+                                if (success) reportSent = true else reportError = message
+                            }
+                        },
+                        enabled = !isSubmittingReport
+                    ) {
+                        if (isSubmittingReport) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(if (isSubmittingReport) {
+                            if (isBengali) "পাঠানো হচ্ছে..." else "Submitting..."
+                        } else {
+                            if (isBengali) "রিপোর্ট পাঠান" else "Submit report"
+                        })
+                    }
+                }
+            },
+            dismissButton = {
+                if (!reportSent) {
+                    TextButton(
+                        onClick = { showQuestionReportDialog = false },
+                        enabled = !isSubmittingReport
+                    ) {
+                        Text(if (isBengali) "বাতিল" else "Cancel")
+                    }
+                }
+            }
+        )
     }
 }
 
