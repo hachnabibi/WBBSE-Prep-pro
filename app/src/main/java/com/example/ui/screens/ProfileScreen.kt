@@ -529,7 +529,7 @@ fun ProfileScreen(
                             )
                             ProfileStatCapsule(
                                 icon = Icons.Default.Leaderboard,
-                                value = "#${profile.rankState}",
+                                value = if (profile.rankState > 0) "#${profile.rankState}" else "—",
                                 label = "র‍্যাঙ্ক",
                                 accentColor = Color(0xFF34D399),
                                 modifier = Modifier.weight(1f)
