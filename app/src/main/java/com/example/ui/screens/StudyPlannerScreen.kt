@@ -38,17 +38,7 @@ fun StudyPlannerScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var tasks by remember {
-        mutableStateOf(
-            listOf(
-                StudyTask(1, "গণিত: বীজগণিত ও উপপাদ্য ২ ঘণ্টা প্র্যাকটিস", "গণিত", false),
-                StudyTask(2, "ভৌতবিজ্ঞান: আলো ও চলড়িৎ চ্যাপ্টার রিভিশন", "ভৌতবিজ্ঞান", true),
-                StudyTask(3, "বাংলা: কণি উপন্যাস ও প্রবন্ধ লিখন অনুশীলন", "বাংলা", false),
-                StudyTask(4, "ইংরেজি: আনসিন প্যাসেজ ও গ্রামার সলভ", "ইংরেজি", false),
-                StudyTask(5, "ইতিহাস: ১৯৫৭ মহাবিদ্রোহ ও ম্যাপ পয়েন্টিং", "ইতিহাস", false)
-            )
-        )
-    }
+    var tasks by remember { mutableStateOf(emptyList<StudyTask>()) }
 
     var newTaskText by remember { mutableStateOf("") }
 
@@ -148,6 +138,16 @@ fun StudyPlannerScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f)
             ) {
+                if (tasks.isEmpty()) {
+                    item {
+                        Text(
+                            text = if (isBengali) "এখনও কোনো কাজ যোগ করা হয়নি। উপরের ঘর থেকে আজকের লক্ষ্য যোগ করুন।" else "No tasks yet. Add a goal above to plan your study day.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                        )
+                    }
+                }
                 items(tasks) { task ->
                     Card(
                         shape = RoundedCornerShape(16.dp),
