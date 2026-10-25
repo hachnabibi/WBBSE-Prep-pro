@@ -817,7 +817,7 @@ fun ProfileScreen(
                                 )
                             }
 
-                            val readiness = profile.examReadinessPercentage.coerceIn(10, 100)
+                            val readiness = profile.examReadinessPercentage.coerceIn(0, 100)
                             val statusColor = when {
                                 readiness >= 80 -> CorrectGreen
                                 readiness >= 60 -> ExamGold
@@ -901,7 +901,7 @@ fun ProfileScreen(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "গত সপ্তাহের তুলনায় +৮% বৃদ্ধি",
+                                        text = "পর্যাপ্ত তথ্য নেই",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = CorrectGreen
                                     )
@@ -936,18 +936,18 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val studyHours = (profile.totalQuestionsAnswered * 2.2 / 60).toInt() + 14
+                                val studyHours = profile.totalQuestionsAnswered * 2 / 60
                                 MetricHighlightCard(
                                     title = "মোট অধ্যয়ন সময়",
-                                    value = "$studyHours ঘণ্টা",
+                                    value = if (studyHours > 0) "$studyHours ঘণ্টা" else "—",
                                     icon = Icons.Default.AccessTime,
                                     color = Color(0xFF06B6D4),
                                     modifier = Modifier.weight(1f)
                                 )
-                                val mockTestsCount = profile.subjectMockScores.size.coerceAtLeast(6)
+                                val mockTestsCount = profile.subjectMockScores.size
                                 MetricHighlightCard(
-                                    title = "মক টেস্ট সম্পন্ন",
-                                    value = "$mockTestsCount টি",
+                                    title = "স্কোরসহ বিষয়",
+                                    value = if (mockTestsCount > 0) "$mockTestsCount টি" else "—",
                                     icon = Icons.Default.AssignmentTurnedIn,
                                     color = Color(0xFF8B5CF6),
                                     modifier = Modifier.weight(1f)
