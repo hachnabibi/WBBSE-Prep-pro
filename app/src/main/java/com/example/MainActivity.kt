@@ -137,6 +137,7 @@ fun DeshExamApp(
     val recentlyViewed by viewModel.recentlyViewed.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val dailyQuests by viewModel.dailyQuests.collectAsStateWithLifecycle()
+    val weakTopics by viewModel.weakTopics.collectAsStateWithLifecycle()
     val aiCoachInsight by viewModel.aiCoachInsight.collectAsStateWithLifecycle()
     val activeStudentsCount by viewModel.activeStudentsCount.collectAsStateWithLifecycle()
     val activeSubjectStudents by viewModel.activeSubjectStudents.collectAsStateWithLifecycle()
@@ -407,6 +408,7 @@ fun DeshExamApp(
                         recentlyViewed = recentlyViewed,
                         bookmarks = bookmarks,
                         activeStudentsCount = activeStudentsCount,
+                        hasWeakTopics = weakTopics.isNotEmpty(),
                         isBengali = isBengali,
                         isDark = settings.isDarkMode,
                         onStartAssessment = { mode, targetId, title ->
