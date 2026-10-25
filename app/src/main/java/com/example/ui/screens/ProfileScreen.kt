@@ -936,10 +936,10 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val studyHours = profile.totalQuestionsAnswered * 2 / 60
+                                val studyHours: Int? = null
                                 MetricHighlightCard(
                                     title = "মোট অধ্যয়ন সময়",
-                                    value = if (studyHours > 0) "$studyHours ঘণ্টা" else "—",
+                                    value = studyHours?.let { "$it ঘণ্টা" } ?: "—",
                                     icon = Icons.Default.AccessTime,
                                     color = Color(0xFF06B6D4),
                                     modifier = Modifier.weight(1f)
